@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="readmestuff/app_icon_512.png" width="96" height="96" alt="Pulse logo" />
   <h1>Pulse</h1>
   <p><strong>A health app for Android in Material 3 Expressive. It reads your data from Health Connect, keeps up to ten years of daily values on the phone, and sends nothing anywhere.</strong></p>
 
