@@ -22,6 +22,7 @@ class MetricCard extends StatelessWidget {
     this.unit,
     this.tone = Tone.neutral,
     this.footer,
+    this.trailing,
     this.onTap,
     this.height = 176,
   });
@@ -33,6 +34,9 @@ class MetricCard extends StatelessWidget {
   final Shapes shape;
   final Tone tone;
   final Widget? footer;
+
+  /// Sits at the end of the title row, e.g. a small progress ring.
+  final Widget? trailing;
   final void Function(Rect origin)? onTap;
   final double height;
 
@@ -88,6 +92,7 @@ class MetricCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      ?trailing,
                     ],
                   ),
                   const Spacer(),

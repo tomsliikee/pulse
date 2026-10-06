@@ -105,6 +105,8 @@ sequenceDiagram
 - **Health Connect as the Only Source:** Steps, distance, calories, sleep, heart rate and the rest come from **Health Connect**, so data from the phone, a **Fitbit** or any other app that writes there shows up without a separate sign-in.
 - **No Double Counting:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
 - **Four Pages of Tiles:** **Heute**, **Aktivität**, **Schlaf** and **Herz**. **Heute** always shows the current day.
+- **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement Health Connect has data for, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
+- **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
 - **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt**, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
 - **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
 - **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page.
@@ -117,7 +119,7 @@ sequenceDiagram
 
 ![Period tabs on the steps metric](readmestuff/detail.png)
 
-![Edit mode with a lifted tile, the meal sheet, and the dark theme](readmestuff/editing.png)
+![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
 
 ---
 
@@ -159,11 +161,11 @@ An average counts only days **with** data; a day without a measurement is not a 
 
 | Platform | Runner | Status |
 | :--- | :--- | :--- |
-| **Android 8.0+** (API 26) | **`android/`** | ***Tested*** in part: installed and started on a **Pixel 10 Pro** and a **Nothing Phone**; the app found Health Connect, took the system palette and opened the permission dialog. Reading real data, the backfill, and writing or deleting an entry have ***not*** been tested on a device yet |
+| **Android 8.0+** (API 26) | **`android/`** | ***Tested*** in part: on a **Pixel 10 Pro** the app read 30 days of real data and loaded older data back to 2017; steps and energy agreed with the Fitbit app once it had synced to Health Connect. Writing, editing and deleting an entry have ***not*** been tested on a device yet |
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **99** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **115** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -233,7 +235,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | :--- | :--- |
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
-| **`settings.json`** | Goals, theme, the Material You switch, tile order per page |
+| **`settings.json`** | Goals, theme, the Material You switch, tile order per page, the tiles on Heute and their sizes |
 | **`backfill.json`** | How far back the one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.

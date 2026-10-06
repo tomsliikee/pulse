@@ -26,6 +26,9 @@ class BoardTile {
     required this.height,
     required this.child,
     this.span = TileSpan.full,
+    this.large = false,
+    this.onRemove,
+    this.onResize,
   });
 
   /// Stable across releases; the saved order refers to it.
@@ -33,6 +36,15 @@ class BoardTile {
   final TileSpan span;
   final double height;
   final Widget child;
+
+  /// Whether the tile is in its large form; picks the resize button's icon.
+  final bool large;
+
+  /// Offered as a minus in the corner while the board is edited.
+  final VoidCallback? onRemove;
+
+  /// Offered as a second corner button while the board is edited.
+  final VoidCallback? onResize;
 }
 
 /// The tiles in display order: the [saved] ids that still exist, followed by
@@ -286,11 +298,24 @@ class _Slot extends StatelessWidget {
   final Duration holdDelay;
   final Drag? Function(Offset position) onDragStart;
 
+  /// How far the slot reaches beyond its tile, so the corner buttons can
+  /// sit on the tile's corner and still be hit.
+  static const _reach = 12.0;
+
   @override
   Widget build(BuildContext context) {
     final shadow = Theme.of(context).colorScheme.shadow;
 
-    Widget content = IgnorePointer(ignoring: editing, child: tile.child);
+    // The tile is always laid out at the size it is heading for and scaled
+    // into the slot, so a tile that is growing or shrinking never has to fit
+    // its content into a size it was not made for.
+    Widget content = IgnorePointer(
+      ignoring: editing,
+      child: FittedBox(
+        fit: BoxFit.fill,
+        child: SizedBox.fromSize(size: rect.size, child: tile.child),
+      ),
+    );
     content = SingleMotionBuilder(
       value: lifted ? 1 : 0,
       motion: AppMotion.spatialFast,
@@ -314,6 +339,54 @@ class _Slot extends StatelessWidget {
       ),
       child: content,
     );
+    final onRemove = tile.onRemove;
+    final onResize = tile.onResize;
+    content = Stack(
+      fit: StackFit.expand,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(_reach),
+          child: RawGestureDetector(
+            gestures: {
+              if (editing)
+                DelayedMultiDragGestureRecognizer:
+                    GestureRecognizerFactoryWithHandlers<
+                      DelayedMultiDragGestureRecognizer
+                    >(
+                      () => DelayedMultiDragGestureRecognizer(delay: holdDelay),
+                      (recognizer) => recognizer.onStart = onDragStart,
+                    ),
+            },
+            child: content,
+          ),
+        ),
+        // Above the drag area, so a tap on a button never lifts the tile.
+        if (onRemove != null)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: _CornerButton(
+              visible: editing && !lifted,
+              icon: Icons.remove_rounded,
+              tooltip: 'Entfernen',
+              onPressed: onRemove,
+            ),
+          ),
+        if (onResize != null)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: _CornerButton(
+              visible: editing && !lifted,
+              icon: tile.large
+                  ? Icons.close_fullscreen_rounded
+                  : Icons.open_in_full_rounded,
+              tooltip: tile.large ? 'Verkleinern' : 'Vergrössern',
+              onPressed: onResize,
+            ),
+          ),
+      ],
+    );
     content = AnimatedBuilder(
       animation: wiggle,
       // The swing shrinks with the tile's width so a wide tile's corners do
@@ -326,20 +399,6 @@ class _Slot extends StatelessWidget {
       ),
       child: content,
     );
-    content = RawGestureDetector(
-      gestures: {
-        if (editing)
-          DelayedMultiDragGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<
-                DelayedMultiDragGestureRecognizer
-              >(
-                () => DelayedMultiDragGestureRecognizer(delay: holdDelay),
-                (recognizer) => recognizer.onStart = onDragStart,
-              ),
-      },
-      child: content,
-    );
-
     return MotionBuilder<Rect>(
       value: rect,
       motion: AppMotion.spatial,
@@ -348,8 +407,55 @@ class _Slot extends StatelessWidget {
       active: !lifted,
       converter: MotionConverter.rect,
       builder: (context, current, child) =>
-          Positioned.fromRect(rect: current, child: child!),
+          Positioned.fromRect(rect: current.inflate(_reach), child: child!),
       child: content,
+    );
+  }
+}
+
+/// A small round button in a tile's corner, shown only while editing.
+class _CornerButton extends StatelessWidget {
+  const _CornerButton({
+    required this.visible,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final bool visible;
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SingleMotionBuilder(
+      value: visible ? 1 : 0,
+      motion: AppMotion.spatialFast,
+      builder: (context, t, child) => t <= 0.01
+          ? const SizedBox.shrink()
+          : Transform.scale(scale: t, child: child),
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: IconButton(
+          onPressed: () {
+            Haptics.tap();
+            onPressed();
+          },
+          tooltip: tooltip,
+          iconSize: 16,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 26, height: 26),
+          style: IconButton.styleFrom(
+            backgroundColor: scheme.inverseSurface,
+            foregroundColor: scheme.onInverseSurface,
+            // The visible disc is small; the touch area around it is not.
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+          icon: Icon(icon),
+        ),
+      ),
     );
   }
 }

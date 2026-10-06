@@ -81,9 +81,9 @@ void main() {
 
     testWidgets('a tile opens its detail page at $label', (tester) async {
       await pumpApp(tester, size: size);
-      await tester.ensureVisible(find.text('Ruhepuls'));
+      await tester.ensureVisible(find.text('Herzfrequenz'));
       await advance(tester);
-      await tester.tap(find.text('Ruhepuls'));
+      await tester.tap(find.text('Herzfrequenz'));
       await advance(tester);
       // Opens on today; the other spans are one tab away.
       expect(find.text('Gestern'), findsWidgets);

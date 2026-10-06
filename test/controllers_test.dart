@@ -181,6 +181,52 @@ void main() {
     });
   });
 
+  group('Today tiles in the settings', () {
+    test('start with the default set and sizes', () {
+      final settings = SettingsController(MemoryJsonStore());
+
+      expect(settings.todayTiles, defaultTodayTiles);
+      expect(settings.todayTiles, contains('heartRate'));
+      expect(settings.todayTiles, isNot(contains('restingHeartRate')));
+      expect(settings.isLargeTile('steps'), isTrue);
+      expect(settings.isLargeTile('water'), isFalse);
+    });
+
+    test('adding, removing and resizing are saved', () async {
+      final store = MemoryJsonStore();
+      SettingsController(store)
+        ..removeTodayTile('steps')
+        ..addTodayTile('distance')
+        ..addTodayTile('distance')
+        ..toggleTileSize('water')
+        ..toggleTileSize('energyIntake');
+      await Future<void>.delayed(Duration.zero);
+
+      final loaded = SettingsController(store);
+      await loaded.load();
+
+      expect(loaded.todayTiles, isNot(contains('steps')));
+      expect(loaded.todayTiles.where((id) => id == 'distance'), hasLength(1));
+      expect(loaded.isLargeTile('water'), isTrue);
+      expect(loaded.isLargeTile('energyIntake'), isFalse);
+    });
+
+    test('unknown and repeated ids are dropped on load', () async {
+      final store = MemoryJsonStore();
+      await store.write(StoreKeys.settings, {
+        'todayTiles': ['water', 'unicorns', 7, 'water', 'workout'],
+        'largeTiles': ['water', 'unicorns'],
+      });
+      final settings = SettingsController(store);
+
+      await settings.load();
+
+      expect(settings.todayTiles, ['water', 'workout']);
+      expect(settings.isLargeTile('water'), isTrue);
+      expect(settings.isLargeTile('unicorns'), isFalse);
+    });
+  });
+
   group('FileJsonStore', () {
     late Directory directory;
 

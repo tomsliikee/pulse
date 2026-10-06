@@ -85,3 +85,18 @@ String formatClock(int minuteOfDay) {
 
 /// 6 becomes "06:00".
 String formatClockHour(int hour) => '${hour.toString().padLeft(2, '0')}:00';
+
+/// "heute", "gestern" or the short date, for a value that may be older.
+String formatRelativeDay(DateTime date, DateTime today) {
+  final days = DateTime(
+    today.year,
+    today.month,
+    today.day,
+  ).difference(DateTime(date.year, date.month, date.day)).inHours;
+  // Hours, rounded, so a daylight-saving day still counts as one day.
+  return switch ((days / 24).round()) {
+    0 => 'heute',
+    1 => 'gestern',
+    _ => formatShortDate(date),
+  };
+}

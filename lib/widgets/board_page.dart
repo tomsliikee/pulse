@@ -21,6 +21,7 @@ class BoardPage extends StatefulWidget {
     this.trailing,
     this.strip,
     this.editMenu,
+    this.editFooter,
     this.footer,
   });
 
@@ -35,6 +36,9 @@ class BoardPage extends StatefulWidget {
 
   /// Options that are only offered while the page is being edited.
   final Widget? editMenu;
+
+  /// Follows the board, and like [editMenu] only shows while editing.
+  final Widget? editFooter;
 
   /// Follows the board and cannot be rearranged.
   final Widget? footer;
@@ -57,6 +61,7 @@ class _BoardPageState extends State<BoardPage> {
     final scope = AppScope.of(context);
     final strip = widget.strip;
     final editMenu = widget.editMenu;
+    final editFooter = widget.editFooter;
     return M3EPullToRefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
@@ -71,29 +76,11 @@ class _BoardPageState extends State<BoardPage> {
           ),
           if (strip != null) ...[strip, const SizedBox(height: 16)],
           if (editMenu != null)
-            // Unfolds with the edit mode instead of popping in.
-            SingleMotionBuilder(
-              value: _editing ? 1 : 0,
-              motion: AppMotion.spatialFast,
-              builder: (context, t, child) => ClipRect(
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  heightFactor: t < 0 ? 0 : t,
-                  child: Opacity(
-                    opacity: t.clamp(0, 1).toDouble(),
-                    child: child,
-                  ),
-                ),
-              ),
-              child: ExcludeFocus(
-                excluding: !_editing,
-                child: IgnorePointer(
-                  ignoring: !_editing,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: editMenu,
-                  ),
-                ),
+            _EditOnly(
+              editing: _editing,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: editMenu,
               ),
             ),
           ListenableBuilder(
@@ -106,8 +93,46 @@ class _BoardPageState extends State<BoardPage> {
                   scope.settings.setTileOrder(widget.pageId, order),
             ),
           ),
+          if (editFooter != null)
+            _EditOnly(
+              editing: _editing,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 28),
+                child: editFooter,
+              ),
+            ),
           ?widget.footer,
         ],
+      ),
+    );
+  }
+}
+
+/// Unfolds [child] with the edit mode instead of popping it in.
+class _EditOnly extends StatelessWidget {
+  const _EditOnly({required this.editing, required this.child});
+
+  final bool editing;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleMotionBuilder(
+      value: editing ? 1 : 0,
+      motion: AppMotion.spatialFast,
+      // Folded away, it is not built at all.
+      builder: (context, t, child) => t <= 0.001 && !editing
+          ? const SizedBox.shrink()
+          : ClipRect(
+              child: Align(
+                alignment: Alignment.topCenter,
+                heightFactor: t < 0 ? 0 : t,
+                child: Opacity(opacity: t.clamp(0, 1).toDouble(), child: child),
+              ),
+            ),
+      child: ExcludeFocus(
+        excluding: !editing,
+        child: IgnorePointer(ignoring: !editing, child: child),
       ),
     );
   }

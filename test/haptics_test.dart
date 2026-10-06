@@ -48,7 +48,7 @@ void main() {
     final played = _recordHaptics(tester);
 
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('Ruhepuls')),
+      tester.getCenter(find.text('Herzfrequenz')),
     );
     await tester.pump();
     expect(played, ['HapticFeedbackType.lightImpact']);
@@ -65,7 +65,7 @@ void main() {
     final played = _recordHaptics(tester);
 
     final gesture = await tester.startGesture(
-      tester.getCenter(find.text('Ruhepuls')),
+      tester.getCenter(find.text('Herzfrequenz')),
     );
     await tester.pump(const Duration(milliseconds: 300));
     expect(played, contains('HapticFeedbackType.mediumImpact'));
