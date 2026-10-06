@@ -1,0 +1,276 @@
+import 'package:flutter/foundation.dart';
+
+import 'health_history.dart';
+import 'health_repository.dart';
+import 'health_snapshot.dart';
+import 'json_store.dart';
+import 'metric_catalog.dart';
+import 'models.dart';
+
+enum HealthStatus {
+  /// Nothing to show yet.
+  loading,
+  needsAccess,
+  unavailable,
+  unsupported,
+  ready,
+
+  /// Reading failed and there is no earlier snapshot to fall back on.
+  failed,
+}
+
+/// Holds the current snapshot, the selected day and the loading state.
+class HealthController extends ChangeNotifier {
+  HealthController({
+    required this._repository,
+    required this._store,
+    this._clock = DateTime.now,
+  });
+
+  final HealthRepository _repository;
+  final JsonStore _store;
+  final DateTime Function() _clock;
+  late final HistoryArchive _archive = HistoryArchive(_store);
+
+  /// How many days one request for older data covers.
+  static const int backfillChunkDays = 90;
+
+  /// Empty stretches in a row after which older data is assumed not to exist.
+  static const int _emptyChunksToStop = 2;
+
+  static const int weekLength = 7;
+
+  HealthStatus _status = HealthStatus.loading;
+  HealthSnapshot? _snapshot;
+  int _selectedIndex = 0;
+  bool _refreshing = false;
+  bool _backgroundAccess = false;
+  HealthHistory? _history;
+  DateTime? _backfillReached;
+  bool _backfilling = false;
+  bool _disposed = false;
+
+  HealthStatus get status => _status;
+  bool get refreshing => _refreshing;
+  bool get backgroundAccess => _backgroundAccess;
+
+  /// One value per day for as long as the app has been collecting. Null
+  /// until it has been loaded from disk.
+  HealthHistory? get history => _history;
+
+  /// While older data is being fetched: the day it has reached so far.
+  DateTime? get backfillReached => _backfilling ? _backfillReached : null;
+
+  DateTime get today {
+    final now = _clock();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  /// Only valid while [status] is [HealthStatus.ready].
+  HealthSnapshot get snapshot => _snapshot!;
+
+  int get selectedIndex => _selectedIndex;
+  int get todayIndex => snapshot.dayCount - 1;
+  bool get isTodaySelected => _selectedIndex == todayIndex;
+  DateTime get selectedDate => snapshot.dateAt(_selectedIndex);
+
+  /// Index of the first day of the most recent week.
+  int get weekStart => snapshot.dayCount - weekLength;
+
+  double? value(Metric metric) => snapshot.value(metric, _selectedIndex);
+
+  double? valueAt(Metric metric, int index) => snapshot.value(metric, index);
+
+  SleepNight? get night => snapshot.nights[_selectedIndex];
+
+  List<HeartSample> get heartSamples => snapshot.heart[_selectedIndex];
+
+  Workout? get latestWorkout =>
+      snapshot.workouts.isEmpty ? null : snapshot.workouts.last;
+
+  /// Shows the saved snapshot at once, then checks access and reads fresh.
+  Future<void> start() async {
+    final saved = HealthSnapshot.fromJson(
+      await _store.read(StoreKeys.snapshot),
+    );
+    final history = await _archive.load(_clock());
+    if (_disposed) return;
+    _history = history;
+    if (saved != null) _show(saved);
+    await refresh();
+    if (_disposed || _status != HealthStatus.ready) return;
+    await _backfill();
+  }
+
+  Future<void> refresh() async {
+    if (_refreshing) return;
+    _refreshing = true;
+    if (!_disposed) notifyListeners();
+    try {
+      final access = await _repository.access();
+      if (_disposed) return;
+      if (access != HealthAccess.granted) {
+        _snapshot = null;
+        _status = switch (access) {
+          HealthAccess.denied => HealthStatus.needsAccess,
+          HealthAccess.unavailable => HealthStatus.unavailable,
+          _ => HealthStatus.unsupported,
+        };
+        return;
+      }
+      final fresh = await _repository.load(_clock());
+      final background = await _repository.backgroundAccessGranted();
+      if (_disposed) return;
+      _backgroundAccess = background;
+      _show(fresh);
+      await _store.write(StoreKeys.snapshot, fresh.toJson());
+      await _archiveDays(dailyValuesOf(fresh));
+    } on Exception catch (error) {
+      debugPrint('Health refresh failed: $error');
+      // An earlier snapshot stays on screen; a failed read is no reason to
+      // take the user's data away.
+      if (_snapshot == null) _status = HealthStatus.failed;
+    } finally {
+      _refreshing = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  Future<void> requestAccess() async {
+    await _repository.requestAccess();
+    if (_disposed) return;
+    await refresh();
+    if (_disposed || _status != HealthStatus.ready) return;
+    await _backfill();
+  }
+
+  Future<void> _archiveDays(DailyValues values) async {
+    final history = _history;
+    if (history == null) return;
+    final changed = history.merge(values);
+    if (changed.isNotEmpty) await _archive.save(history, changed);
+  }
+
+  /// Fills the history once with what the store already holds, going back in
+  /// stretches until two in a row are empty or the retention limit is
+  /// reached. Progress is saved, so an interrupted run continues next time.
+  Future<void> _backfill() async {
+    if (_backfilling || _history == null) return;
+    final state = await _store.read(StoreKeys.backfill);
+    if (_disposed) return;
+    var asked = false;
+    DateTime? reached;
+    if (state case {'done': true}) return;
+    if (state case {'asked': final bool value}) asked = value;
+    if (state case {'reached': final String value}) {
+      reached = DateTime.tryParse(value);
+    }
+
+    Future<void> save({bool done = false}) => _store.write(StoreKeys.backfill, {
+      'done': done,
+      'asked': asked,
+      'reached': reached?.toIso8601String(),
+    });
+
+    try {
+      var granted = await _repository.historyAccessGranted();
+      if (!granted && !asked) {
+        // Asked once. If it is refused the app simply collects from now on.
+        asked = true;
+        granted = await _repository.requestHistoryAccess();
+        await save();
+      }
+      if (!granted || _disposed) return;
+
+      final limit = DateTime(today.year - HistoryArchive.retentionYears + 1);
+      // The live window already covers the most recent days.
+      var to = reached ?? snapshot.dateAt(0).subtract(const Duration(days: 1));
+      to = DateTime(to.year, to.month, to.day);
+      var empty = 0;
+      _backfilling = true;
+      while (empty < _emptyChunksToStop && !to.isBefore(limit)) {
+        var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
+        if (from.isBefore(limit)) from = limit;
+        _backfillReached = from;
+        if (!_disposed) notifyListeners();
+        final values = await _repository.loadHistory(from, to);
+        if (_disposed) return;
+        empty = values.values.every((days) => days.isEmpty) ? empty + 1 : 0;
+        await _archiveDays(values);
+        to = DateTime(from.year, from.month, from.day - 1);
+        reached = to;
+        await save();
+      }
+      await save(done: true);
+    } on Exception catch (error) {
+      // Not marked as done, so the next start continues where this stopped.
+      debugPrint('Loading older data failed: $error');
+    } finally {
+      _backfilling = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  Future<void> installStore() => _repository.installStore();
+
+  Future<void> requestBackgroundAccess() async {
+    final granted = await _repository.requestBackgroundAccess();
+    if (_disposed) return;
+    _backgroundAccess = granted;
+    notifyListeners();
+  }
+
+  void selectDay(int index) {
+    if (_snapshot == null) return;
+    if (index == _selectedIndex || index < 0 || index >= snapshot.dayCount) {
+      return;
+    }
+    _selectedIndex = index;
+    notifyListeners();
+  }
+
+  Future<void> addEntry(EntryDraft draft) async {
+    await _repository.add(draft);
+    if (_disposed) return;
+    await refresh();
+  }
+
+  Future<void> deleteEntry(HealthEntry entry) async {
+    if (!entry.isOwn) {
+      throw ArgumentError('Only entries written by this app can be deleted.');
+    }
+    await _repository.delete(entry);
+    if (_disposed) return;
+    await refresh();
+  }
+
+  /// Health Connect cannot change a record, so an edit is a delete followed
+  /// by a new entry.
+  Future<void> replaceEntry(HealthEntry entry, EntryDraft draft) async {
+    if (!entry.isOwn) {
+      throw ArgumentError('Only entries written by this app can be edited.');
+    }
+    await _repository.delete(entry);
+    await _repository.add(draft);
+    if (_disposed) return;
+    await refresh();
+  }
+
+  void _show(HealthSnapshot next) {
+    final previous = _snapshot;
+    // Keep the selected calendar day across a refresh; start on today.
+    final keep = previous == null
+        ? null
+        : next.indexOf(previous.dateAt(_selectedIndex));
+    _snapshot = next;
+    _selectedIndex = keep ?? next.dayCount - 1;
+    _status = HealthStatus.ready;
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
