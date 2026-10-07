@@ -59,6 +59,12 @@ class FixtureRepository implements HealthRepository {
   int historyPermissionRequests = 0;
   int _nextId = 100;
 
+  /// Makes [add] fail the way a refused write does.
+  bool failAdds = false;
+
+  /// What each [load] was given as the snapshot to build on.
+  final List<HealthSnapshot?> loadedWith = [];
+
   final List<EntryDraft> added = [];
   final List<HealthEntry> deleted = [];
 
@@ -77,13 +83,15 @@ class FixtureRepository implements HealthRepository {
   Future<void> installStore() async {}
 
   @override
-  Future<HealthSnapshot> load(DateTime now) async {
+  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) async {
     if (failLoads) throw const FormatException('store unavailable');
+    loadedWith.add(previous);
     return buildSnapshot(now: now, raw: readings);
   }
 
   @override
   Future<void> add(EntryDraft draft) async {
+    if (failAdds) throw const HealthStoreException('refused');
     added.add(draft);
     _replaceEntries([
       ...readings.entries,

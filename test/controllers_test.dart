@@ -125,6 +125,66 @@ void main() {
       expect(controller.snapshot.entriesOn(today, EntryKind.weight), isEmpty);
     });
 
+    test('an edit that cannot be written keeps the old entry', () async {
+      final repository = FixtureRepository();
+      final controller = _controller(repository, MemoryJsonStore());
+      await controller.start();
+      final own = controller.snapshot.entries.firstWhere((e) => e.isOwn);
+
+      repository.failAdds = true;
+      await expectLater(
+        controller.replaceEntry(own, own.draft),
+        throwsA(isA<HealthStoreException>()),
+      );
+      expect(repository.deleted, isEmpty);
+    });
+
+    test('coming back within two minutes does not read again', () async {
+      var now = fixtureNow;
+      final repository = FixtureRepository();
+      final controller = HealthController(
+        repository: repository,
+        store: MemoryJsonStore(),
+        clock: () => now,
+      );
+      await controller.start();
+      expect(repository.loadedWith, hasLength(1));
+
+      now = fixtureNow.add(const Duration(seconds: 90));
+      await controller.refreshIfStale();
+      expect(repository.loadedWith, hasLength(1));
+
+      now = fixtureNow.add(const Duration(minutes: 3));
+      await controller.refreshIfStale();
+      expect(repository.loadedWith, hasLength(2));
+    });
+
+    test(
+      'builds on the snapshot of the same day unless asked for all',
+      () async {
+        var now = fixtureNow;
+        final repository = FixtureRepository();
+        final controller = HealthController(
+          repository: repository,
+          store: MemoryJsonStore(),
+          clock: () => now,
+        );
+        await controller.start();
+        await controller.refresh();
+        await controller.refresh(full: true);
+        now = fixtureNow.add(const Duration(days: 1));
+        await controller.refresh();
+
+        expect(repository.loadedWith.map((s) => s != null), [
+          false,
+          true,
+          false,
+          // A new day starts with a full read.
+          false,
+        ]);
+      },
+    );
+
     test('refuses to change entries of other apps', () async {
       final repository = FixtureRepository();
       final controller = _controller(repository, MemoryJsonStore());

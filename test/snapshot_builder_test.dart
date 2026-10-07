@@ -229,4 +229,28 @@ void main() {
       expect(restored.value(Metric.steps, 1), 1000);
     });
   });
+
+  test('heart rate of days that were not read again is kept', () {
+    RawSample beat(int daysAgo, double bpm) =>
+        RawSample(Metric.heartRate, at(daysAgo, 9), bpm);
+    final previous = buildSnapshot(
+      now: at(0, 8),
+      raw: RawReadings(samples: [beat(3, 61), beat(1, 70)]),
+    );
+    // The later read only covers yesterday and today.
+    final fresh = buildSnapshot(
+      now: now,
+      raw: RawReadings(samples: [beat(1, 72), beat(0, 80)]),
+    );
+
+    final merged = keepHeartBefore(at(1, 0), fresh: fresh, previous: previous);
+    final today = merged.dayCount - 1;
+
+    expect(merged.heart[today - 3].single.bpm, 61);
+    expect(merged.value(Metric.heartRate, today - 3), 61);
+    // Days that were read win over what was kept.
+    expect(merged.heart[today - 1].single.bpm, 72);
+    expect(merged.value(Metric.heartRate, today), 80);
+    expect(merged.loadedAt, now);
+  });
 }

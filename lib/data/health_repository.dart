@@ -15,6 +15,16 @@ enum HealthAccess {
   unsupported,
 }
 
+/// The health store refused to write or delete an entry.
+class HealthStoreException implements Exception {
+  const HealthStoreException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'HealthStoreException: $message';
+}
+
 /// Where health data comes from and goes to. The app talks to this and never
 /// to a platform API, so another source can be put behind it later.
 abstract interface class HealthRepository {
@@ -26,7 +36,9 @@ abstract interface class HealthRepository {
   /// Opens the store page that installs or updates the health store.
   Future<void> installStore();
 
-  Future<HealthSnapshot> load(DateTime now);
+  /// Reads the window ending at [now]. With [previous], what cannot have
+  /// changed since it was loaded may be taken from it instead of read again.
+  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous});
 
   Future<void> add(EntryDraft draft);
 
@@ -61,7 +73,7 @@ class UnsupportedHealthRepository implements HealthRepository {
   Future<void> installStore() async {}
 
   @override
-  Future<HealthSnapshot> load(DateTime now) =>
+  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) =>
       throw StateError('No health store on this platform.');
 
   @override

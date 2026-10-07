@@ -249,3 +249,37 @@ void _addNutrition(
     }
   }
 }
+
+/// [fresh] with the heart rate of the days before [from] taken from
+/// [previous]. Those days were not read again: their samples cannot change
+/// any more, and a wearable writes thousands per day.
+HealthSnapshot keepHeartBefore(
+  DateTime from, {
+  required HealthSnapshot fresh,
+  required HealthSnapshot previous,
+}) {
+  final heart = [...fresh.heart];
+  final average = [...fresh.valuesOf(Metric.heartRate)];
+  for (var i = 0; i < fresh.dayCount; i++) {
+    final day = fresh.dateAt(i);
+    if (!day.isBefore(from)) break;
+    final kept = previous.indexOf(day);
+    if (kept == null) continue;
+    heart[i] = previous.heart[kept];
+    average[i] = previous.value(Metric.heartRate, kept);
+  }
+  return HealthSnapshot(
+    today: fresh.today,
+    loadedAt: fresh.loadedAt,
+    dayCount: fresh.dayCount,
+    series: {
+      ...fresh.series,
+      if (average.any((v) => v != null)) Metric.heartRate: average,
+    },
+    nights: fresh.nights,
+    heart: heart,
+    workouts: fresh.workouts,
+    entries: fresh.entries,
+    hourly: fresh.hourly,
+  );
+}

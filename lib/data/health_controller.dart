@@ -102,7 +102,23 @@ class HealthController extends ChangeNotifier {
     await _backfill();
   }
 
-  Future<void> refresh() async {
+  /// A snapshot younger than this is not read again when the app merely
+  /// comes back to the foreground.
+  static const Duration _freshFor = Duration(minutes: 2);
+
+  /// Reads again unless the data on screen was loaded a moment ago.
+  Future<void> refreshIfStale() async {
+    final snapshot = _snapshot;
+    if (snapshot != null &&
+        _clock().difference(snapshot.loadedAt).abs() < _freshFor) {
+      return;
+    }
+    await refresh();
+  }
+
+  /// With [full], nothing is taken over from the snapshot on screen; that
+  /// also picks up records a source wrote late for a day long past.
+  Future<void> refresh({bool full = false}) async {
     if (_refreshing) return;
     _refreshing = true;
     if (!_disposed) notifyListeners();
@@ -118,7 +134,12 @@ class HealthController extends ChangeNotifier {
         };
         return;
       }
-      final fresh = await _repository.load(_clock());
+      final shown = _snapshot;
+      final fresh = await _repository.load(
+        _clock(),
+        // The first read of a day is a full one as well.
+        previous: full || shown == null || shown.today != today ? null : shown,
+      );
       final background = await _repository.backgroundAccessGranted();
       if (_disposed) return;
       _backgroundAccess = background;
@@ -137,7 +158,12 @@ class HealthController extends ChangeNotifier {
   }
 
   Future<void> requestAccess() async {
-    await _repository.requestAccess();
+    try {
+      await _repository.requestAccess();
+    } on Exception catch (error) {
+      // The refresh below shows what access there is.
+      debugPrint('Requesting access failed: $error');
+    }
     if (_disposed) return;
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
@@ -211,10 +237,21 @@ class HealthController extends ChangeNotifier {
     }
   }
 
-  Future<void> installStore() => _repository.installStore();
+  Future<void> installStore() async {
+    try {
+      await _repository.installStore();
+    } on Exception catch (error) {
+      debugPrint('Opening the store page failed: $error');
+    }
+  }
 
   Future<void> requestBackgroundAccess() async {
-    final granted = await _repository.requestBackgroundAccess();
+    var granted = false;
+    try {
+      granted = await _repository.requestBackgroundAccess();
+    } on Exception catch (error) {
+      debugPrint('Requesting background access failed: $error');
+    }
     if (_disposed) return;
     _backgroundAccess = granted;
     notifyListeners();
@@ -250,8 +287,9 @@ class HealthController extends ChangeNotifier {
     if (!entry.isOwn) {
       throw ArgumentError('Only entries written by this app can be edited.');
     }
-    await _repository.delete(entry);
+    // Written first: if that fails, the old entry is still there.
     await _repository.add(draft);
+    await _repository.delete(entry);
     if (_disposed) return;
     await refresh();
   }

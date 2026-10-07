@@ -1,4 +1,7 @@
+import 'dart:isolate';
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
 import '../app/app_info.dart';
@@ -163,13 +166,65 @@ class HealthConnectRepository implements HealthRepository {
     return _health.requestHealthDataHistoryAuthorization();
   }
 
+  /// Reading means decoding and sorting thousands of records. That is done
+  /// in a worker isolate, so the interface keeps drawing meanwhile. Static,
+  /// so that nothing but its arguments travels to the worker.
+  static Future<T> _inWorker<T>(
+    RootIsolateToken token,
+    Future<T> Function(HealthConnectRepository repository) read,
+  ) => Isolate.run(() {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(token);
+    return read(HealthConnectRepository());
+  });
+
+  static Future<HealthSnapshot> _loadInWorker(
+    RootIsolateToken token,
+    DateTime now,
+    HealthSnapshot? previous,
+  ) => _inWorker(token, (repository) => repository._load(now, previous));
+
+  static Future<DailyValues> _loadHistoryInWorker(
+    RootIsolateToken token,
+    DateTime from,
+    DateTime to,
+  ) => _inWorker(token, (repository) => repository._loadHistory(from, to));
+
   @override
-  Future<HealthSnapshot> load(DateTime now) async {
+  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _load(now, previous)
+        : _loadInWorker(token, now, previous);
+  }
+
+  @override
+  Future<DailyValues> loadHistory(DateTime from, DateTime to) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _loadHistory(from, to)
+        : _loadHistoryInWorker(token, from, to);
+  }
+
+  Future<HealthSnapshot> _load(DateTime now, HealthSnapshot? previous) async {
     await _configure();
     const dayCount = HealthSnapshot.defaultDayCount;
     final today = DateTime(now.year, now.month, now.day);
     final start = DateTime(today.year, today.month, today.day - dayCount + 1);
     final yesterday = DateTime(today.year, today.month, today.day - 1);
+
+    // Heart rate is by far the largest read. Days that were complete when
+    // [previous] was loaded keep their curve; only the days since are read.
+    var heartFrom = DateTime(
+      today.year,
+      today.month,
+      today.day - _heartRateDays + 1,
+    );
+    if (previous != null) {
+      final loaded = previous.loadedAt;
+      final since = DateTime(loaded.year, loaded.month, loaded.day);
+      final from = since.isBefore(yesterday) ? since : yesterday;
+      if (from.isAfter(heartFrom)) heartFrom = from;
+    }
 
     final hourly = <Metric, Map<DateTime, double>>{};
     for (final MapEntry(key: metric, value: type) in _totals.entries) {
@@ -183,25 +238,23 @@ class HealthConnectRepository implements HealthRepository {
       if (hours.isNotEmpty) hourly[metric] = hours;
     }
 
-    return buildSnapshot(
+    final fresh = buildSnapshot(
       now: now,
       dayCount: dayCount,
       raw: await _readRaw(
         start,
         now,
-        heartFrom: DateTime(
-          today.year,
-          today.month,
-          today.day - _heartRateDays + 1,
-        ),
+        heartFrom: heartFrom,
         withEntries: true,
         hourly: hourly,
       ),
     );
+    return previous == null
+        ? fresh
+        : keepHeartBefore(heartFrom, fresh: fresh, previous: previous);
   }
 
-  @override
-  Future<DailyValues> loadHistory(DateTime from, DateTime to) async {
+  Future<DailyValues> _loadHistory(DateTime from, DateTime to) async {
     await _configure();
     final start = DateTime(from.year, from.month, from.day);
     // The end of the last day, so that day is read in full.
@@ -343,7 +396,9 @@ class HealthConnectRepository implements HealthRepository {
         recordingMethod: RecordingMethod.manual,
       ),
     };
-    if (!ok) throw StateError('Health Connect rejected the entry.');
+    if (!ok) {
+      throw const HealthStoreException('Health Connect rejected the entry.');
+    }
   }
 
   @override
@@ -357,7 +412,11 @@ class HealthConnectRepository implements HealthRepository {
         EntryKind.meal => HealthDataType.NUTRITION,
       },
     );
-    if (!ok) throw StateError('Health Connect did not delete the entry.');
+    if (!ok) {
+      throw const HealthStoreException(
+        'Health Connect did not delete the entry.',
+      );
+    }
   }
 
   /// Reads one type. A type the user did not allow, or one this device does

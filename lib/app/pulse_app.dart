@@ -52,7 +52,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     // Back in the foreground: other apps may have written new data and the
     // wallpaper may have changed.
     if (state == AppLifecycleState.resumed) {
-      _health.refresh();
+      _health.refreshIfStale();
       _loadPalette();
     }
   }
