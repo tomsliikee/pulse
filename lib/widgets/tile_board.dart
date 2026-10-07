@@ -25,6 +25,7 @@ class BoardTile {
     required this.id,
     required this.height,
     required this.child,
+    this.title,
     this.span = TileSpan.full,
     this.large = false,
     this.onRemove,
@@ -33,6 +34,10 @@ class BoardTile {
 
   /// Stable across releases; the saved order refers to it.
   final String id;
+
+  /// Names the tile where it is offered without its content, such as in the
+  /// list of tiles the user has removed.
+  final String? title;
   final TileSpan span;
   final double height;
   final Widget child;
@@ -45,6 +50,17 @@ class BoardTile {
 
   /// Offered as a second corner button while the board is edited.
   final VoidCallback? onResize;
+
+  BoardTile withRemove(VoidCallback onRemove) => BoardTile(
+    id: id,
+    title: title,
+    span: span,
+    height: height,
+    large: large,
+    onRemove: onRemove,
+    onResize: onResize,
+    child: child,
+  );
 }
 
 /// The tiles in display order: the [saved] ids that still exist, followed by

@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/settings_controller.dart';
 import 'package:pulse/data/snapshot_builder.dart';
-import 'package:pulse/features/today/today_tiles.dart';
+import 'package:pulse/features/detail/metric_tiles.dart';
 
 import 'support/fixtures.dart';
 

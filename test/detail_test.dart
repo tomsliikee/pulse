@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 
 import 'support/fixtures.dart';
@@ -142,5 +143,33 @@ void main() {
 
     expect(find.text('Montag, 5. Oktober').hitTestable(), findsOneWidget);
     expect(find.text('Wochenschnitt pro Tag'), findsNothing);
+  });
+
+  testWidgets('a day without a reading shows the latest one with its day', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      size: const Size(412, 915),
+      repository: FixtureRepository(
+        readings: RawReadings(
+          samples: [
+            RawSample(
+              Metric.weight,
+              fixtureNow.subtract(const Duration(days: 3)),
+              73.5,
+            ),
+          ],
+        ),
+      ),
+    );
+    await tester.ensureVisible(find.text('Gewicht'));
+    await advance(tester);
+    await tester.tap(find.text('Gewicht'));
+    await advance(tester);
+
+    expect(find.textContaining('Zuletzt gemessen: '), findsOneWidget);
+    expect(find.text('73,5 kg'), findsOneWidget);
+    expect(find.text('Keine Daten an diesem Tag.'), findsNothing);
   });
 }

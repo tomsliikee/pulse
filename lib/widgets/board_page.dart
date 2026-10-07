@@ -23,6 +23,7 @@ class BoardPage extends StatefulWidget {
     this.editMenu,
     this.editFooter,
     this.footer,
+    this.removable = false,
   });
 
   /// Names the saved tile order of this page.
@@ -44,6 +45,11 @@ class BoardPage extends StatefulWidget {
   final Widget? footer;
   final List<BoardTile> tiles;
 
+  /// Gives every tile a minus while editing and lists the removed ones below
+  /// the board to bring them back. A page that manages its own set of tiles
+  /// leaves this off.
+  final bool removable;
+
   @override
   State<BoardPage> createState() => _BoardPageState();
 }
@@ -52,7 +58,7 @@ class _BoardPageState extends State<BoardPage> {
   bool _editing = false;
 
   Future<void> _refresh() async {
-    await AppScope.of(context).health.refresh();
+    await AppScope.of(context).health.refresh(full: true);
     Haptics.confirm();
   }
 
@@ -85,13 +91,43 @@ class _BoardPageState extends State<BoardPage> {
             ),
           ListenableBuilder(
             listenable: scope.settings,
-            builder: (context, _) => TileBoard(
-              tiles: widget.tiles,
-              order: scope.settings.tileOrder(widget.pageId),
-              editing: _editing,
-              onReorder: (order) =>
-                  scope.settings.setTileOrder(widget.pageId, order),
-            ),
+            builder: (context, _) {
+              final settings = scope.settings;
+              final page = widget.pageId;
+              final hidden = widget.removable
+                  ? settings.hiddenTiles(page)
+                  : const <String>{};
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TileBoard(
+                    tiles: !widget.removable
+                        ? widget.tiles
+                        : [
+                            for (final tile in widget.tiles)
+                              if (!hidden.contains(tile.id))
+                                tile.withRemove(
+                                  () => settings.hideTile(page, tile.id),
+                                ),
+                          ],
+                    order: settings.tileOrder(page),
+                    editing: _editing,
+                    onReorder: (order) => settings.setTileOrder(page, order),
+                  ),
+                  if (widget.removable)
+                    _EditOnly(
+                      editing: _editing,
+                      child: _RemovedTiles(
+                        tiles: [
+                          for (final tile in widget.tiles)
+                            if (hidden.contains(tile.id)) tile,
+                        ],
+                        onAdd: (id) => settings.showTile(page, id),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           if (editFooter != null)
             _EditOnly(
@@ -134,6 +170,38 @@ class _EditOnly extends StatelessWidget {
         excluding: !editing,
         child: IgnorePointer(ignoring: !editing, child: child),
       ),
+    );
+  }
+}
+
+/// The tiles the user took off the page, each with a plus.
+class _RemovedTiles extends StatelessWidget {
+  const _RemovedTiles({required this.tiles, required this.onAdd});
+
+  final List<BoardTile> tiles;
+  final ValueChanged<String> onAdd;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (tiles.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SectionTitle('Hinzufügen'),
+        M3ESegmentedColumn(
+          color: scheme.surfaceBright,
+          haptic: M3EHapticFeedback.light,
+          onTap: (i) => onAdd(tiles[i].id),
+          children: [
+            for (final tile in tiles)
+              M3EListItem(
+                headline: Text(tile.title ?? tile.id),
+                trailing: Icon(Icons.add_circle_rounded, color: scheme.primary),
+              ),
+          ],
+        ),
+      ],
     );
   }
 }

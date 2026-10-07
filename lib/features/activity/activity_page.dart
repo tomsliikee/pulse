@@ -13,7 +13,7 @@ import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../detail/metric_spec.dart';
-import '../detail/metric_tiles.dart';
+import '../detail/page_tiles.dart';
 import 'workout_style.dart';
 
 /// Steps over the week or month and the list of workouts.
@@ -36,9 +36,11 @@ class ActivityPage extends StatelessWidget {
           pageId: 'activity',
           title: 'Aktivität',
           subtitle: 'Schritte und Trainings',
+          removable: true,
           tiles: [
             BoardTile(
               id: 'chart',
+              title: 'Schrittverlauf',
               height: 420,
               child: _StepsChart(
                 health: health,
@@ -56,6 +58,8 @@ class ActivityPage extends StatelessWidget {
                   health,
                   metric,
                   span: TileSpan.third,
+                  settings: scope.settings,
+                  page: 'activity',
                   title: switch (metric) {
                     Metric.distance => 'Kilometer',
                     Metric.intensityMinutes => 'Aktive Min.',
@@ -66,10 +70,18 @@ class ActivityPage extends StatelessWidget {
               Metric.activeEnergy,
               Metric.totalEnergy,
             ])
-              if (snapshot.has(metric)) statTile(context, health, metric),
+              if (snapshot.has(metric))
+                statTile(
+                  context,
+                  health,
+                  metric,
+                  settings: scope.settings,
+                  page: 'activity',
+                ),
             if (workouts.isNotEmpty)
               BoardTile(
                 id: 'workouts',
+                title: 'Trainings',
                 height: 76 + workouts.length * _workoutRowHeight,
                 child: _Workouts(
                   workouts: workouts,

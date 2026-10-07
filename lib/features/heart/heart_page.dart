@@ -15,7 +15,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../detail/metric_spec.dart';
-import '../detail/metric_tiles.dart';
+import '../detail/page_tiles.dart';
 
 /// Heart rate over the selected day, vitals and time in zones.
 class HeartPage extends StatelessWidget {
@@ -23,9 +23,11 @@ class HeartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final health = AppScope.of(context).health;
+    final scope = AppScope.of(context);
+    final health = scope.health;
+    final settings = scope.settings;
     return ListenableBuilder(
-      listenable: health,
+      listenable: Listenable.merge([health, settings]),
       builder: (context, _) {
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
@@ -52,9 +54,11 @@ class HeartPage extends StatelessWidget {
           pageId: 'heart',
           title: 'Herz',
           subtitle: formatLongDate(health.selectedDate),
+          removable: true,
           tiles: [
             BoardTile(
               id: 'hero',
+              title: 'Herzfrequenz',
               height: 152,
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -112,6 +116,7 @@ class HeartPage extends StatelessWidget {
             ),
             BoardTile(
               id: 'day',
+              title: 'Tagesverlauf',
               height: 300,
               child: SurfaceCard(
                 child: Column(
@@ -168,12 +173,25 @@ class HeartPage extends StatelessWidget {
               ),
             ),
             if (snapshot.has(Metric.restingHeartRate))
-              statTile(context, health, Metric.restingHeartRate),
+              statTile(
+                context,
+                health,
+                Metric.restingHeartRate,
+                settings: settings,
+                page: 'heart',
+              ),
             if (snapshot.has(Metric.heartRateVariability))
-              statTile(context, health, Metric.heartRateVariability),
+              statTile(
+                context,
+                health,
+                Metric.heartRateVariability,
+                settings: settings,
+                page: 'heart',
+              ),
             if (snapshot.has(Metric.systolic))
               BoardTile(
                 id: 'bloodPressure',
+                title: 'Blutdruck',
                 span: TileSpan.half,
                 height: 132,
                 child: StatTile(
@@ -188,19 +206,34 @@ class HeartPage extends StatelessWidget {
                 ),
               ),
             if (snapshot.has(Metric.oxygenSaturation))
-              statTile(context, health, Metric.oxygenSaturation),
+              statTile(
+                context,
+                health,
+                Metric.oxygenSaturation,
+                settings: settings,
+                page: 'heart',
+              ),
             if (snapshot.has(Metric.respiratoryRate))
-              statTile(context, health, Metric.respiratoryRate),
+              statTile(
+                context,
+                health,
+                Metric.respiratoryRate,
+                settings: settings,
+                page: 'heart',
+              ),
             if (snapshot.has(Metric.skinTemperature))
               statTile(
                 context,
                 health,
                 Metric.skinTemperature,
                 title: 'Hauttemperatur',
+                settings: settings,
+                page: 'heart',
               ),
             if (samples.isNotEmpty)
               BoardTile(
                 id: 'zones',
+                title: 'Herzfrequenzzonen',
                 height: 304,
                 child: SurfaceCard(child: _Zones(samples: samples)),
               ),

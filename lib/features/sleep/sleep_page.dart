@@ -57,6 +57,7 @@ class _SleepPageState extends State<SleepPage> {
           Tone tone,
         ) => BoardTile(
           id: stage.name,
+          title: label,
           span: TileSpan.half,
           height: 132,
           child: StatTile(
@@ -72,9 +73,11 @@ class _SleepPageState extends State<SleepPage> {
           pageId: 'sleep',
           title: 'Schlaf',
           subtitle: 'Nacht auf ${formatLongDate(health.selectedDate)}',
+          removable: true,
           tiles: [
             BoardTile(
               id: 'hero',
+              title: 'Schlafdauer',
               height: 172,
               child: _SleepHero(
                 night: night,
@@ -86,6 +89,7 @@ class _SleepPageState extends State<SleepPage> {
             if (night != null) ...[
               BoardTile(
                 id: 'stages',
+                title: 'Schlafphasen',
                 height: 284,
                 child: SurfaceCard(
                   child: Column(
@@ -160,6 +164,7 @@ class _SleepPageState extends State<SleepPage> {
             ],
             BoardTile(
               id: 'week',
+              title: 'Diese Woche',
               height: 268,
               child: SurfaceCard(
                 child: Column(

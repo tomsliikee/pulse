@@ -106,10 +106,10 @@ sequenceDiagram
 - **No Double Counting:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
 - **Four Pages of Tiles:** **Heute**, **Aktivität**, **Schlaf** and **Herz**. **Heute** always shows the current day.
 - **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement Health Connect has data for, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
-- **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
+- **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading, on a tile and on the detail page's **Heute** tab, with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
 - **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt**, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
 - **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
-- **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page.
+- **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. On **Aktivität**, **Schlaf** and **Herz** a **minus** takes a tile off the page and a list below the board brings it back; the compact measurement tiles there can be enlarged to the wide form with the last seven days.
 - **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
 - **Own Entries:** Add **water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button. They are written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps are shown but cannot be changed, because Health Connect does not allow it.
 - **Material You:** The colour scheme follows the phone's wallpaper. It can be switched off in the profile, which falls back to the app's own palette. Light, dark or system.
@@ -165,7 +165,7 @@ An average counts only days **with** data; a day without a measurement is not a 
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **115** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **128** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -248,7 +248,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Hourly bars:** only for steps, distance, active and total calories, water and intensity minutes.
 - **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
 - **Language:** the interface is German and not yet translatable.
-- **Orientation:** the layout is made for portrait and is not locked to it.
+- **Orientation:** portrait only.
 
 ---
 
@@ -265,3 +265,9 @@ Every value read from disk or from Health Connect is checked against the bounds 
 | **`path_provider`** | The private directory |
 
 The bundled typeface is **Google Sans Flex**, under the **SIL Open Font License** (see [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).
+
+---
+
+## License
+
+Released under the **MIT License**, see [`LICENSE`](LICENSE).

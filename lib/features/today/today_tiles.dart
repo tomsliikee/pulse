@@ -13,7 +13,6 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/animated_count.dart';
-import '../../widgets/bar_chart.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/pressable.dart';
@@ -22,7 +21,9 @@ import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../activity/workout_style.dart';
+import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
+import '../detail/metric_tiles.dart';
 
 /// Whether the tile [id] has something to show: data in the store, or a
 /// measurement the user can record here.
@@ -47,37 +48,6 @@ String todayTileTitle(String id) => switch (Metric.byName(id)) {
   Metric.diastolic => 'Diastolisch',
   final metric => metric.spec.title,
 };
-
-/// What a tile shows for a metric, and a remark when that is not simply
-/// today's value.
-typedef TileReading = ({double? value, String? note});
-
-/// Totals and averages are today's. A heart rate is the latest sample of
-/// today. Measurements taken now and then (weight, blood pressure, the one
-/// resting heart rate a day) show the most recent one with its day, because
-/// "nothing today" would hide a value that still holds.
-TileReading tileReading(HealthSnapshot snapshot, Metric metric) {
-  final today = snapshot.dayCount - 1;
-  if (metric == Metric.heartRate) {
-    final samples = snapshot.heart[today];
-    if (samples.isEmpty) return (value: null, note: null);
-    return (
-      value: samples.last.bpm.toDouble(),
-      note: 'Zuletzt um ${formatClock(samples.last.minuteOfDay)}',
-    );
-  }
-  if (metric.rule == DayRule.last || metric == Metric.restingHeartRate) {
-    final index = snapshot.latestIndex(metric);
-    if (index == null) return (value: null, note: null);
-    return (
-      value: snapshot.value(metric, index),
-      note: index == today
-          ? null
-          : formatRelativeDay(snapshot.dateAt(index), snapshot.dateAt(today)),
-    );
-  }
-  return (value: snapshot.value(metric, today), note: null);
-}
 
 /// The tile [id] of the Today page in the size the user chose, or null when
 /// there is nothing to show for it.
@@ -128,25 +98,15 @@ BoardTile? buildTodayTile(
         snapshot: health.snapshot,
         dayIndex: health.todayIndex,
       ),
-      _ => _LargeTile(metric: metric, health: health, settings: settings),
+      _ => LargeMetricTile(
+        metric: metric,
+        title: todayTileTitle(id),
+        health: health,
+        settings: settings,
+      ),
     },
   );
 }
-
-Widget _valueOf(Metric metric, double? value) {
-  if (value != null && metric.digits == 0) {
-    return AnimatedCount(value: value.round());
-  }
-  return Text(metric.format(value), maxLines: 1);
-}
-
-/// The goal the user set for [metric], in the metric's unit, if it has one.
-double? _goalOf(Metric metric, SettingsController settings) => switch (metric) {
-  Metric.steps => settings.stepGoal.toDouble(),
-  Metric.water => settings.waterGoalMl / 1000,
-  Metric.sleep => settings.sleepGoalHours,
-  _ => null,
-};
 
 class _SmallTile extends StatelessWidget {
   const _SmallTile({
@@ -197,7 +157,7 @@ class _SmallTile extends StatelessWidget {
 
     return MetricCard(
       label: todayTileTitle(metric.name),
-      value: _valueOf(metric, value),
+      value: metricValueOf(metric, value),
       // "Schritte" twice in one tile says nothing.
       unit: metric.unit == spec.title ? null : metric.unit,
       icon: spec.icon,
@@ -216,204 +176,6 @@ class _SmallTile extends StatelessWidget {
               ),
             ),
       onTap: (origin) => openMetric(context, metric, origin),
-    );
-  }
-}
-
-/// The large form of a tile: the value, a remark, and the last seven days
-/// as bars (for a heart rate, today's curve).
-class _LargeTile extends StatelessWidget {
-  const _LargeTile({
-    required this.metric,
-    required this.health,
-    required this.settings,
-  });
-
-  final Metric metric;
-  final HealthController health;
-  final SettingsController settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final spec = metric.spec;
-    final colors = scheme.tone(spec.tone);
-    final neutral = spec.tone == Tone.neutral;
-    final snapshot = health.snapshot;
-    final today = health.todayIndex;
-    final reading = tileReading(snapshot, metric);
-    final night = snapshot.nights[today];
-    final heart = snapshot.heart[today];
-    final goal = _goalOf(metric, settings);
-    final muted = colors.onContainer.withValues(alpha: 0.72);
-
-    final week = snapshot.valuesOf(metric).sublist(snapshot.dayCount - 7);
-    final known = week.whereType<double>().toList();
-    final average = known.isEmpty
-        ? null
-        : known.reduce((a, b) => a + b) / known.length;
-    var low = double.infinity;
-    var high = 0.0;
-    for (final v in known) {
-      if (v < low) low = v;
-      if (v > high) high = v;
-    }
-
-    // Top right: what puts the large number into proportion.
-    final String? aside = switch (metric) {
-      Metric.heartRate when heart.isNotEmpty => () {
-        var min = heart.first.bpm;
-        var max = min;
-        for (final s in heart) {
-          if (s.bpm < min) min = s.bpm;
-          if (s.bpm > max) max = s.bpm;
-        }
-        return '$min bis $max bpm';
-      }(),
-      Metric.heartRate => null,
-      _ when average != null => 'Ø ${metric.formatWithUnit(average)}',
-      _ => null,
-    };
-    final value = reading.value;
-    final String? remark = switch (metric) {
-      Metric.sleep when night != null =>
-        '${formatClock(night.bedtimeMinute)} bis '
-            '${formatClock(night.wakeMinute)} · '
-            'Score ${night.estimatedScore} (Schätzung)',
-      Metric.water when goal != null =>
-        '${((value ?? 0) / goal * 100).round()} % von '
-            '${metric.formatWithUnit(goal)}',
-      _ => reading.note,
-    };
-
-    return Pressable(
-      pressedScale: 0.97,
-      child: Material(
-        color: colors.container,
-        borderRadius: BorderRadius.circular(AppRadii.extraLargeIncreased),
-        clipBehavior: Clip.antiAlias,
-        child: Builder(
-          builder: (context) => InkWell(
-            onTap: () {
-              final origin = globalRectOf(context);
-              if (origin != null) openMetric(context, metric, origin);
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ShapeBadge(
-                        shape: spec.shape,
-                        icon: spec.icon,
-                        size: 44,
-                        color: neutral
-                            ? scheme.secondaryContainer
-                            : colors.accent,
-                        iconColor: neutral
-                            ? scheme.onSecondaryContainer
-                            : colors.container,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          todayTileTitle(metric.name),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colors.onContainer,
-                          ),
-                        ),
-                      ),
-                      if (aside != null)
-                        Text(
-                          aside,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: muted,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      DefaultTextStyle.merge(
-                        style: context.emphasizedTextTheme.headlineLarge
-                            ?.copyWith(color: colors.onContainer),
-                        child: _valueOf(metric, value),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        metric.unit,
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: muted,
-                        ),
-                      ),
-                      if (remark != null) ...[
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            remark,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.end,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: muted,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: metric == Metric.heartRate
-                        ? (heart.length < 2
-                              ? const SizedBox.shrink()
-                              : LineChart(
-                                  values: [
-                                    for (final s in heart) s.bpm.toDouble(),
-                                  ],
-                                  color: colors.accent,
-                                  height: null,
-                                ))
-                        : LayoutBuilder(
-                            builder: (context, box) => BarChart(
-                              values: week,
-                              labels: [
-                                for (var i = 0; i < 7; i++)
-                                  weekdayShort[snapshot
-                                          .dateAt(snapshot.dayCount - 7 + i)
-                                          .weekday -
-                                      1],
-                              ],
-                              selectedIndex: 6,
-                              color: colors.accent.withValues(alpha: 0.24),
-                              selectedColor: colors.accent,
-                              goal: goal,
-                              // A series that barely varies would otherwise
-                              // show bars of the same height.
-                              baseline:
-                                  high > low &&
-                                      (high - low) < high * 0.4 &&
-                                      low > 0
-                                  ? low - (high - low) * 0.6
-                                  : 0,
-                              height: box.maxHeight,
-                            ),
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

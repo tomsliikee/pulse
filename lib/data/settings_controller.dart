@@ -12,6 +12,15 @@ const String workoutTileId = 'workout';
 bool isTodayTileId(String id) =>
     id == workoutTileId || Metric.byName(id) != null;
 
+/// The large form of a metric tile on another page is saved as
+/// "page/metric".
+bool _isPageTileId(String id) {
+  final parts = id.split('/');
+  return parts.length == 2 &&
+      parts.first.isNotEmpty &&
+      Metric.byName(parts.last) != null;
+}
+
 /// What the Today page shows until the user changes it.
 final List<String> defaultTodayTiles = List.unmodifiable([
   Metric.steps.name,
@@ -47,6 +56,7 @@ class SettingsController extends ChangeNotifier {
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
   Set<String> _largeTiles = defaultLargeTiles;
+  Map<String, Set<String>> _hiddenTiles = {};
 
   int get stepGoal => _stepGoal;
   double get sleepGoalHours => _sleepGoalHours;
@@ -64,6 +74,10 @@ class SettingsController extends ChangeNotifier {
 
   /// The tiles on the Today page. Their order is in [tileOrder].
   List<String> get todayTiles => _todayTiles;
+
+  /// The tiles the user has removed from [page]. The Today page keeps its
+  /// own list in [todayTiles] instead.
+  Set<String> hiddenTiles(String page) => _hiddenTiles[page] ?? const {};
 
   /// Whether the tile [id] is shown in its large form.
   bool isLargeTile(String id) => _largeTiles.contains(id);
@@ -102,7 +116,16 @@ class SettingsController extends ChangeNotifier {
           .toList();
     }
     if (json['largeTiles'] case final List<Object?> ids) {
-      _largeTiles = ids.whereType<String>().where(isTodayTileId).toSet();
+      _largeTiles = ids
+          .whereType<String>()
+          .where((id) => isTodayTileId(id) || _isPageTileId(id))
+          .toSet();
+    }
+    if (json['hiddenTiles'] case final Map<String, Object?> pages) {
+      _hiddenTiles = {
+        for (final MapEntry(:key, :value) in pages.entries)
+          if (value is List<Object?>) key: value.whereType<String>().toSet(),
+      };
     }
     notifyListeners();
   }
@@ -133,6 +156,26 @@ class SettingsController extends ChangeNotifier {
     _update(() => _todayTiles = [..._todayTiles]..remove(id));
   }
 
+  void hideTile(String page, String id) {
+    if (hiddenTiles(page).contains(id)) return;
+    _update(
+      () => _hiddenTiles = {
+        ..._hiddenTiles,
+        page: {...hiddenTiles(page), id},
+      },
+    );
+  }
+
+  void showTile(String page, String id) {
+    if (!hiddenTiles(page).contains(id)) return;
+    _update(
+      () => _hiddenTiles = {
+        ..._hiddenTiles,
+        page: {...hiddenTiles(page)}..remove(id),
+      },
+    );
+  }
+
   void toggleTileSize(String id) => _update(
     () => _largeTiles = _largeTiles.contains(id)
         ? ({..._largeTiles}..remove(id))
@@ -156,6 +199,10 @@ class SettingsController extends ChangeNotifier {
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,
             'largeTiles': _largeTiles.toList(),
+            'hiddenTiles': {
+              for (final MapEntry(:key, :value) in _hiddenTiles.entries)
+                key: value.toList(),
+            },
           })
           .catchError((Object _) {}),
     );

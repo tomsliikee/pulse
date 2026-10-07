@@ -16,6 +16,7 @@ import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../entry/entry_sheet.dart';
 import 'metric_spec.dart';
+import 'metric_tiles.dart';
 
 extension PeriodKindLabel on PeriodKind {
   String get tab => switch (this) {
@@ -192,7 +193,16 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
         ? snapshot.heart[dayIndex]
         : const <HeartSample>[];
     final known = [for (final b in view.buckets) ?b.value];
-    final comparison = bucket == null ? _comparison(view) : null;
+    // A measurement taken now and then still holds on a day without one.
+    final latest = view.kind == PeriodKind.today && view.headline == null
+        ? tileReading(snapshot, metric)
+        : null;
+    final latestNote = latest?.note;
+    final comparison = bucket != null
+        ? null
+        : latest?.value != null && latestNote != null
+        ? 'Zuletzt gemessen: $latestNote'
+        : _comparison(view);
     final kind = metric.entryKind;
 
     var low = known.isEmpty ? 0.0 : known.first;
@@ -249,9 +259,11 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          bucket == null
-                              ? view.kind.headline
-                              : _bucketLabel(view, bucket),
+                          bucket != null
+                              ? _bucketLabel(view, bucket)
+                              : latest?.value != null && latestNote != null
+                              ? 'Letzter Wert'
+                              : view.kind.headline,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: muted,
@@ -261,7 +273,9 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             metric.formatWithUnit(
-                              bucket == null ? view.headline : bucket.value,
+                              bucket == null
+                                  ? view.headline ?? latest?.value
+                                  : bucket.value,
                             ),
                             maxLines: 1,
                             style: context.emphasizedTextTheme.headlineLarge,
@@ -331,7 +345,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                     values: [for (final s in heart) s.bpm.toDouble()],
                     color: colors.accent,
                   )
-                else if (view.headline == null)
+                else if (view.headline == null && latest?.value == null)
                   const SizedBox(
                     height: 96,
                     child: EmptyNote('Keine Daten an diesem Tag.'),
@@ -424,7 +438,17 @@ class _Entries extends StatelessWidget {
           action: SnackBarAction(
             label: 'Rückgängig',
             // Health Connect has no undo; the entry is written again.
-            onPressed: () => health.addEntry(entry.draft),
+            onPressed: () async {
+              try {
+                await health.addEntry(entry.draft);
+              } on Exception {
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Wiederherstellen fehlgeschlagen'),
+                  ),
+                );
+              }
+            },
           ),
         ),
       );
