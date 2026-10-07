@@ -30,7 +30,7 @@ flowchart TD
     subgraph UI ["Interface Layer"]
         Shell["App Shell<br/><b>Floating Navigation Bar & FAB Menu</b>"]
         Boards["Tile Boards<br/><b>Heute, Aktivität, Schlaf, Herz</b>"]
-        Detail["Metric Detail Page<br/><b>Heute to Gesamt, Entries</b>"]
+        Detail["Detail Pages<br/><b>Period Tabs, Entries, Sleep, Body Age</b>"]
         Sheet["Entry Sheet<br/><b>Water, Weight, Meals</b>"]
     end
 
@@ -43,6 +43,7 @@ flowchart TD
     subgraph Data ["Data Layer (pure Dart)"]
         Builder["buildSnapshot<br/><b>Raw Readings to 30 Days</b>"]
         Period["buildPeriod<br/><b>Averages, Bars, Comparison</b>"]
+        Age["estimateBodyAge<br/><b>Years per Factor, 30 Days</b>"]
         History["HistoryArchive<br/><b>One Value per Day, 10 Years</b>"]
         Store["FileJsonStore<br/><b>Private App Directory</b>"]
     end
@@ -60,6 +61,7 @@ flowchart TD
     Boards --> SettingsCtrl
     Detail --> HealthCtrl
     Detail --> Period
+    Detail --> Age
     Sheet --> HealthCtrl
     Shell --> Palette
     HealthCtrl --> Repo
@@ -109,6 +111,7 @@ sequenceDiagram
 - **Steps Tile with Two Rings and a Body Age:** The large steps tile draws the steps as the outer ring and the **active calories** as the inner one, each against its goal, with steps, calories and distance underneath. In the middle is the **body age**: the real age plus or minus some years for steps, intensity minutes, sleep duration, sleep rhythm, resting heart rate, heart rate variability, body mass index or body fat, blood pressure and strength training over the last 30 days. Tapping it opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
 - **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading, on a tile and on the detail page's **Heute** tab, with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
 - **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt** in a toolbar floating at the bottom of the page, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back. Sleep is the exception: its tile opens the detailed sleep page from everywhere.
+- **Detailed Sleep Page:** For the selected night: time asleep and in bed, efficiency, the stages as a hypnogram and each against a guide range, bedtime and waking of the last 30 nights, the sleep debt of seven nights, the pulse during the night, and the night's vitals against your own usual range.
 - **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
 - **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. On **Aktivität**, **Schlaf** and **Herz** a **minus** takes a tile off the page and a list below the board brings it back; the compact measurement tiles there can be enlarged to the wide form with the last seven days.
 - **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
@@ -118,15 +121,17 @@ sequenceDiagram
 - **Liquid Glass:** A switch in the profile turns the navigation bar and the add button into refracting glass and the tiles into translucent glass over soft colour fields. The selected pill becomes a glass lens while it is dragged along the bar, and the entries of the add button flow out of it as drops. Shapes, colours and motion stay Material 3 Expressive. Off by default. ***Tested*** by widget tests in a blurred fallback and by screen recordings on a Pixel 10 Pro.
 - **Background Refresh:** A **WorkManager** task refreshes the stored data about once an hour, so the app opens with current values and no day is lost if it stays closed for longer than Health Connect's 30-day window.
 - **Haptics:** Distinct feedback for selecting, tapping, lifting a tile and confirming.
-- **Spring Motion and Shapes:** Page changes, tile movement and the container transform into a detail page run on **Material 3 Expressive** spring tokens; badges and the profile button use the expressive shape set.
+- **Spring Motion and Shapes:** Page changes, tile movement and the container transform into a detail page run on **Material 3 Expressive** spring tokens; badges and the profile button use the expressive shape set. The shape behind the rings of the steps tile turns once in **90 seconds** and stands still when the system switches animations off.
 
-![Period tabs on the steps metric](readmestuff/detail.png)
+![The floating period tabs on the steps metric: Heute, Woche, Jahr and Gesamt](readmestuff/detail.png)
+
+![The steps tile with both rings and the body age, and the page that explains the age factor by factor](readmestuff/age.png)
 
 ![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
 
 ![Liquid Glass: the Heute page, the add menu open, the pill being dragged along the bar, and the dark theme](readmestuff/glass.png)
 
-The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller. On a phone the bar, the dragged pill and the add button also bend what is behind them.
+The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller. On a phone the bar, the dragged pill and the add button also bend what is behind them. The edit mode and Liquid Glass images were rendered before the steps tile got its second ring and the body age, and still show the earlier tile.
 
 ---
 
