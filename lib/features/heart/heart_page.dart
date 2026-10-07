@@ -14,6 +14,7 @@ import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
+import '../../widgets/tile_surface.dart';
 import '../detail/metric_spec.dart';
 import '../detail/page_tiles.dart';
 
@@ -60,12 +61,10 @@ class HeartPage extends StatelessWidget {
               id: 'hero',
               title: 'Herzfrequenz',
               height: 152,
-              child: Container(
+              child: TileSurface(
+                color: scheme.tertiaryContainer,
+                radius: AppRadii.extraExtraLarge,
                 padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: scheme.tertiaryContainer,
-                  borderRadius: BorderRadius.circular(AppRadii.extraExtraLarge),
-                ),
                 child: Row(
                   children: [
                     _BeatingHeart(bpm: current?.bpm, color: scheme.tertiary),

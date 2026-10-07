@@ -138,6 +138,27 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
               ],
+              const SizedBox(height: 12),
+              SurfaceCard(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Liquid Glass',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ),
+                    Switch(
+                      value: settings.liquidGlass,
+                      onChanged: (value) {
+                        Haptics.selection();
+                        settings.setLiquidGlass(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
               if (ready) ...[
                 const SectionTitle('Daten'),
                 SurfaceCard(

@@ -6,6 +6,7 @@ import '../theme/app_shapes.dart';
 import '../theme/app_theme.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
+import 'tile_surface.dart';
 
 /// A tile showing one measurement: a shaped icon, a label, a large value and
 /// an optional footer such as a small chart.
@@ -55,10 +56,9 @@ class MetricCard extends StatelessWidget {
     final footer = this.footer;
 
     return Pressable(
-      child: Material(
+      child: TileSurface(
         color: colors.container,
-        borderRadius: BorderRadius.circular(AppRadii.extraLarge),
-        clipBehavior: Clip.antiAlias,
+        radius: AppRadii.extraLarge,
         child: InkWell(
           onTap: onTap == null ? null : () => _handleTap(context),
           child: SizedBox(

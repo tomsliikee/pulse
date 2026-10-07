@@ -12,6 +12,7 @@ import '../../widgets/bar_chart.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/shape_badge.dart';
+import '../../widgets/tile_surface.dart';
 import 'metric_spec.dart';
 import 'metric_tiles.dart';
 
@@ -103,10 +104,9 @@ class LargeMetricTile extends StatelessWidget {
 
     return Pressable(
       pressedScale: 0.97,
-      child: Material(
+      child: TileSurface(
         color: colors.container,
-        borderRadius: BorderRadius.circular(AppRadii.extraLargeIncreased),
-        clipBehavior: Clip.antiAlias,
+        radius: AppRadii.extraLargeIncreased,
         child: Builder(
           builder: (context) => InkWell(
             onTap: () {

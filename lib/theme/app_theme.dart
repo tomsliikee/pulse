@@ -5,6 +5,9 @@ abstract final class AppTheme {
   static const Color _seed = Color(0xFF0F8F6F);
   static const String fontFamily = 'Google Sans Flex';
 
+  /// The light rim of a surface drawn as glass.
+  static const Color glassRim = Color(0x66FFFFFF);
+
   /// [system] is the palette the operating system derived from the
   /// wallpaper. Without it the app's own seed colour is used.
   static ThemeData light({ColorScheme? system}) =>

@@ -40,6 +40,7 @@ dependencies:
   workmanager: ^0.10.10
   path_provider: ^2.1.6
   dynamic_color: ^2.1.0
+  liquid_glass_renderer: 0.2.0-dev.4
 
 dev_dependencies:
   flutter_test:

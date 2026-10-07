@@ -6,6 +6,7 @@ import '../theme/app_shapes.dart';
 import '../theme/app_theme.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
+import 'tile_surface.dart';
 
 /// A compact tile: shaped icon, a value and what it measures.
 class StatTile extends StatelessWidget {
@@ -36,10 +37,9 @@ class StatTile extends StatelessWidget {
     final neutral = tone == Tone.neutral;
     final onTap = this.onTap;
     return Pressable(
-      child: Material(
+      child: TileSurface(
         color: colors.container,
-        borderRadius: BorderRadius.circular(AppRadii.largeIncreased + 4),
-        clipBehavior: Clip.antiAlias,
+        radius: AppRadii.largeIncreased + 4,
         child: InkWell(
           onTap: onTap == null
               ? null
@@ -99,12 +99,10 @@ class SurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return TileSurface(
+      color: Theme.of(context).colorScheme.surfaceBright,
+      radius: AppRadii.extraLargeIncreased,
       padding: padding ?? const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceBright,
-        borderRadius: BorderRadius.circular(AppRadii.extraLargeIncreased),
-      ),
       child: child,
     );
   }

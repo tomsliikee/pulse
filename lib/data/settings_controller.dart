@@ -53,6 +53,7 @@ class SettingsController extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
   bool _showAllData = false;
+  bool _liquidGlass = false;
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
   Set<String> _largeTiles = defaultLargeTiles;
@@ -68,6 +69,9 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the list of every measurement is appended to the Today page.
   bool get showAllData => _showAllData;
+
+  /// Whether the navigation bar and the tiles are drawn as liquid glass.
+  bool get liquidGlass => _liquidGlass;
 
   /// The saved order of tile ids on [page]; empty if never rearranged.
   List<String> tileOrder(String page) => _tileOrder[page] ?? const [];
@@ -101,6 +105,7 @@ class SettingsController extends ChangeNotifier {
     }
     if (json['dynamicColor'] case final bool v) _dynamicColor = v;
     if (json['showAllData'] case final bool v) _showAllData = v;
+    if (json['liquidGlass'] case final bool v) _liquidGlass = v;
     if (json['tileOrder'] case final Map<String, Object?> pages) {
       _tileOrder = {
         for (final MapEntry(:key, :value) in pages.entries)
@@ -142,6 +147,8 @@ class SettingsController extends ChangeNotifier {
   void setDynamicColor(bool value) => _update(() => _dynamicColor = value);
 
   void setShowAllData(bool value) => _update(() => _showAllData = value);
+
+  void setLiquidGlass(bool value) => _update(() => _liquidGlass = value);
 
   void setTileOrder(String page, List<String> order) =>
       _update(() => _tileOrder = {..._tileOrder, page: List.of(order)});
@@ -196,6 +203,7 @@ class SettingsController extends ChangeNotifier {
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,
+            'liquidGlass': _liquidGlass,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,
             'largeTiles': _largeTiles.toList(),

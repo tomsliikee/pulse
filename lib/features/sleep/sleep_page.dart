@@ -14,6 +14,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
+import '../../widgets/tile_surface.dart';
 import 'sleep_stages_chart.dart';
 
 /// Last night's sleep and the week around it.
@@ -243,12 +244,10 @@ class _SleepHero extends StatelessWidget {
       height: 1,
     );
 
-    return Container(
+    return TileSurface(
+      color: scheme.secondaryContainer,
+      radius: AppRadii.extraExtraLarge,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: scheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(AppRadii.extraExtraLarge),
-      ),
       child: Row(
         children: [
           Semantics(

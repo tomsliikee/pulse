@@ -11,8 +11,10 @@ import '../features/heart/heart_page.dart';
 import '../features/sleep/sleep_page.dart';
 import '../features/today/today_page.dart';
 import '../theme/app_motion.dart';
+import '../widgets/glass_scope.dart';
 import 'app_scope.dart';
 import 'floating_nav_bar.dart';
+import 'glass_fab_menu.dart';
 import 'haptics.dart';
 
 class AppShell extends StatefulWidget {
@@ -46,6 +48,12 @@ class _AppShellState extends State<AppShell> {
     ),
   ];
 
+  static const _entries = [
+    (EntryKind.water, Icons.water_drop_rounded),
+    (EntryKind.weight, Icons.monitor_weight_rounded),
+    (EntryKind.meal, Icons.restaurant_rounded),
+  ];
+
   int _index = 0;
 
   Widget _page() => switch (_index) {
@@ -58,14 +66,16 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    final health = AppScope.of(context).health;
+    final AppScope(:health, :settings) = AppScope.of(context);
     return Scaffold(
       body: ListenableBuilder(
-        listenable: health,
+        listenable: Listenable.merge([health, settings]),
         builder: (context, _) {
           if (health.status != HealthStatus.ready) {
             return SafeArea(child: AccessPage(status: health.status));
           }
+          final glass = settings.liquidGlass;
+          final page = SafeArea(bottom: false, child: _page());
           return Stack(
             children: [
               Positioned.fill(
@@ -83,7 +93,7 @@ class _AppShellState extends State<AppShell> {
                       child: child,
                     ),
                   ),
-                  child: SafeArea(bottom: false, child: _page()),
+                  child: glass ? GlassScope(child: page) : page,
                 ),
               ),
               Positioned(
@@ -97,28 +107,37 @@ class _AppShellState extends State<AppShell> {
                       destinations: _destinations,
                       selectedIndex: _index,
                       showLabel: media.size.width >= 400,
+                      glass: glass,
                       onSelected: (index) => setState(() => _index = index),
                     ),
                     const SizedBox(width: 12),
-                    M3EFabMenu(
-                      color: M3EFabColor.tertiary,
-                      onOpenChanged: (_) => Haptics.tap(),
-                      items: [
-                        for (final (kind, icon) in const [
-                          (EntryKind.water, Icons.water_drop_rounded),
-                          (EntryKind.weight, Icons.monitor_weight_rounded),
-                          (EntryKind.meal, Icons.restaurant_rounded),
-                        ])
-                          M3EFabMenuItem(
-                            icon: Icon(icon),
-                            label: kind.label,
-                            onPressed: () {
-                              Haptics.tap();
-                              showEntrySheet(context, kind);
-                            },
-                          ),
-                      ],
-                    ),
+                    if (glass)
+                      GlassFabMenu(
+                        items: [
+                          for (final (kind, icon) in _entries)
+                            GlassFabMenuItem(
+                              icon: icon,
+                              label: kind.label,
+                              onPressed: () => showEntrySheet(context, kind),
+                            ),
+                        ],
+                      )
+                    else
+                      M3EFabMenu(
+                        color: M3EFabColor.tertiary,
+                        onOpenChanged: (_) => Haptics.tap(),
+                        items: [
+                          for (final (kind, icon) in _entries)
+                            M3EFabMenuItem(
+                              icon: Icon(icon),
+                              label: kind.label,
+                              onPressed: () {
+                                Haptics.tap();
+                                showEntrySheet(context, kind);
+                              },
+                            ),
+                        ],
+                      ),
                   ],
                 ),
               ),

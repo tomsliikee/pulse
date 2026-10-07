@@ -113,6 +113,8 @@ sequenceDiagram
 - **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
 - **Own Entries:** Add **water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button. They are written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps are shown but cannot be changed, because Health Connect does not allow it.
 - **Material You:** The colour scheme follows the phone's wallpaper. It can be switched off in the profile, which falls back to the app's own palette. Light, dark or system.
+- **Navigation:** The selected pill of the floating bar can be dragged to another destination; the page changes when it is let go.
+- **Liquid Glass:** A switch in the profile turns the navigation bar and the add button into refracting glass and the tiles into translucent glass over soft colour fields. The selected pill becomes a glass lens while it is dragged along the bar, and the entries of the add button flow out of it as drops. Shapes, colours and motion stay Material 3 Expressive. Off by default. ***Tested*** by widget tests in a blurred fallback and by screen recordings on a Pixel 10 Pro.
 - **Background Refresh:** A **WorkManager** task refreshes the stored data about once an hour, so the app opens with current values and no day is lost if it stays closed for longer than Health Connect's 30-day window.
 - **Haptics:** Distinct feedback for selecting, tapping, lifting a tile and confirming.
 - **Spring Motion and Shapes:** Page changes, tile movement and the container transform into a detail page run on **Material 3 Expressive** spring tokens; badges and the profile button use the expressive shape set.
@@ -120,6 +122,10 @@ sequenceDiagram
 ![Period tabs on the steps metric](readmestuff/detail.png)
 
 ![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
+
+![Liquid Glass: the Heute page, the add menu open, the pill being dragged along the bar, and the dark theme](readmestuff/glass.png)
+
+The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller. On a phone the bar, the dragged pill and the add button also bend what is behind them.
 
 ---
 
@@ -165,7 +171,7 @@ An average counts only days **with** data; a day without a measurement is not a 
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **128** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **141** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -235,7 +241,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | :--- | :--- |
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
-| **`settings.json`** | Goals, theme, the Material You switch, tile order per page, the tiles on Heute and their sizes |
+| **`settings.json`** | Goals, theme, the Material You and Liquid Glass switches, tile order per page, the tiles on Heute and their sizes |
 | **`backfill.json`** | How far back the one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.
@@ -249,6 +255,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
 - **Language:** the interface is German and not yet translatable.
 - **Orientation:** portrait only.
+- **Liquid Glass:** relies on a pre-release package that needs Impeller; elsewhere it falls back to a plain blur. Tiles do not refract, because that made scrolling stutter. Only the four main pages turn to glass, not the detail page or the sheets.
 
 ---
 
@@ -262,6 +269,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 | **`health`** | Health Connect |
 | **`workmanager`** | Background refresh |
 | **`dynamic_color`** | The system colour palette |
+| **`liquid_glass_renderer`** | The refracting glass of the Liquid Glass switch; Flutter itself can only blur |
 | **`path_provider`** | The private directory |
 
 The bundled typeface is **Google Sans Flex**, under the **SIL Open Font License** (see [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).

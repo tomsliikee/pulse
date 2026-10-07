@@ -20,6 +20,7 @@ import '../../widgets/progress_ring.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
+import '../../widgets/tile_surface.dart';
 import '../activity/workout_style.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
@@ -220,10 +221,9 @@ class _StepsHero extends StatelessWidget {
 
     return Pressable(
       pressedScale: 0.97,
-      child: Material(
+      child: TileSurface(
         color: scheme.primaryContainer,
-        borderRadius: BorderRadius.circular(AppRadii.extraExtraLarge),
-        clipBehavior: Clip.antiAlias,
+        radius: AppRadii.extraExtraLarge,
         child: Builder(
           builder: (context) => InkWell(
             onTap: () {
@@ -376,10 +376,9 @@ class _NutritionCard extends StatelessWidget {
 
     return Pressable(
       pressedScale: 0.97,
-      child: Material(
+      child: TileSurface(
         color: scheme.surfaceBright,
-        borderRadius: BorderRadius.circular(AppRadii.extraLargeIncreased),
-        clipBehavior: Clip.antiAlias,
+        radius: AppRadii.extraLargeIncreased,
         child: Builder(
           builder: (context) => InkWell(
             onTap: () {
