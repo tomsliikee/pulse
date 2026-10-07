@@ -29,6 +29,7 @@ class BoardTile {
     this.title,
     this.span = TileSpan.full,
     this.large = false,
+    this.entersInPlace = false,
     this.onRemove,
     this.onResize,
   });
@@ -46,6 +47,10 @@ class BoardTile {
   /// Whether the tile is in its large form; picks the resize button's icon.
   final bool large;
 
+  /// Where the tile goes when the saved order does not know it yet: next to
+  /// the tile declared before it instead of to the end.
+  final bool entersInPlace;
+
   /// Offered as a minus in the corner while the board is edited.
   final VoidCallback? onRemove;
 
@@ -58,6 +63,7 @@ class BoardTile {
     span: span,
     height: height,
     large: large,
+    entersInPlace: entersInPlace,
     onRemove: onRemove,
     onResize: onResize,
     child: child,
@@ -65,16 +71,27 @@ class BoardTile {
 }
 
 /// The tiles in display order: the [saved] ids that still exist, followed by
-/// tiles the saved order does not know, so a new tile is never lost.
+/// tiles the saved order does not know, so a new tile is never lost. A new
+/// tile with [BoardTile.entersInPlace] goes right after the tile declared
+/// before it instead, or to the top when it is declared first.
 List<String> resolveTileOrder(List<BoardTile> tiles, List<String> saved) {
   final ids = {for (final tile in tiles) tile.id};
+  final known = saved.toSet();
   final seen = <String>{};
-  return [
+  bool inPlace(BoardTile tile) =>
+      tile.entersInPlace && !known.contains(tile.id);
+  final order = [
     for (final id in saved)
       if (ids.contains(id) && seen.add(id)) id,
     for (final tile in tiles)
-      if (seen.add(tile.id)) tile.id,
+      if (!inPlace(tile) && seen.add(tile.id)) tile.id,
   ];
+  for (var i = 0; i < tiles.length; i++) {
+    if (!inPlace(tiles[i]) || !seen.add(tiles[i].id)) continue;
+    final before = i == 0 ? -1 : order.indexOf(tiles[i - 1].id);
+    order.insert(before + 1, tiles[i].id);
+  }
+  return order;
 }
 
 /// Packs [ordered] tiles row by row into [width] and returns each tile's

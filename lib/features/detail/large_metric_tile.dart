@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/formatters.dart';
 import '../../app/layout.dart';
+import '../../data/night_insights.dart';
 import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/settings_controller.dart';
@@ -99,7 +100,7 @@ class LargeMetricTile extends StatelessWidget {
     final String? remark = switch (metric) {
       Metric.sleep when night != null =>
         '${l10n.rangeFromTo(formatClock(night.bedtimeMinute), formatClock(night.wakeMinute))} · '
-            '${l10n.scoreEstimate(night.estimatedScore)}',
+            '${l10n.scoreEstimate(sleepScore(night, settings.sleepGoalHours, health.nights).total)}',
       Metric.water when goal != null => l10n.percentOfGoal(
         ((value ?? 0) / goal * 100).round(),
         metric.formatWithUnit(formats, goal),

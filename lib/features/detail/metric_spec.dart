@@ -1,6 +1,7 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_scope.dart';
 import '../../app/container_route.dart';
 import '../../app/formatters.dart';
 import '../../data/metric_catalog.dart';
@@ -220,12 +221,13 @@ extension MetricPresentation on Metric {
 /// Sleep has a page of its own.
 void openMetric(BuildContext context, Metric metric, Rect origin) {
   final scheme = Theme.of(context).colorScheme;
+  final health = AppScope.of(context).health;
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,
       originColor: scheme.tone(metric.spec.tone).container,
       builder: (_) => metric == Metric.sleep
-          ? const SleepDetailPage()
+          ? SleepDetailPage(date: health.latestNight?.date ?? health.today)
           : MetricDetailPage(metric: metric),
     ),
   );

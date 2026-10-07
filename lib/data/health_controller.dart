@@ -6,6 +6,8 @@ import 'health_snapshot.dart';
 import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
+import 'night_archive.dart';
+import 'workout_archive.dart';
 
 enum HealthStatus {
   /// Nothing to show yet.
@@ -31,6 +33,8 @@ class HealthController extends ChangeNotifier {
   final JsonStore _store;
   final DateTime Function() _clock;
   late final HistoryArchive _archive = HistoryArchive(_store);
+  late final WorkoutArchive _workoutArchive = WorkoutArchive(_store);
+  late final NightArchive _nightArchive = NightArchive(_store);
 
   /// How many days one request for older data covers.
   static const int backfillChunkDays = 90;
@@ -48,6 +52,10 @@ class HealthController extends ChangeNotifier {
   HealthHistory? _history;
   DateTime? _backfillReached;
   bool _backfilling = false;
+  bool _backfillingWorkouts = false;
+  List<Workout> _workouts = const [];
+  bool _backfillingNights = false;
+  List<SleepNight> _nights = const [];
   bool _disposed = false;
 
   HealthStatus get status => _status;
@@ -85,8 +93,25 @@ class HealthController extends ChangeNotifier {
 
   List<HeartSample> get heartSamples => snapshot.heart[_selectedIndex];
 
-  Workout? get latestWorkout =>
-      snapshot.workouts.isEmpty ? null : snapshot.workouts.last;
+  /// Every night the app has seen, oldest first, as the archive keeps them:
+  /// without the curve of the stages. Reaches further back than the
+  /// snapshot's window.
+  List<SleepNight> get nights => _nights;
+
+  SleepNight? get latestNight => _nights.isEmpty ? null : _nights.last;
+
+  /// [night] with the curve of its stages, as long as the snapshot's window
+  /// still holds it.
+  SleepNight withCurve(SleepNight night) {
+    final index = _snapshot?.indexOf(night.date);
+    return (index == null ? null : _snapshot?.nights[index]) ?? night;
+  }
+
+  /// Every workout the app has seen, oldest first. Reaches further back
+  /// than the snapshot's window.
+  List<Workout> get workouts => _workouts;
+
+  Workout? get latestWorkout => _workouts.isEmpty ? null : _workouts.last;
 
   /// Shows the saved snapshot at once, then checks access and reads fresh.
   Future<void> start() async {
@@ -94,12 +119,18 @@ class HealthController extends ChangeNotifier {
       await _store.read(StoreKeys.snapshot),
     );
     final history = await _archive.load(_clock());
+    final workouts = await _workoutArchive.load();
+    final nights = await _nightArchive.load();
     if (_disposed) return;
     _history = history;
+    _workouts = List.unmodifiable(workouts);
+    _nights = List.unmodifiable(nights);
     if (saved != null) _show(saved);
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
     await _backfill();
+    await _backfillWorkouts();
+    await _backfillNights();
   }
 
   /// A snapshot younger than this is not read again when the app merely
@@ -146,6 +177,8 @@ class HealthController extends ChangeNotifier {
       _show(fresh);
       await _store.write(StoreKeys.snapshot, fresh.toJson());
       await _archiveDays(dailyValuesOf(fresh));
+      await _archiveWorkouts(workoutsWithHeart(fresh));
+      await _archiveNights(nightSummaries(fresh));
     } on Exception catch (error) {
       debugPrint('Health refresh failed: $error');
       // An earlier snapshot stays on screen; a failed read is no reason to
@@ -168,6 +201,21 @@ class HealthController extends ChangeNotifier {
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
     await _backfill();
+    await _backfillWorkouts();
+    await _backfillNights();
+  }
+
+  Future<void> _archiveNights(List<SleepNight> nights) async {
+    final merged = mergeNights(_nights, nights);
+    if (merged == null) return;
+    _nights = List.unmodifiable(merged);
+    await _nightArchive.mergeIntoStore(nights);
+  }
+
+  Future<void> _archiveWorkouts(Iterable<Workout> workouts) async {
+    final all = await _workoutArchive.mergeIntoStore(workouts);
+    if (_disposed) return;
+    _workouts = List.unmodifiable(all);
   }
 
   Future<void> _archiveDays(DailyValues values) async {
@@ -235,6 +283,113 @@ class HealthController extends ChangeNotifier {
     } finally {
       _backfilling = false;
       if (!_disposed) notifyListeners();
+    }
+  }
+
+  /// Fills the workout archive once with the workouts the store already
+  /// holds, back to the oldest day of the history. It has its own progress,
+  /// apart from [_backfill], and does not stop at an empty stretch: months
+  /// without a workout are normal. It never asks for the permission; that is
+  /// [_backfill]'s to ask, once.
+  Future<void> _backfillWorkouts() async {
+    final history = _history;
+    if (_backfillingWorkouts || _disposed || history == null) return;
+    final state = await _store.read(StoreKeys.workoutBackfill);
+    if (_disposed) return;
+    if (state case {'done': true}) return;
+    DateTime? reached;
+    if (state case {'reached': final String value}) {
+      reached = DateTime.tryParse(value);
+    }
+
+    Future<void> save({bool done = false}) => _store.write(
+      StoreKeys.workoutBackfill,
+      {'done': done, 'reached': reached?.toIso8601String()},
+    );
+
+    _backfillingWorkouts = true;
+    try {
+      if (!await _repository.historyAccessGranted() || _disposed) return;
+      var limit = DateTime(today.year - HistoryArchive.retentionYears + 1);
+      final oldest = history.firstDayOfAll;
+      // Without any older day there is nothing to go back to yet.
+      if (oldest == null) return;
+      if (oldest.isAfter(limit)) limit = oldest;
+      // The live window already covers the most recent days.
+      var to = reached ?? snapshot.dateAt(0).subtract(const Duration(days: 1));
+      to = DateTime(to.year, to.month, to.day);
+      while (!to.isBefore(limit)) {
+        var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
+        if (from.isBefore(limit)) from = limit;
+        final workouts = await _repository.loadWorkouts(from, to);
+        if (_disposed) return;
+        if (workouts.isNotEmpty) {
+          await _archiveWorkouts(workouts);
+          if (_disposed) return;
+          notifyListeners();
+        }
+        to = DateTime(from.year, from.month, from.day - 1);
+        reached = to;
+        await save();
+      }
+      await save(done: true);
+    } on Exception catch (error) {
+      // Not marked as done, so the next start continues where this stopped.
+      debugPrint('Loading older workouts failed: $error');
+    } finally {
+      _backfillingWorkouts = false;
+    }
+  }
+
+  /// Fills the night archive once with the nights the store already holds,
+  /// in the way [_backfillNights] does for workouts.
+  Future<void> _backfillNights() async {
+    final history = _history;
+    if (_backfillingNights || _disposed || history == null) return;
+    final state = await _store.read(StoreKeys.nightBackfill);
+    if (_disposed) return;
+    if (state case {'done': true}) return;
+    DateTime? reached;
+    if (state case {'reached': final String value}) {
+      reached = DateTime.tryParse(value);
+    }
+
+    Future<void> save({bool done = false}) => _store.write(
+      StoreKeys.nightBackfill,
+      {'done': done, 'reached': reached?.toIso8601String()},
+    );
+
+    _backfillingNights = true;
+    try {
+      if (!await _repository.historyAccessGranted() || _disposed) return;
+      var limit = DateTime(today.year - HistoryArchive.retentionYears + 1);
+      final oldest = history.firstDayOfAll;
+      // Without any older day there is nothing to go back to yet.
+      if (oldest == null) return;
+      if (oldest.isAfter(limit)) limit = oldest;
+      // The live window already covers the most recent days.
+      var to = reached ?? snapshot.dateAt(0).subtract(const Duration(days: 1));
+      to = DateTime(to.year, to.month, to.day);
+      while (!to.isBefore(limit)) {
+        var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
+        if (from.isBefore(limit)) from = limit;
+        final nights = await _repository.loadNights(from, to);
+        if (_disposed) return;
+        if (nights.isNotEmpty) {
+          await _archiveNights(nights);
+          if (_disposed) return;
+          notifyListeners();
+        }
+        to = DateTime(from.year, from.month, from.day - 1);
+        reached = to;
+        await save();
+      }
+      await save(done: true);
+    } on Exception catch (error) {
+      // Not marked as done, so the next start continues where this stopped.
+      debugPrint('Loading older nights failed: $error');
+    } finally {
+      _backfillingNights = false;
     }
   }
 

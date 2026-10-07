@@ -113,7 +113,6 @@ void main() {
       final night = snapshot.nights[29]!;
       expect(night.hasStages, isFalse);
       expect(night.asleepMinutes, 480);
-      expect(night.estimatedScore, inInclusiveRange(1, 100));
     });
 
     test('the longest session of a day is the night, a nap is not', () {

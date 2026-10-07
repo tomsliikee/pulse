@@ -231,12 +231,13 @@ void main() {
       expect(find.byTooltip('Fertig'), findsOneWidget);
 
       // While editing, a tap must not open anything.
-      final deep = find.text('Tiefschlaf');
+      // The stage tile, not the figure of the same name in the top tile.
+      final deep = find.text('Tiefschlaf').last;
       await tester.ensureVisible(deep);
       await advance(tester);
       final gesture = await tester.startGesture(tester.getCenter(deep));
       await tester.pump(const Duration(milliseconds: 300));
-      await gesture.moveTo(tester.getCenter(find.text('Leichter Schlaf')));
+      await gesture.moveTo(tester.getCenter(find.text('Leichter Schlaf').last));
       await tester.pump();
       await gesture.up();
       await advance(tester);

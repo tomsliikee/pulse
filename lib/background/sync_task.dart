@@ -6,6 +6,8 @@ import '../data/health_history.dart';
 import '../data/health_repository.dart';
 import '../data/health_snapshot.dart';
 import '../data/json_store.dart';
+import '../data/night_archive.dart';
+import '../data/workout_archive.dart';
 
 const String _uniqueName = 'pulse.sync';
 const String _taskName = 'sync';
@@ -49,6 +51,8 @@ Future<void> syncOnce(
   // Also kept for the long term, so no day is lost when the app stays
   // closed for longer than the store's window.
   await HistoryArchive(store).mergeIntoStore(dailyValuesOf(snapshot));
+  await WorkoutArchive(store).mergeIntoStore(workoutsWithHeart(snapshot));
+  await NightArchive(store).mergeIntoStore(nightSummaries(snapshot));
 }
 
 /// Registers the hourly refresh. Safe to call on every start.

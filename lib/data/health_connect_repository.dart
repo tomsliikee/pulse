@@ -193,6 +193,59 @@ class HealthConnectRepository implements HealthRepository {
     DateTime to,
   ) => _inWorker(token, (repository) => repository._loadHistory(from, to));
 
+  static Future<List<Workout>> _loadWorkoutsInWorker(
+    RootIsolateToken token,
+    DateTime from,
+    DateTime to,
+  ) => _inWorker(token, (repository) => repository._loadWorkouts(from, to));
+
+  @override
+  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _loadWorkouts(from, to)
+        : _loadWorkoutsInWorker(token, from, to);
+  }
+
+  Future<List<Workout>> _loadWorkouts(DateTime from, DateTime to) async {
+    await _configure();
+    final start = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    return [
+      for (final point in await _read(HealthDataType.WORKOUT, start, end))
+        ?_workout(point),
+    ];
+  }
+
+  static Future<List<SleepNight>> _loadNightsInWorker(
+    RootIsolateToken token,
+    DateTime from,
+    DateTime to,
+  ) => _inWorker(token, (repository) => repository._loadNights(from, to));
+
+  @override
+  Future<List<SleepNight>> loadNights(DateTime from, DateTime to) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _loadNights(from, to)
+        : _loadNightsInWorker(token, from, to);
+  }
+
+  Future<List<SleepNight>> _loadNights(DateTime from, DateTime to) async {
+    await _configure();
+    final start = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    final (sessions, stages) = await _readSleep(start, end);
+    // The same builder as for the live window, so a night means the same in
+    // both.
+    final snapshot = buildSnapshot(
+      now: end,
+      dayCount: dayKey(end) - dayKey(start) + 1,
+      raw: RawReadings(sleepSessions: sessions, sleepStages: stages),
+    );
+    return [for (final night in snapshot.nights) ?night?.summary];
+  }
+
   @override
   Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) {
     final token = RootIsolateToken.instance;
@@ -274,6 +327,29 @@ class HealthConnectRepository implements HealthRepository {
     return dailyValuesOf(snapshot);
   }
 
+  Future<(List<RawSleepSession>, List<RawSleepStage>)> _readSleep(
+    DateTime start,
+    DateTime end,
+  ) async {
+    // A night can start before the first day of the window.
+    final sleepStart = start.subtract(const Duration(hours: 12));
+    final sessions = [
+      for (final point in await _read(
+        HealthDataType.SLEEP_SESSION,
+        sleepStart,
+        end,
+      ))
+        RawSleepSession(point.dateFrom, point.dateTo),
+    ];
+    final stages = <RawSleepStage>[];
+    for (final MapEntry(key: type, value: stage) in _sleepStages.entries) {
+      for (final point in await _read(type, sleepStart, end)) {
+        stages.add(RawSleepStage(stage, point.dateFrom, point.dateTo));
+      }
+    }
+    return (sessions, stages);
+  }
+
   Future<RawReadings> _readRaw(
     DateTime start,
     DateTime end, {
@@ -329,22 +405,7 @@ class HealthConnectRepository implements HealthRepository {
       }
     }
 
-    // A night can start before the first day of the window.
-    final sleepStart = start.subtract(const Duration(hours: 12));
-    final sessions = [
-      for (final point in await _read(
-        HealthDataType.SLEEP_SESSION,
-        sleepStart,
-        end,
-      ))
-        RawSleepSession(point.dateFrom, point.dateTo),
-    ];
-    final stages = <RawSleepStage>[];
-    for (final MapEntry(key: type, value: stage) in _sleepStages.entries) {
-      for (final point in await _read(type, sleepStart, end)) {
-        stages.add(RawSleepStage(stage, point.dateFrom, point.dateTo));
-      }
-    }
+    final (sessions, stages) = await _readSleep(start, end);
 
     final nutrition = await _read(HealthDataType.NUTRITION, start, end);
     final entries = <HealthEntry>[
@@ -594,6 +655,10 @@ class HealthConnectRepository implements HealthRepository {
       minutes: point.dateTo.difference(point.dateFrom).inMinutes,
       kcal: value.totalEnergyBurned,
       distanceKm: distance == null ? null : distance / 1000,
+      steps: switch (value.totalSteps) {
+        final int steps when steps > 0 => steps,
+        _ => null,
+      },
     );
   }
 }

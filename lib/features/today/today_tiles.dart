@@ -5,6 +5,7 @@ import 'package:motor/motor.dart';
 import '../../app/container_route.dart';
 import '../../app/formatters.dart';
 import '../../app/layout.dart';
+import '../../data/night_insights.dart';
 import '../../data/health_controller.dart';
 import '../../data/health_snapshot.dart';
 import '../../data/metric_catalog.dart';
@@ -22,6 +23,7 @@ import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
 import '../activity/workout_style.dart';
+import '../activity/workout_tiles.dart';
 import '../age/body_age_page.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
@@ -146,7 +148,9 @@ class _SmallTile extends StatelessWidget {
         strokeWidth: 3,
       ),
       Metric.sleep when night != null => _Caption(
-        l10n.scoreEstimate(night.estimatedScore),
+        l10n.scoreEstimate(
+          sleepScore(night, settings.sleepGoalHours, health.nights).total,
+        ),
         color: colors.onContainer,
       ),
       Metric.water => M3ELinearWavyProgressIndicator(
@@ -600,6 +604,26 @@ class _WorkoutCard extends StatelessWidget {
     final l10n = formats.l10n;
     final distance = workout.distanceKm;
     final kcal = workout.kcal;
+    return Pressable(
+      child: GestureDetector(
+        onTap: () {
+          final origin = globalRectOf(context);
+          if (origin != null) openWorkout(context, workout, origin);
+        },
+        child: _card(context, theme, scheme, formats, l10n, distance, kcal),
+      ),
+    );
+  }
+
+  Widget _card(
+    BuildContext context,
+    ThemeData theme,
+    ColorScheme scheme,
+    Formats formats,
+    AppLocalizations l10n,
+    double? distance,
+    int? kcal,
+  ) {
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: Column(

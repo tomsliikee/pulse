@@ -63,6 +63,16 @@ class HealthHistory {
     return days == null || days.isEmpty ? null : dateOfKey(days.firstKey()!);
   }
 
+  /// The oldest day that has a value for any metric.
+  DateTime? get firstDayOfAll {
+    int? first;
+    for (final days in _values.values) {
+      final key = days.firstKey();
+      if (key != null && (first == null || key < first)) first = key;
+    }
+    return first == null ? null : dateOfKey(first);
+  }
+
   /// Takes [values] over. A new value replaces an older one for the same
   /// day; a day that is missing from [values] keeps what is stored, so a gap
   /// in a later reading never erases history. Returns the years that changed.

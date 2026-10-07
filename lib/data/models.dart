@@ -61,6 +61,7 @@ class SleepNight {
     required this.bedtimeMinute,
     required this.totalMinutes,
     required this.segments,
+    this.stageMinutes,
   });
 
   final DateTime date;
@@ -72,30 +73,43 @@ class SleepNight {
   /// this, so it does not depend on [segments].
   final int totalMinutes;
 
-  /// Empty when the source recorded no sleep stages.
+  /// Empty when the source recorded no sleep stages, and for a night from
+  /// the archive, which keeps [stageMinutes] instead.
   final List<SleepSegment> segments;
 
-  bool get hasStages => segments.isNotEmpty;
+  /// The minutes in each stage of a night whose [segments] were not kept.
+  final Map<SleepStage, int>? stageMinutes;
+
+  /// Whether the night says how long each stage lasted.
+  bool get hasStages => segments.isNotEmpty || stageMinutes != null;
+
+  /// Whether the night says when each stage was.
+  bool get hasCurve => segments.isNotEmpty;
+
+  /// The night as the archive keeps it: the times and the minutes in each
+  /// stage, without the curve.
+  SleepNight get summary => SleepNight(
+    date: date,
+    bedtimeMinute: bedtimeMinute,
+    totalMinutes: totalMinutes,
+    segments: const [],
+    stageMinutes: !hasStages
+        ? null
+        : {
+            for (final stage in SleepStage.values)
+              if (minutesIn(stage) > 0) stage: minutesIn(stage),
+          },
+  );
 
   int get asleepMinutes => totalMinutes - minutesIn(SleepStage.awake);
 
   int get wakeMinute => (bedtimeMinute + totalMinutes) % (24 * 60);
 
-  int minutesIn(SleepStage stage) => segments
-      .where((s) => s.stage == stage)
-      .fold(0, (sum, s) => sum + s.minutes);
-
-  /// Health Connect stores no sleep score. This is the app's own rough
-  /// estimate from duration and the share of deep sleep, and is labelled as
-  /// an estimate wherever it is shown.
-  int get estimatedScore {
-    final deepShare = hasStages
-        ? minutesIn(SleepStage.deep) / totalMinutes
-        // Without stages, assume a typical share so the score rests on
-        // duration alone.
-        : 0.17;
-    final score = 28 + asleepMinutes / 9 + deepShare * 45;
-    return score.round().clamp(1, 100);
+  int minutesIn(SleepStage stage) {
+    if (segments.isEmpty) return stageMinutes?[stage] ?? 0;
+    return segments
+        .where((s) => s.stage == stage)
+        .fold(0, (sum, s) => sum + s.minutes);
   }
 
   Map<String, Object?> toJson() => {
@@ -103,6 +117,12 @@ class SleepNight {
     'bedtime': bedtimeMinute,
     'total': totalMinutes,
     'segments': [for (final s in segments) s.toJson()],
+    'stages': ?switch (stageMinutes) {
+      final minutes? => {
+        for (final MapEntry(:key, :value) in minutes.entries) key.name: value,
+      },
+      null => null,
+    },
   };
 
   static SleepNight? fromJson(Object? json) {
@@ -121,6 +141,14 @@ class SleepNight {
         bedtimeMinute: bedtime,
         totalMinutes: total,
         segments: [for (final s in segments) ?SleepSegment.fromJson(s)],
+        stageMinutes: switch (json['stages']) {
+          final Map<String, Object?> stages => {
+            for (final stage in SleepStage.values)
+              if (stages[stage.name] case final int minutes when minutes > 0)
+                stage: minutes,
+          },
+          _ => null,
+        },
       );
     }
     return null;
@@ -143,6 +171,9 @@ class Workout {
     required this.minutes,
     this.kcal,
     this.distanceKm,
+    this.steps,
+    this.avgBpm,
+    this.maxBpm,
   });
 
   final WorkoutType type;
@@ -150,6 +181,28 @@ class Workout {
   final int minutes;
   final int? kcal;
   final double? distanceKm;
+  final int? steps;
+
+  /// The heart rate during the workout. Not from the store: worked out from
+  /// the day's curve while the app still has it.
+  final int? avgBpm;
+  final int? maxBpm;
+
+  /// Names the workout across reads of the store.
+  String get key => '${type.name}@${start.toIso8601String()}';
+
+  DateTime get end => start.add(Duration(minutes: minutes));
+
+  Workout withHeart({required int? avgBpm, required int? maxBpm}) => Workout(
+    type: type,
+    start: start,
+    minutes: minutes,
+    kcal: kcal,
+    distanceKm: distanceKm,
+    steps: steps,
+    avgBpm: avgBpm,
+    maxBpm: maxBpm,
+  );
 
   Map<String, Object?> toJson() => {
     'type': type.name,
@@ -157,6 +210,9 @@ class Workout {
     'minutes': minutes,
     'kcal': kcal,
     'km': distanceKm,
+    'steps': ?steps,
+    'avgBpm': ?avgBpm,
+    'maxBpm': ?maxBpm,
   };
 
   static Workout? fromJson(Object? json) {
@@ -171,12 +227,20 @@ class Workout {
         when minutes >= 0) {
       final parsedStart = DateTime.tryParse(start);
       if (parsedStart == null) return null;
+      // Added later; documents written before do not have them.
+      int? positive(String name) => switch (json[name]) {
+        final int value when value > 0 => value,
+        _ => null,
+      };
       return Workout(
         type: _enumByName(WorkoutType.values, type) ?? WorkoutType.other,
         start: parsedStart,
         minutes: minutes,
         kcal: kcal,
         distanceKm: km?.toDouble(),
+        steps: positive('steps'),
+        avgBpm: positive('avgBpm'),
+        maxBpm: positive('maxBpm'),
       );
     }
     return null;

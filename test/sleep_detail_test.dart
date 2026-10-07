@@ -15,7 +15,7 @@ Finder _onPage(Finder finder) =>
 Future<void> _open(WidgetTester tester) async {
   await tester.tap(find.bySemanticsLabel('Schlaf'));
   await advance(tester);
-  await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+  await tester.tap(find.text('Letzte Nacht'));
   await advance(tester);
 }
 
@@ -39,8 +39,12 @@ void main() {
       expect(_onPage(find.text('Nacht auf Dienstag, 6. Oktober')), findsOne);
       // Half past seven in bed, six minutes of every 151 awake.
       expect(_onPage(find.text('7 h 30 min')), findsOne);
-      expect(_onPage(find.text('7 h 12 min')), findsOne);
+      expect(_onPage(find.text('7 h 12 min')), findsWidgets);
       for (final title in const [
+        'Schlaf-Score',
+        'Im Vergleich',
+        'So schläfst du besser',
+        'Nächte davor',
         'Schlafphasen',
         'Phasen im Vergleich',
         'Regelmäßigkeit',
@@ -48,9 +52,10 @@ void main() {
         'Puls in der Nacht',
         'Werte zur Nacht',
       ]) {
-        expect(_onPage(find.text(title)), findsOne, reason: title);
+        expect(_onPage(find.text(title)), findsWidgets, reason: title);
       }
-      expect(_onPage(find.text('30 Nächte')), findsOne);
+      // Behind the regularity, and as the number of all nights at the end.
+      expect(_onPage(find.text('30 Nächte')), findsNWidgets(2));
       expect(
         _onPage(find.text('7 Nächte bei einem Ziel von 8,0 h je Nacht')),
         findsOne,
@@ -80,7 +85,8 @@ void main() {
         findsOne,
       );
       expect(_onPage(find.text('Phasen im Vergleich')), findsNothing);
-      expect(_onPage(find.text('Regelmäßigkeit')), findsOne);
+      // The section and the part of the score of the same name.
+      expect(_onPage(find.text('Regelmäßigkeit')), findsNWidgets(2));
       expect(_onPage(find.text('Puls in der Nacht')), findsNothing);
       expect(_onPage(find.text('Werte zur Nacht')), findsNothing);
       await _scrollThrough(tester);
@@ -92,7 +98,17 @@ void main() {
         size: size,
         repository: FixtureRepository(readings: const RawReadings()),
       );
-      await _open(tester);
+      await tester.tap(find.bySemanticsLabel('Schlaf'));
+      await advance(tester);
+      // Without a night there is nothing to tap; the page is opened as a
+      // link from elsewhere would.
+      expect(find.text('Keine Schlafdaten für diese Nacht.'), findsOne);
+      Navigator.of(tester.element(find.text('Heute Abend'))).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SleepDetailPage(date: DateTime(2026, 10, 6)),
+        ),
+      );
+      await advance(tester);
       expect(
         _onPage(find.text('Keine Schlafdaten für diese Nacht.')),
         findsOne,
@@ -117,30 +133,18 @@ void main() {
     expect(find.byType(MetricDetailPage), findsNothing);
   });
 
-  testWidgets('the score shape still only changes its shape', (tester) async {
+  testWidgets('a bar of the week opens the page of its night', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsLabel('Schlaf'));
     await advance(tester);
-    await tester.tap(find.text('Schätzung'));
-    await advance(tester);
-    expect(find.byType(SleepDetailPage), findsNothing);
-  });
-
-  testWidgets('the page shows the night that is selected', (tester) async {
-    await pumpApp(tester);
-    await tester.tap(find.bySemanticsLabel('Schlaf'));
-    await advance(tester);
+    final monday = find.text('Mo').hitTestable();
     await tester.scrollUntilVisible(
-      find.text('Diese Woche'),
+      monday,
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await advance(tester);
-    await tester.tap(find.text('Mo').hitTestable());
-    await advance(tester);
-    await tester.drag(find.byType(ListView).first, const Offset(0, 4000));
-    await advance(tester);
-    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.tap(monday);
     await advance(tester);
     expect(_onPage(find.text('Nacht auf Montag, 5. Oktober')), findsOne);
   });

@@ -337,10 +337,14 @@ void main() {
         await pumpApp(tester, size: size, locale: locale);
         await tester.tap(find.bySemanticsLabel(l10n.groupSleep));
         await advance(tester);
-        await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+        await tester.tap(find.text(l10n.lastNight));
         await advance(tester);
         final page = find.byType(SleepDetailPage);
         for (final title in [
+          l10n.scoreTitle,
+          l10n.compareTitle,
+          l10n.sleepTipsTitle,
+          l10n.nightsBeforeTitle,
           l10n.sleepStages,
           l10n.stagesCompared,
           l10n.regularity,
@@ -350,7 +354,7 @@ void main() {
         ]) {
           expect(
             find.descendant(of: page, matching: find.text(title)),
-            findsOne,
+            findsWidgets,
             reason: title,
           );
         }

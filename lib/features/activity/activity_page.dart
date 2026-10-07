@@ -5,24 +5,22 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
-import '../../data/models.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/board_page.dart';
-import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../detail/metric_spec.dart';
 import '../detail/page_tiles.dart';
-import 'workout_style.dart';
+import 'workout_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
 
-/// Steps over the week or month and the list of workouts.
+/// The latest workout, the ones before it, steps over the week or month and
+/// the measurements of the day.
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
 
   static const int _maxWorkouts = 5;
-  static const double _workoutRowHeight = 64;
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +31,34 @@ class ActivityPage extends StatelessWidget {
       builder: (context, _) {
         final l10n = AppLocalizations.of(context);
         final snapshot = health.snapshot;
-        final workouts = snapshot.workouts.reversed.take(_maxWorkouts).toList();
+        final workouts = health.workouts;
+        // The latest has a tile of its own; these are the ones before it.
+        final earlier = workouts.reversed.skip(1).take(_maxWorkouts).toList();
         return BoardPage(
           pageId: 'activity',
           title: l10n.groupActivity,
           subtitle: l10n.activitySubtitle,
           removable: true,
           tiles: [
+            if (workouts.isNotEmpty)
+              BoardTile(
+                id: 'lastWorkout',
+                title: l10n.lastActivity,
+                height: LatestWorkoutCard.height,
+                entersInPlace: true,
+                child: LatestWorkoutCard(workouts: workouts),
+              ),
+            if (workouts.length > 1)
+              BoardTile(
+                id: 'recentWorkouts',
+                title: l10n.moreActivities,
+                height: RecentWorkoutsCard.heightFor(earlier.length),
+                entersInPlace: true,
+                child: RecentWorkoutsCard(
+                  workouts: earlier,
+                  total: workouts.length,
+                ),
+              ),
             BoardTile(
               id: 'chart',
               title: l10n.stepsChartTitle,
@@ -80,16 +99,6 @@ class ActivityPage extends StatelessWidget {
                   settings: scope.settings,
                   page: 'activity',
                 ),
-            if (workouts.isNotEmpty)
-              BoardTile(
-                id: 'workouts',
-                title: l10n.workouts,
-                height: 76 + workouts.length * _workoutRowHeight,
-                child: _Workouts(
-                  workouts: workouts,
-                  rowHeight: _workoutRowHeight,
-                ),
-              ),
           ],
         );
       },
@@ -196,75 +205,6 @@ class _StepsChartState extends State<_StepsChart> {
               color: scheme.primary,
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Workouts extends StatelessWidget {
-  const _Workouts({required this.workouts, required this.rowHeight});
-
-  final List<Workout> workouts;
-  final double rowHeight;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final formats = Formats.of(context);
-    final l10n = formats.l10n;
-    return SurfaceCard(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.workouts, style: context.emphasizedTextTheme.titleMedium),
-          const SizedBox(height: 12),
-          for (final workout in workouts)
-            SizedBox(
-              height: rowHeight,
-              child: Row(
-                children: [
-                  ShapeBadge(
-                    shape: workout.type.shape,
-                    icon: workout.type.icon,
-                    size: 44,
-                    color: scheme.secondaryContainer,
-                    iconColor: scheme.onSecondaryContainer,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          workout.type.label(l10n),
-                          style: theme.textTheme.titleSmall,
-                        ),
-                        Text(
-                          '${formats.shortDate(workout.start)} · '
-                          '${formats.duration(workout.minutes)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (workout.kcal case final kcal?)
-                    Text(
-                      '$kcal kcal',
-                      style: context.emphasizedTextTheme.labelLarge?.copyWith(
-                        color: scheme.primary,
-                      ),
-                    ),
-                ],
-              ),
-            ),
         ],
       ),
     );

@@ -740,5 +740,318 @@
   },
   "guideBmi": "Am besten um 22, neutral bei 25.",
   "guideBloodPressure": "Neutral bei 130/85, am besten unter 120/80.",
-  "guideStrength": "Am besten ab 2 Einheiten pro Woche."
+  "guideStrength": "Am besten ab 2 Einheiten pro Woche.",
+  "lastActivity": "Letzte Aktivität",
+  "moreActivities": "Weitere Aktivitäten",
+  "allActivities": "Alle Aktivitäten",
+  "activitiesCount": "{count, plural, one{{count} Aktivität} other{{count} Aktivitäten}}",
+  "@activitiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "filterAll": "Alle",
+  "measureDuration": "Dauer",
+  "measureDistance": "Distanz",
+  "measurePace": "Tempo",
+  "measureSpeed": "Geschwindigkeit",
+  "measureEnergy": "Kalorien",
+  "measureSteps": "Schritte",
+  "measureAvgHeart": "Ø Puls",
+  "measureMaxHeart": "Höchster Puls",
+  "personalBest": "Bestwert",
+  "workoutAtTime": "{date} um {time}",
+  "@workoutAtTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "compareTitle": "Im Vergleich",
+  "compareLast": "Letztes Mal",
+  "compareAverage": "Ø der letzten {count}",
+  "@compareAverage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compareFirst": "Das ist deine erste Aktivität dieser Art. Ab der zweiten vergleicht Pulse.",
+  "trendTitle": "Dein Verlauf",
+  "trendLast": "{count, plural, one{Die letzte Aktivität} other{Die letzten {count} Aktivitäten}} dieser Art",
+  "@trendLast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "frequencyTitle": "Häufigkeit",
+  "frequencyRecent": "{value} pro Woche in den letzten 4 Wochen",
+  "@frequencyRecent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "frequencyBefore": "{value} pro Woche in den 4 Wochen davor",
+  "@frequencyBefore": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "tipsTitle": "So wirst du besser",
+  "tipsNote": "Hinweise von Pulse aus deinen eigenen Zahlen, keine medizinische Beratung.",
+  "tipFew": "Nach drei Aktivitäten dieser Art kann Pulse vergleichen und Hinweise geben.",
+  "tipLongBreak": "{days} Tage Pause seit dem letzten Mal. Steig mit etwas weniger Umfang wieder ein und steigere dich über zwei, drei Einheiten.",
+  "@tipLongBreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "tipLessOften": "Zuletzt warst du seltener dran als in den Wochen davor. Regelmäßigkeit bringt mehr als einzelne lange Einheiten.",
+  "tipBigJump": "{percent} % mehr als dein Schnitt. Große Sprünge belasten; steigere den Umfang lieber in kleinen Schritten.",
+  "@tipBigJump": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "tipHigherPulse": "Gleiches Tempo, aber höherer Puls als sonst. Das kann an Müdigkeit, Hitze oder wenig Schlaf liegen; plane eine lockere Einheit ein.",
+  "tipStrength": "Zwei Krafteinheiten pro Woche gelten als Richtwert. Eine kurze zweite reicht schon.",
+  "tipKeepGoing": "Du bist auf Kurs. Bleib bei deinem Rhythmus.",
+  "cmpFaster": "{diff} schneller als letztes Mal",
+  "@cmpFaster": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpSlower": "{diff} langsamer als letztes Mal",
+  "@cmpSlower": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpFarther": "{diff} weiter als letztes Mal",
+  "@cmpFarther": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpLessFar": "{diff} weniger weit als letztes Mal",
+  "@cmpLessFar": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpLonger": "{diff} länger als letztes Mal",
+  "@cmpLonger": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpShorter": "{diff} kürzer als letztes Mal",
+  "@cmpShorter": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "cmpSame": "Wie letztes Mal",
+  "cmpFirst": "Erste Aktivität dieser Art",
+  "durationSeconds": "{seconds} s",
+  "@durationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "lastNight": "Letzte Nacht",
+  "moreNights": "Weitere Nächte",
+  "allNights": "Alle Nächte",
+  "nightsBeforeTitle": "Nächte davor",
+  "nightsTotal": "{count, plural, one{{count} Nacht} other{{count} Nächte}}",
+  "@nightsTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreShort": "Score",
+  "tonightTitle": "Heute Abend",
+  "tonightBedtime": "Um {time} ins Bett",
+  "@tonightBedtime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tonightWhy": "Für {goal} Schlaf bis {wake}, deiner üblichen Aufstehzeit.",
+  "@tonightWhy": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "wake": {
+        "type": "String"
+      }
+    }
+  },
+  "tonightCatchUp": "Darin sind {minutes} min, um Schlaf der letzten Woche nachzuholen.",
+  "@tonightCatchUp": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "tonightNeedsNights": "Nach drei Nächten kann Pulse eine Schlafenszeit vorschlagen.",
+  "scoreTitle": "Schlaf-Score",
+  "scoreNote": "Von Pulse aus vier Teilen geschätzt, keine Messung. Was sich nicht werten lässt, zählt nicht mit; der Rest wird hochgerechnet.",
+  "scorePartStages": "Tief- und REM-Schlaf",
+  "scorePoints": "{earned} von {max}",
+  "@scorePoints": {
+    "placeholders": {
+      "earned": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreNotJudged": "nicht gewertet",
+  "nightAsleep": "Geschlafen",
+  "nightBedtime": "Eingeschlafen",
+  "nightWake": "Aufgewacht",
+  "compareNightBefore": "Nacht davor",
+  "compareWeek": "Ø 7 Tage",
+  "compareNoNight": "Für diese Nacht gibt es in der Woche davor keine Nacht zum Vergleichen.",
+  "nightLonger": "{diff} länger als die Nacht davor",
+  "@nightLonger": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "nightShorter": "{diff} kürzer als die Nacht davor",
+  "@nightShorter": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      }
+    }
+  },
+  "nightSame": "So lang wie die Nacht davor",
+  "nightFirst": "Keine Nacht davor zum Vergleichen",
+  "linksTitle": "Zusammenhänge",
+  "linksNote": "Beobachtungen aus den letzten drei Monaten. Was zusammen auftritt, muss nicht die Ursache sein.",
+  "linkWorkoutAsleep": "Nach Tagen mit Training schläfst du im Schnitt {diff} {direction, select, more{länger} other{kürzer}}.",
+  "@linkWorkoutAsleep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkWorkoutDeep": "Nach Tagen mit Training hast du im Schnitt {diff} {direction, select, more{mehr} other{weniger}} Tiefschlaf.",
+  "@linkWorkoutDeep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkStepsAsleep": "Nach Tagen über deinem Schrittziel schläfst du im Schnitt {diff} {direction, select, more{länger} other{kürzer}}.",
+  "@linkStepsAsleep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkStepsDeep": "Nach Tagen über deinem Schrittziel hast du im Schnitt {diff} {direction, select, more{mehr} other{weniger}} Tiefschlaf.",
+  "@linkStepsDeep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepTipsTitle": "So schläfst du besser",
+  "nightTipFew": "Nach drei Nächten in einer Woche kann Pulse vergleichen und Hinweise geben.",
+  "nightTipDebt": "Über die Woche fehlen dir {amount} Schlaf gegen dein Ziel. Geh ein paar Abende etwas früher ins Bett, statt am Wochenende lange auszuschlafen.",
+  "@nightTipDebt": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "nightTipIrregular": "Deine Einschlafzeit schwankt um {minutes} min. Eine feste Zeit, auch am Wochenende, macht das Einschlafen leichter.",
+  "@nightTipIrregular": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "nightTipLate": "Du warst {amount} später im Bett als in der Woche davor. Das kostet meist Schlaf, weil die Aufstehzeit bleibt.",
+  "@nightTipLate": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "nightTipAwake": "Du lagst {amount} wach. Wenn das öfter vorkommt, helfen abends weniger Koffein und Alkohol und ein kühles, dunkles Zimmer.",
+  "@nightTipAwake": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "nightTipDeep": "Weniger Tiefschlaf als bei dir üblich. Bewegung am Tag und eine regelmäßige Schlafenszeit fördern ihn.",
+  "nightTipKeepGoing": "Deine Nächte sind im Rhythmus. Bleib dabei."
 }

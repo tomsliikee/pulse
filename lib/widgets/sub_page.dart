@@ -14,12 +14,13 @@ class SubPage extends StatefulWidget {
   const SubPage({
     super.key,
     required this.title,
-    required this.child,
+    this.child,
+    this.slivers,
     this.largeTitle,
     this.glass = false,
     this.bottomPadding = 32,
     this.overlay,
-  });
+  }) : assert((child == null) != (slivers == null));
 
   final String title;
 
@@ -27,7 +28,12 @@ class SubPage extends StatefulWidget {
   /// The pill appears when this has scrolled away.
   final Widget? largeTitle;
 
-  final Widget child;
+  /// The content, laid out as a whole.
+  final Widget? child;
+
+  /// The content as slivers instead of [child], for a long list that is
+  /// built as it scrolls into view.
+  final List<Widget>? slivers;
 
   /// Draws the back button and the pill as liquid glass.
   final bool glass;
@@ -110,7 +116,10 @@ class _SubPageState extends State<SubPage> {
               ),
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(16, 8, 16, widget.bottomPadding),
-                sliver: SliverToBoxAdapter(child: widget.child),
+                sliver: switch (widget.slivers) {
+                  final slivers? => SliverMainAxisGroup(slivers: slivers),
+                  null => SliverToBoxAdapter(child: widget.child),
+                },
               ),
             ],
           ),

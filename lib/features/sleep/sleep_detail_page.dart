@@ -5,11 +5,13 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/layout.dart';
 import '../../data/health_controller.dart';
-import '../../data/health_snapshot.dart';
+import '../../data/health_history.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
+import '../../data/night_insights.dart';
+import '../../data/settings_controller.dart';
 import '../../data/sleep_insights.dart';
-import '../../theme/app_shapes.dart';
+import '../../data/workout_insights.dart' show Trend;
 import '../../theme/app_theme.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/bar_chart.dart';
@@ -17,8 +19,10 @@ import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
-import '../../widgets/tile_surface.dart';
 import '../detail/metric_spec.dart';
+import 'night_format.dart';
+import 'night_tiles.dart';
+import 'sleep_scene.dart';
 import 'sleep_schedule_chart.dart';
 import 'sleep_stages_chart.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -36,11 +40,20 @@ const List<Metric> _nightMetrics = [
   Metric.skinTemperature,
 ];
 
-/// Everything the app can say about the selected night: its stages against
-/// typical shares, how regular the nights are and how far they stay behind
-/// the goal.
+/// Everything the app can say about the night that ended on [date]: its
+/// score and what it is made of, its stages, how it stands against the
+/// nights before, how regular the nights are, and what to do next. The
+/// nights before it are listed at the end.
 class SleepDetailPage extends StatelessWidget {
-  const SleepDetailPage({super.key});
+  const SleepDetailPage({super.key, required this.date});
+
+  final DateTime date;
+
+  /// Nights before this one that are listed at the end of the page.
+  static const int _nightsBelow = 3;
+
+  /// Days up to the night that its regularity is drawn over.
+  static const int _scheduleDays = 30;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +66,7 @@ class SleepDetailPage extends StatelessWidget {
         title: l10n.sleepInDetail,
         glass: scope.settings.liquidGlass,
         child: health.status == HealthStatus.ready
-            ? _content(context, health, scope.settings.sleepGoalHours)
+            ? _content(context, health, scope.settings)
             : const SizedBox(
                 height: 240,
                 child: Center(child: M3ELoadingIndicator()),
@@ -65,22 +78,68 @@ class SleepDetailPage extends StatelessWidget {
   Widget _content(
     BuildContext context,
     HealthController health,
-    double goalHours,
+    SettingsController settings,
   ) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
+    final goalHours = settings.sleepGoalHours;
     final snapshot = health.snapshot;
-    final index = health.selectedIndex;
-    final night = health.night;
-    final regularity = sleepRegularity(snapshot.nights);
-    final heart = nightHeart(snapshot, index);
-    final debtFrom = index - _debtNights + 1 < 0 ? 0 : index - _debtNights + 1;
+    final all = health.nights;
+    final key = dayKey(date);
+    SleepNight? stored;
+    for (final night in all) {
+      if (dayKey(night.date) == key) stored = night;
+    }
+    final dateLine = Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+      child: Text(
+        l10n.nightTo(formats.longDate(date)),
+        style: theme.textTheme.titleMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+    if (stored == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          dateLine,
+          SurfaceCard(child: EmptyNote(l10n.noSleepData)),
+        ],
+      );
+    }
+
+    // With the curve of its stages while the snapshot still has it.
+    final night = health.withCurve(stored);
+    final insights = NightInsights.of(stored, all, goalHours);
+    // The days up to this night, one entry a day, for the charts that show
+    // the nights around it.
+    final byDay = {for (final other in all) dayKey(other.date): other};
+    final days = [
+      for (var day = key - _scheduleDays + 1; day <= key; day++) byDay[day],
+    ];
+    final week = days.sublist(days.length - _debtNights);
+    final regularity = sleepRegularity(days);
+    // The pulse and the day's values only as far as the snapshot reaches.
+    final index = snapshot.indexOf(date);
+    final heart = index == null
+        ? const <HeartSample>[]
+        : nightHeart(snapshot, index);
     final metrics = [
       for (final metric in _nightMetrics)
         if (snapshot.has(metric)) metric,
     ];
+    final history = health.history;
+    final links = sleepLinks(
+      nights: all,
+      until: date,
+      workouts: health.workouts,
+      stepsOn: (day) => history?.value(Metric.steps, day),
+      stepGoal: settings.stepGoal,
+    );
+    final before = nightsBefore(all, date, all.length + 1);
     final stageColors = {
       SleepStage.awake: scheme.outlineVariant,
       SleepStage.rem: scheme.tertiary,
@@ -89,55 +148,44 @@ class SleepDetailPage extends StatelessWidget {
     };
 
     final sections = <Widget>[
-      if (night == null)
-        SurfaceCard(child: EmptyNote(l10n.noSleepData))
-      else ...[
-        _Overview(night: night),
-        if (night.hasStages) ...[
-          SectionCard(
-            title: l10n.sleepStages,
-            child: Column(
-              children: [
-                SleepStagesChart(
-                  night: night,
-                  colors: stageColors,
-                  height: 160,
-                ),
-                const SizedBox(height: 8),
-                _ClockRow(minutes: [night.bedtimeMinute, night.wakeMinute]),
-              ],
-            ),
+      _Summary(night: night, insights: insights),
+      _ScoreCard(score: insights.score),
+      _Measures(night: night, insights: insights),
+      if (night.hasCurve)
+        SectionCard(
+          title: l10n.sleepStages,
+          child: SleepStagesChart(
+            night: night,
+            colors: stageColors,
+            height: 160,
+            interactive: true,
           ),
-          SectionCard(
-            title: l10n.stagesCompared,
-            child: _StageComparison(night: night, colors: stageColors),
-          ),
-        ] else
-          SectionCard(
-            title: l10n.sleepStages,
-            child: EmptyNote(l10n.noStagesRecorded),
-          ),
-      ],
+        ),
+      if (night.hasStages)
+        SectionCard(
+          title: l10n.stagesCompared,
+          child: _StageComparison(night: night, colors: stageColors),
+        )
+      else
+        SectionCard(
+          title: l10n.sleepStages,
+          child: EmptyNote(l10n.noStagesRecorded),
+        ),
+      _Comparison(insights: insights),
       if (regularity != null)
         SectionCard(
           title: l10n.regularity,
           trailing: l10n.nightsCount(regularity.nights),
           child: _Regularity(
-            nights: snapshot.nights,
-            selectedIndex: index,
+            nights: days,
+            selectedIndex: days.length - 1,
             regularity: regularity,
           ),
         ),
-      if (snapshot.nights.sublist(debtFrom, index + 1).any((n) => n != null))
-        SectionCard(
-          title: l10n.sleepDebt,
-          child: _Debt(
-            snapshot: snapshot,
-            from: debtFrom,
-            to: index,
-            goalHours: goalHours,
-          ),
-        ),
+      SectionCard(
+        title: l10n.sleepDebt,
+        child: _Debt(nights: week, until: date, goalHours: goalHours),
+      ),
       if (heart.length >= 2)
         SectionCard(
           title: l10n.nightPulse,
@@ -145,8 +193,6 @@ class SleepDetailPage extends StatelessWidget {
           child: Column(
             children: [
               LineChart(
-                // Draw the line again for every night.
-                key: ValueKey(health.selectedDate),
                 values: [for (final sample in heart) sample.bpm.toDouble()],
                 color: scheme.tertiary,
                 height: 140,
@@ -168,7 +214,9 @@ class SleepDetailPage extends StatelessWidget {
               for (final metric in metrics)
                 _NightValue(
                   metric: metric,
-                  value: snapshot.value(metric, index),
+                  value: index == null
+                      ? history?.value(metric, date)
+                      : snapshot.value(metric, index),
                   usual: ownRange(snapshot.valuesOf(metric)),
                 ),
               Padding(
@@ -183,20 +231,20 @@ class SleepDetailPage extends StatelessWidget {
             ],
           ),
         ),
+      if (links.isNotEmpty) _Links(links: links),
+      _Tips(insights: insights),
+      if (before.isNotEmpty)
+        NightsCard(
+          title: l10n.nightsBeforeTitle,
+          nights: before.reversed.take(_nightsBelow).toList(),
+          total: all.length,
+        ),
     ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
-          child: Text(
-            l10n.nightTo(formats.longDate(health.selectedDate)),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
+        dateLine,
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
           sections[i],
@@ -213,6 +261,394 @@ class SleepDetailPage extends StatelessWidget {
       sum += sample.bpm;
     }
     return l10n.heartSummary(low, (sum / samples.length).round());
+  }
+}
+
+/// The night played back, with how it went against the night before.
+class _Summary extends StatelessWidget {
+  const _Summary({required this.night, required this.insights});
+
+  final SleepNight night;
+  final NightInsights insights;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SleepScene(night: night, score: insights.score.total, height: 140),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  formats.duration(night.asleepMinutes),
+                  style: context.emphasizedTextTheme.headlineMedium,
+                ),
+                Text(
+                  formats.l10n.asleepFromTo(
+                    formatClock(night.bedtimeMinute),
+                    formatClock(night.wakeMinute),
+                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  nightHeadline(formats, insights),
+                  style: context.emphasizedTextTheme.titleMedium?.copyWith(
+                    color: scheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The score with what each of its parts gave.
+class _ScoreCard extends StatelessWidget {
+  const _ScoreCard({required this.score});
+
+  final SleepScore score;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return SectionCard(
+      title: l10n.scoreTitle,
+      trailing: '${score.total}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 14,
+        children: [
+          for (final part in ScorePart.values)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 6,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        part.label(l10n),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    Text(
+                      switch (score.parts[part]) {
+                        final earned? => l10n.scorePoints(
+                          earned.round(),
+                          part.points,
+                        ),
+                        null => l10n.scoreNotJudged,
+                      },
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: (score.parts[part] ?? 0) / part.points,
+                    minHeight: 8,
+                    color: scheme.primary,
+                    backgroundColor: scheme.surfaceContainerHighest,
+                  ),
+                ),
+              ],
+            ),
+          Text(l10n.scoreNote, style: muted),
+        ],
+      ),
+    );
+  }
+}
+
+/// Every number of the night, two to a row.
+class _Measures extends StatelessWidget {
+  const _Measures({required this.night, required this.insights});
+
+  final SleepNight night;
+  final NightInsights insights;
+
+  static const double _gap = 12;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    final values = [
+      (l10n.inBed, formats.duration(night.totalMinutes)),
+      for (final measure in const [
+        NightMeasure.efficiency,
+        NightMeasure.deep,
+        NightMeasure.rem,
+        NightMeasure.light,
+        NightMeasure.awake,
+      ])
+        if (insights.measure(measure) case final comparison?)
+          (measure.label(l10n), measure.format(formats, comparison.value)),
+    ];
+    return LayoutBuilder(
+      builder: (context, box) => Wrap(
+        spacing: _gap,
+        runSpacing: _gap,
+        children: [
+          for (final (label, value) in values)
+            SizedBox(
+              width: (box.maxWidth - _gap) / 2,
+              height: 92,
+              child: SurfaceCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const Spacer(),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        value,
+                        maxLines: 1,
+                        style: context.emphasizedTextTheme.titleLarge,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Each number against the night before and against the week before.
+class _Comparison extends StatelessWidget {
+  const _Comparison({required this.insights});
+
+  final NightInsights insights;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    final rows = [
+      for (final comparison in insights.measures)
+        if (comparison.previous != null) comparison,
+    ];
+    if (rows.isEmpty) {
+      return SectionCard(
+        title: l10n.compareTitle,
+        child: Text(
+          l10n.compareNoNight,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+    final head = theme.textTheme.labelMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+
+    Widget difference(NightComparison comparison, double? other, Trend trend) {
+      if (other == null) return const SizedBox.shrink();
+      final diff = comparison.value - other;
+      final size = comparison.measure.formatDifference(formats, diff);
+      return Text(
+        trend == Trend.same || diff.abs() < 0.005
+            ? '±0'
+            : '${diff < 0 ? '−' : '+'}$size',
+        textAlign: TextAlign.end,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: context.emphasizedTextTheme.labelLarge?.copyWith(
+          color: switch (trend) {
+            Trend.better => scheme.primary,
+            Trend.worse => scheme.error,
+            Trend.same || Trend.neutral => scheme.onSurfaceVariant,
+          },
+        ),
+      );
+    }
+
+    return SectionCard(
+      title: l10n.compareTitle,
+      child: Column(
+        spacing: 12,
+        children: [
+          Row(
+            children: [
+              const Expanded(flex: 5, child: SizedBox.shrink()),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  l10n.compareNightBefore,
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: head,
+                ),
+              ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  l10n.compareWeek,
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: head,
+                ),
+              ),
+            ],
+          ),
+          for (final comparison in rows)
+            Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Text(
+                    comparison.measure.label(l10n),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: difference(
+                    comparison,
+                    comparison.previous,
+                    comparison.againstPrevious,
+                  ),
+                ),
+                Expanded(
+                  flex: 4,
+                  child: difference(
+                    comparison,
+                    comparison.average,
+                    comparison.againstAverage,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A list of sentences, each with the same small icon, and a note below.
+class _Notes extends StatelessWidget {
+  const _Notes({
+    required this.title,
+    required this.icon,
+    required this.sentences,
+    required this.note,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> sentences;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return SectionCard(
+      title: title,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: 12,
+        children: [
+          for (final sentence in sentences)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 20, color: scheme.tertiary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(sentence, style: theme.textTheme.bodyMedium),
+                ),
+              ],
+            ),
+          Text(
+            note,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Links extends StatelessWidget {
+  const _Links({required this.links});
+
+  final List<SleepLink> links;
+
+  @override
+  Widget build(BuildContext context) {
+    final formats = Formats.of(context);
+    return _Notes(
+      title: formats.l10n.linksTitle,
+      icon: Icons.link_rounded,
+      sentences: [for (final link in links) sleepLinkText(formats, link)],
+      note: formats.l10n.linksNote,
+    );
+  }
+}
+
+class _Tips extends StatelessWidget {
+  const _Tips({required this.insights});
+
+  final NightInsights insights;
+
+  @override
+  Widget build(BuildContext context) {
+    final formats = Formats.of(context);
+    return _Notes(
+      title: formats.l10n.sleepTipsTitle,
+      icon: Icons.lightbulb_outline_rounded,
+      sentences: [for (final tip in insights.tips) nightTip(formats, tip)],
+      note: formats.l10n.tipsNote,
+    );
   }
 }
 
@@ -242,16 +678,15 @@ class _ClockRow extends StatelessWidget {
 
 /// A number with what it is, for a row of several.
 class _Figure extends StatelessWidget {
-  const _Figure({required this.label, required this.value, this.color});
+  const _Figure({required this.label, required this.value});
 
   final String label;
   final String value;
-  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = this.color ?? theme.colorScheme.onSurface;
+    final color = theme.colorScheme.onSurface;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,82 +710,6 @@ class _Figure extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _Overview extends StatelessWidget {
-  const _Overview({required this.night});
-
-  final SleepNight night;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final formats = Formats.of(context);
-    final l10n = formats.l10n;
-    final onContainer = scheme.onSecondaryContainer;
-    return TileSurface(
-      color: scheme.secondaryContainer,
-      radius: AppRadii.extraLargeIncreased,
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              formats.duration(night.asleepMinutes),
-              maxLines: 1,
-              style: context.emphasizedTextTheme.displaySmall?.copyWith(
-                color: onContainer,
-              ),
-            ),
-          ),
-          Text(
-            l10n.asleepFromTo(
-              formatClock(night.bedtimeMinute),
-              formatClock(night.wakeMinute),
-            ),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: onContainer.withValues(alpha: 0.72),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _Figure(
-                  label: l10n.inBed,
-                  value: formats.duration(night.totalMinutes),
-                  color: onContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Figure(
-                  label: l10n.efficiency,
-                  value: l10n.percentValue(
-                    (sleepEfficiency(night) * 100).round(),
-                  ),
-                  color: onContainer,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _Figure(
-                  label: l10n.scoreEstimated,
-                  value: '${night.estimatedScore}',
-                  color: onContainer,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }
@@ -526,18 +885,18 @@ class _Regularity extends StatelessWidget {
   }
 }
 
-/// The nights from [from] to [to] against the goal, and what they add up to.
+/// The [nights] of the days up to [until] against the goal, and what they
+/// add up to.
 class _Debt extends StatelessWidget {
   const _Debt({
-    required this.snapshot,
-    required this.from,
-    required this.to,
+    required this.nights,
+    required this.until,
     required this.goalHours,
   });
 
-  final HealthSnapshot snapshot;
-  final int from;
-  final int to;
+  /// One entry a day, the last for [until]; null where there is no night.
+  final List<SleepNight?> nights;
+  final DateTime until;
   final double goalHours;
 
   @override
@@ -546,7 +905,6 @@ class _Debt extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    final nights = snapshot.nights.sublist(from, to + 1);
     final debt = sleepDebt(nights, goalHours);
     final goal = '${formats.decimal(goalHours)} h';
     return Column(
@@ -571,10 +929,15 @@ class _Debt extends StatelessWidget {
               night == null ? null : night.asleepMinutes / 60,
           ],
           labels: [
-            for (var i = from; i <= to; i++)
-              formats.weekdayShort[snapshot.dateAt(i).weekday - 1],
+            for (var back = nights.length - 1; back >= 0; back--)
+              formats.weekdayShort[DateTime(
+                    until.year,
+                    until.month,
+                    until.day - back,
+                  ).weekday -
+                  1],
           ],
-          selectedIndex: to - from,
+          selectedIndex: nights.length - 1,
           color: scheme.secondaryContainer,
           selectedColor: scheme.secondary,
           goal: goalHours,

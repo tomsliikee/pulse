@@ -58,6 +58,14 @@ class FixtureRepository implements HealthRepository {
   /// Whether the store lets older data be read, and what it then returns.
   bool historyAccess = false;
   DailyValues olderDays = const {};
+
+  /// Workouts from before the window, handed out by [loadWorkouts].
+  List<Workout> olderWorkouts = const [];
+  final List<(DateTime, DateTime)> workoutRequests = [];
+
+  /// Nights from before the window, handed out by [loadNights].
+  List<SleepNight> olderNights = const [];
+  final List<(DateTime, DateTime)> nightRequests = [];
   final List<(DateTime, DateTime)> historyRequests = [];
   int historyPermissionRequests = 0;
   int _nextId = 100;
@@ -141,6 +149,26 @@ class FixtureRepository implements HealthRepository {
             if (!day.isBefore(from) && !day.isAfter(to)) day: value,
         },
     };
+  }
+
+  @override
+  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) async {
+    workoutRequests.add((from, to));
+    final end = DateTime(to.year, to.month, to.day + 1);
+    return [
+      for (final workout in olderWorkouts)
+        if (!workout.start.isBefore(from) && workout.start.isBefore(end))
+          workout,
+    ];
+  }
+
+  @override
+  Future<List<SleepNight>> loadNights(DateTime from, DateTime to) async {
+    nightRequests.add((from, to));
+    return [
+      for (final night in olderNights)
+        if (!night.date.isBefore(from) && !night.date.isAfter(to)) night,
+    ];
   }
 
   void _replaceEntries(List<HealthEntry> entries) {
@@ -254,6 +282,36 @@ RawReadings fixtureReadings() {
     sleepSessions: sessions,
     sleepStages: stages,
     workouts: [
+      // Runs that get a little faster, so there is something to compare.
+      Workout(
+        type: WorkoutType.run,
+        start: _day(22, 18),
+        minutes: 31,
+        kcal: 310,
+        distanceKm: 4.6,
+      ),
+      Workout(
+        type: WorkoutType.run,
+        start: _day(15, 18, 20),
+        minutes: 33,
+        kcal: 335,
+        distanceKm: 5.0,
+      ),
+      Workout(
+        type: WorkoutType.run,
+        start: _day(8, 7, 10),
+        minutes: 36,
+        kcal: 352,
+        distanceKm: 5.5,
+      ),
+      Workout(
+        type: WorkoutType.walk,
+        start: _day(6, 12, 15),
+        minutes: 48,
+        kcal: 190,
+        distanceKm: 3.9,
+        steps: 5200,
+      ),
       Workout(
         type: WorkoutType.ride,
         start: _day(4, 17, 30),

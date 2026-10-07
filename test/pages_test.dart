@@ -104,20 +104,19 @@ void main() {
     await pumpApp(tester);
     expect(find.text('7.432'), findsOneWidget);
 
-    await tester.tap(find.bySemanticsLabel('Schlaf'));
+    await tester.tap(find.bySemanticsLabel('Aktivität'));
     await advance(tester);
+    final monday = find.text('Mo').hitTestable();
     await tester.scrollUntilVisible(
-      find.text('Diese Woche'),
+      monday,
       300,
       scrollable: find.byType(Scrollable).first,
     );
     await advance(tester);
-    // The week chart selects Monday.
-    await tester.tap(find.text('Mo').hitTestable());
+    // The steps chart selects Monday.
+    await tester.tap(monday);
     await advance(tester);
-    await tester.drag(find.byType(ListView).first, const Offset(0, 4000));
-    await advance(tester);
-    expect(find.text('Nacht auf Montag, 5. Oktober'), findsOneWidget);
+    expect(find.textContaining('Mo, 5.10.'), findsWidgets);
 
     await tester.tap(find.bySemanticsLabel('Heute'));
     await advance(tester);
