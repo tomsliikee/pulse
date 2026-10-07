@@ -131,7 +131,7 @@ sequenceDiagram
 
 ![Liquid Glass: the Heute page, the add menu open, the pill being dragged along the bar, and the dark theme](readmestuff/glass.png)
 
-The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller. On a phone the bar, the dragged pill and the add button also bend what is behind them. The edit mode and Liquid Glass images were rendered before the steps tile got its second ring and the body age, and still show the earlier tile.
+The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller. On a phone the bar, the dragged pill and the add button also bend what is behind them.
 
 ---
 
