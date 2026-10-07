@@ -2,6 +2,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
+import '../../app/back_gesture.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/models.dart';
@@ -13,11 +14,53 @@ Future<void> showEntrySheet(
   EntryKind kind, {
   HealthEntry? existing,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => EntrySheet(kind: kind, existing: existing),
+  final navigator = Navigator.of(context);
+  final localizations = MaterialLocalizations.of(context);
+  return navigator.push(
+    _EntrySheetRoute(
+      builder: (_) => EntrySheet(kind: kind, existing: existing),
+      capturedThemes: InheritedTheme.capture(
+        from: context,
+        to: navigator.context,
+      ),
+      barrierLabel: localizations.scrimLabel,
+      barrierOnTapHint: localizations.scrimOnTapHint(
+        localizations.bottomSheetLabel,
+      ),
+      modalBarrierColor: Theme.of(context).bottomSheetTheme.modalBarrierColor,
+    ),
+  );
+}
+
+/// The modal sheet of `showModalBottomSheet`, which also shrinks towards the
+/// bottom edge while a back swipe is in progress.
+class _EntrySheetRoute extends ModalBottomSheetRoute<void>
+    with BackGestureRoute<void> {
+  _EntrySheetRoute({
+    required super.builder,
+    super.capturedThemes,
+    super.barrierLabel,
+    super.barrierOnTapHint,
+    super.modalBarrierColor,
+  }) : super(isScrollControlled: true, showDragHandle: true);
+
+  static final _scale = Tween<double>(begin: 1, end: 0.9);
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => ScaleTransition(
+    scale: backProgress.drive(_scale),
+    alignment: Alignment.bottomCenter,
+    child: super.buildTransitions(
+      context,
+      animation,
+      secondaryAnimation,
+      child,
+    ),
   );
 }
 

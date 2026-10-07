@@ -328,6 +328,32 @@ Future<void> advance(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 2));
 }
 
+/// Sends what Android reports during a back swipe: [progress] for
+/// `startBackGesture` and `updateBackGestureProgress`, none for
+/// `commitBackGesture` and `cancelBackGesture`.
+Future<void> backGesture(
+  WidgetTester tester,
+  String method, [
+  double? progress,
+]) async {
+  final call = MethodCall(
+    method,
+    progress == null
+        ? null
+        : <String, Object?>{
+            'touchOffset': <double>[5, 300],
+            'progress': progress,
+            'swipeEdge': 0,
+          },
+  );
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/backgesture',
+    const StandardMethodCodec().encodeMethodCall(call),
+    (_) {},
+  );
+  await tester.pump();
+}
+
 Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   WidgetTester tester, {
   Size size = const Size(412, 915),

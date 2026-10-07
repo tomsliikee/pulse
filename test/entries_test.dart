@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/models.dart';
+import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/entry/entry_sheet.dart';
 
 import 'support/fixtures.dart';
@@ -121,5 +122,45 @@ void main() {
     expect(find.text('750 ml'), findsNothing);
     expect(find.text('300 ml'), findsOneWidget);
     expect(find.text('Eintrag gelöscht'), findsOneWidget);
+  });
+
+  testWidgets('a back swipe shrinks the sheet towards the bottom and closes '
+      'only the sheet', (tester) async {
+    final app = await pumpApp(tester);
+    await tester.scrollUntilVisible(
+      find.text('Wasser'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await advance(tester);
+    await tester.tap(find.text('Wasser'));
+    await advance(tester);
+    await tester.tap(find.byTooltip('Bearbeiten'));
+    await advance(tester);
+
+    final sheet = find.byType(EntrySheet);
+    final page = find.byType(MetricDetailPage);
+    final atRest = tester.getRect(sheet);
+
+    await backGesture(tester, 'startBackGesture', 0);
+    await backGesture(tester, 'updateBackGestureProgress', 1);
+    final pulled = tester.getRect(sheet);
+    expect(pulled.width, moreOrLessEquals(atRest.width * 0.9));
+    expect(pulled.top, greaterThan(atRest.top));
+    // The page beneath the sheet does not answer the same swipe.
+    expect(tester.getRect(page), const Rect.fromLTWH(0, 0, 412, 915));
+
+    await backGesture(tester, 'cancelBackGesture');
+    await advance(tester);
+    expect(tester.getRect(sheet), atRest);
+
+    await backGesture(tester, 'startBackGesture', 0);
+    await backGesture(tester, 'updateBackGestureProgress', 0.5);
+    await backGesture(tester, 'commitBackGesture');
+    await advance(tester);
+    expect(sheet, findsNothing);
+    expect(page, findsOneWidget);
+    expect(app.repository.added, isEmpty);
+    expect(app.repository.deleted, isEmpty);
   });
 }

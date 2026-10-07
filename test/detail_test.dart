@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/features/detail/metric_detail_page.dart';
 
 import 'support/fixtures.dart';
 
@@ -171,5 +172,34 @@ void main() {
     expect(find.textContaining('Zuletzt gemessen: '), findsOneWidget);
     expect(find.text('73,5 kg'), findsOneWidget);
     expect(find.text('Keine Daten an diesem Tag.'), findsNothing);
+  });
+
+  testWidgets('a back swipe shrinks the page, and letting go decides', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await _openSteps(tester);
+    final page = find.byType(MetricDetailPage);
+    expect(tester.getRect(page), const Rect.fromLTWH(0, 0, 412, 915));
+
+    await backGesture(tester, 'startBackGesture', 0);
+    await backGesture(tester, 'updateBackGestureProgress', 1);
+    final pulled = tester.getRect(page);
+    expect(pulled.width, moreOrLessEquals(412 * 0.9));
+    expect(pulled.height, moreOrLessEquals(915 * 0.9));
+    // Pushed away from the left edge, where the finger came from.
+    expect(pulled.center.dx, greaterThan(206));
+    // The Today page beneath is still there to be seen.
+    expect(find.text('7.432'), findsWidgets);
+
+    await backGesture(tester, 'cancelBackGesture');
+    await advance(tester);
+    expect(tester.getRect(page), const Rect.fromLTWH(0, 0, 412, 915));
+
+    await backGesture(tester, 'startBackGesture', 0);
+    await backGesture(tester, 'updateBackGestureProgress', 0.6);
+    await backGesture(tester, 'commitBackGesture');
+    await advance(tester);
+    expect(page, findsNothing);
   });
 }

@@ -1,10 +1,14 @@
 import 'dart:ui' show lerpDouble;
 
+import 'package:flutter/services.dart' show SwipeEdge;
 import 'package:material_ui/material_ui.dart';
 
+import 'back_gesture.dart';
+
 /// A container transform: the page grows out of [origin], the rectangle of
-/// the tile that was tapped, and shrinks back into it on pop.
-class ContainerRoute<T> extends PageRoute<T> {
+/// the tile that was tapped, and shrinks back into it on pop. During a back
+/// swipe the page shrinks a little first, so the page beneath shows.
+class ContainerRoute<T> extends PageRoute<T> with BackGestureRoute<T> {
   ContainerRoute({
     required this.builder,
     required this.origin,
@@ -60,12 +64,24 @@ class ContainerRoute<T> extends PageRoute<T> {
       curve: const Interval(0.3, 1),
     );
     return AnimatedBuilder(
-      animation: curved,
+      animation: Listenable.merge([curved, backProgress]),
       child: FadeTransition(opacity: contentFade, child: child),
       builder: (context, child) {
         final screen = MediaQuery.sizeOf(context);
         final t = curved.value;
-        final rect = Rect.lerp(origin, Offset.zero & screen, t)!;
+        // Android's measures for a page that follows the back swipe: down
+        // to 90 %, pushed away from the edge the finger came from.
+        final back = backProgress.value;
+        final scale = lerpDouble(1, 0.9, back)!;
+        final shift = (screen.width / 20 - 8) * back;
+        final open = Rect.fromCenter(
+          center: screen.center(
+            Offset(backEdge == SwipeEdge.left ? shift : -shift, 0),
+          ),
+          width: screen.width * scale,
+          height: screen.height * scale,
+        );
+        final rect = Rect.lerp(origin, open, t)!;
         return Stack(
           children: [
             Positioned.fill(
@@ -79,7 +95,7 @@ class ContainerRoute<T> extends PageRoute<T> {
               rect: rect,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(
-                  lerpDouble(originRadius, 0, t)!,
+                  lerpDouble(originRadius, originRadius * back, t)!,
                 ),
                 child: ColoredBox(
                   color: Color.lerp(
@@ -95,7 +111,11 @@ class ContainerRoute<T> extends PageRoute<T> {
                     maxWidth: screen.width,
                     minHeight: screen.height,
                     maxHeight: screen.height,
-                    child: child,
+                    child: Transform.scale(
+                      scale: scale,
+                      alignment: Alignment.topCenter,
+                      child: child,
+                    ),
                   ),
                 ),
               ),
