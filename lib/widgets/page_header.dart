@@ -1,28 +1,21 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../app/haptics.dart';
-import '../l10n/generated/app_localizations.dart';
-
 /// The large emphasized title every top-level page starts with.
-///
-/// With [onToggleEditing] a small pencil sits next to the title; it turns
-/// into a check mark while the page's tiles are being rearranged.
 class PageHeader extends StatelessWidget {
   const PageHeader({
     super.key,
     required this.title,
     required this.subtitle,
-    this.trailing,
-    this.editing = false,
-    this.onToggleEditing,
+    this.reserved = 0,
   });
 
   final String title;
   final String subtitle;
-  final Widget? trailing;
-  final bool editing;
-  final VoidCallback? onToggleEditing;
+
+  /// Room the title leaves free on its right for the buttons floating over
+  /// the page.
+  final double reserved;
 
   @override
   Widget build(BuildContext context) {
@@ -30,61 +23,27 @@ class PageHeader extends StatelessWidget {
     final scheme = theme.colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 8, 0, 20),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.emphasizedTextTheme.displaySmall
-                            ?.copyWith(color: scheme.onSurface),
-                      ),
-                    ),
-                    if (onToggleEditing != null) ...[
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () {
-                          Haptics.tap();
-                          onToggleEditing?.call();
-                        },
-                        tooltip: editing
-                            ? AppLocalizations.of(context).done
-                            : AppLocalizations.of(context).arrangeTiles,
-                        iconSize: 18,
-                        visualDensity: VisualDensity.compact,
-                        style: IconButton.styleFrom(
-                          backgroundColor: editing
-                              ? scheme.primary
-                              : scheme.surfaceContainerHighest,
-                          foregroundColor: editing
-                              ? scheme.onPrimary
-                              : scheme.onSurfaceVariant,
-                        ),
-                        icon: Icon(
-                          editing ? Icons.check_rounded : Icons.edit_rounded,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+          Padding(
+            padding: EdgeInsets.only(right: reserved),
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: context.emphasizedTextTheme.displaySmall?.copyWith(
+                color: scheme.onSurface,
+              ),
             ),
           ),
-          ?trailing,
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

@@ -8,6 +8,7 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/settings_controller.dart';
+import '../../widgets/sub_page.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../profile/birth_date_sheet.dart';
@@ -49,36 +50,20 @@ class BodyAgePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final scope = AppScope.of(context);
     final health = scope.health;
     final settings = scope.settings;
-    return Scaffold(
-      body: ListenableBuilder(
-        listenable: Listenable.merge([health, settings]),
-        builder: (context, _) => CustomScrollView(
-          slivers: [
-            SliverAppBar.large(
-              backgroundColor: theme.scaffoldBackgroundColor,
-              surfaceTintColor: theme.scaffoldBackgroundColor,
-              title: Text(
-                AppLocalizations.of(context).bodyAge,
-                style: context.emphasizedTextTheme.headlineMedium,
+    return ListenableBuilder(
+      listenable: Listenable.merge([health, settings]),
+      builder: (context, _) => SubPage(
+        title: AppLocalizations.of(context).bodyAge,
+        glass: settings.liquidGlass,
+        child: health.status == HealthStatus.ready
+            ? _content(context, health, settings)
+            : const SizedBox(
+                height: 240,
+                child: Center(child: M3ELoadingIndicator()),
               ),
-            ),
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              sliver: SliverToBoxAdapter(
-                child: health.status == HealthStatus.ready
-                    ? _content(context, health, settings)
-                    : const SizedBox(
-                        height: 240,
-                        child: Center(child: M3ELoadingIndicator()),
-                      ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

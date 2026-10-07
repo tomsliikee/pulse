@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/health_controller.dart';
@@ -110,6 +111,22 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
             theme: AppTheme.light(system: system?.light),
             darkTheme: AppTheme.dark(system: system?.dark),
             themeMode: _settings.themeMode,
+            // No page has an app bar, so the status bar is styled here: clear,
+            // with icons that stand out from the theme.
+            builder: (context, child) {
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              return AnnotatedRegion<SystemUiOverlayStyle>(
+                value:
+                    (dark
+                            ? SystemUiOverlayStyle.light
+                            : SystemUiOverlayStyle.dark)
+                        .copyWith(
+                          statusBarColor: Colors.transparent,
+                          systemNavigationBarColor: Colors.transparent,
+                        ),
+                child: child!,
+              );
+            },
             home: const AppShell(),
           );
         },

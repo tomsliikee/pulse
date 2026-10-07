@@ -53,7 +53,7 @@ void main() {
       200,
       scrollable: find
           .descendant(
-            of: find.byType(ListView).last,
+            of: find.byType(CustomScrollView).last,
             matching: find.byType(Scrollable),
           )
           .first,
@@ -75,8 +75,8 @@ void main() {
     // Not pageBack: it looks for the English tooltip, and the app is German.
     await tester.tap(find.byType(BackButton));
     await advance(tester);
-    // The bar, its pill and the add button.
-    expect(find.byType(LiquidGlass), findsNWidgets(3));
+    // The bar, its pill, the add button and the floating pencil.
+    expect(find.byType(LiquidGlass), findsNWidgets(4));
     expect(find.byType(GlassScope), findsOneWidget);
     expect(find.text('7.432'), findsOneWidget);
   });
@@ -96,10 +96,10 @@ void main() {
       await gesture.moveTo(to);
       await tester.pump(const Duration(milliseconds: 300));
       // The page only changes when the pill is let go. The glass pill stays
-      // one piece of glass while it is a lens, next to the bar and the add
-      // button.
+      // one piece of glass while it is a lens, next to the bar, the add
+      // button and the floating pencil.
       expect(find.text('Schlafphasen'), findsNothing);
-      expect(find.byType(LiquidGlass).evaluate().length, glass ? 3 : 0);
+      expect(find.byType(LiquidGlass).evaluate().length, glass ? 4 : 0);
       await gesture.up();
       await advance(tester);
       expect(find.text('Schlafphasen'), findsOneWidget);

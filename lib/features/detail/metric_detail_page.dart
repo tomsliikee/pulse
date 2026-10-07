@@ -9,6 +9,7 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/period.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/sub_page.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/floating_tab_bar.dart';
 import '../../widgets/line_chart.dart';
@@ -88,52 +89,26 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final media = MediaQuery.of(context);
     final l10n = AppLocalizations.of(context);
     final AppScope(:health, :settings) = AppScope.of(context);
     // The page lies on top of the shell, which stays built beneath it. Its own
     // messenger keeps a snackbar from appearing on both scaffolds.
     return ScaffoldMessenger(
-      child: Scaffold(
-        body: ListenableBuilder(
-          listenable: Listenable.merge([health, settings]),
-          builder: (context, _) {
-            final ready =
-                health.status == HealthStatus.ready && health.history != null;
-            return Stack(
-              children: [
-                CustomScrollView(
-                  slivers: [
-                    SliverAppBar.large(
-                      backgroundColor: theme.scaffoldBackgroundColor,
-                      surfaceTintColor: theme.scaffoldBackgroundColor,
-                      title: Text(
-                        widget.metric.title(l10n),
-                        style: context.emphasizedTextTheme.headlineMedium,
-                      ),
-                    ),
-                    SliverPadding(
-                      // The page ends above the floating tabs.
-                      padding: EdgeInsets.fromLTRB(
-                        16,
-                        8,
-                        16,
-                        16 + FloatingTabBar.height + 24 + media.padding.bottom,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: ready
-                            ? _content(context, health)
-                            : const SizedBox(
-                                height: 240,
-                                child: Center(child: M3ELoadingIndicator()),
-                              ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (ready)
-                  Positioned(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([health, settings]),
+        builder: (context, _) {
+          final ready =
+              health.status == HealthStatus.ready && health.history != null;
+          return SubPage(
+            title: widget.metric.title(l10n),
+            glass: settings.liquidGlass,
+            // The page ends above the floating tabs.
+            bottomPadding:
+                16 + FloatingTabBar.height + 24 + media.padding.bottom,
+            overlay: !ready
+                ? null
+                : Positioned(
                     left: 16,
                     right: 16,
                     bottom: 16 + media.padding.bottom,
@@ -148,10 +123,14 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                       ),
                     ),
                   ),
-              ],
-            );
-          },
-        ),
+            child: ready
+                ? _content(context, health)
+                : const SizedBox(
+                    height: 240,
+                    child: Center(child: M3ELoadingIndicator()),
+                  ),
+          );
+        },
       ),
     );
   }

@@ -48,7 +48,11 @@ void main() {
       await tester.tap(find.bySemanticsLabel('Profil'));
       await advance(tester);
       expect(find.text('Ziele'), findsOneWidget);
-      await _scrollThrough(tester);
+      await tester.drag(
+        find.byType(CustomScrollView).last,
+        const Offset(0, -4000),
+      );
+      await advance(tester);
       expect(find.text('Zuletzt aktualisiert'), findsOneWidget);
     });
 
@@ -129,17 +133,8 @@ void main() {
     await advance(tester);
     // The button group lays out a second, hidden copy of each label.
     final dark = find.text('Dunkel').hitTestable();
-    // The list builds its lower rows only once they come near.
-    await tester.scrollUntilVisible(
-      find.text('Darstellung'),
-      200,
-      scrollable: find
-          .descendant(
-            of: find.byType(ListView).last,
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
+    await tester.ensureVisible(find.text('Dunkel').first);
+    await advance(tester);
     await tester.ensureVisible(dark);
     await advance(tester);
     await tester.tap(dark);

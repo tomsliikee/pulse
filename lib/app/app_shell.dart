@@ -77,7 +77,7 @@ class _AppShellState extends State<AppShell> {
             return SafeArea(child: AccessPage(status: health.status));
           }
           final glass = settings.liquidGlass;
-          final page = SafeArea(bottom: false, child: _page());
+          final page = _page();
           return Stack(
             children: [
               Positioned.fill(

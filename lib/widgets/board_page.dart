@@ -6,12 +6,17 @@ import '../app/app_scope.dart';
 import '../app/haptics.dart';
 import '../app/layout.dart';
 import '../theme/app_motion.dart';
+import 'floating_surface.dart';
+import 'glass_scope.dart';
 import 'page_header.dart';
+import 'sub_page.dart';
 import 'tile_board.dart';
 import '../l10n/generated/app_localizations.dart';
 
-/// A top-level page: title with the edit pencil, an optional fixed strip and
-/// a board of tiles the user can rearrange. Pulling down reloads the data.
+/// A top-level page: title, an optional fixed strip and a board of tiles the
+/// user can rearrange. It scrolls behind the status bar; the edit pencil and
+/// the [trailing] button float over it at the top right. Pulling down
+/// reloads the data.
 class BoardPage extends StatefulWidget {
   const BoardPage({
     super.key,
@@ -31,6 +36,9 @@ class BoardPage extends StatefulWidget {
   final String pageId;
   final String title;
   final String subtitle;
+
+  /// A round button of [FloatingSurface.height] that floats right of the
+  /// pencil.
   final Widget? trailing;
 
   /// Stays under the title and is not part of the board.
@@ -56,6 +64,8 @@ class BoardPage extends StatefulWidget {
 }
 
 class _BoardPageState extends State<BoardPage> {
+  static const double _buttonGap = 8;
+
   bool _editing = false;
 
   Future<void> _refresh() async {
@@ -69,17 +79,48 @@ class _BoardPageState extends State<BoardPage> {
     final strip = widget.strip;
     final editMenu = widget.editMenu;
     final editFooter = widget.editFooter;
-    return M3EPullToRefreshIndicator(
+    final trailing = widget.trailing;
+    final top = MediaQuery.paddingOf(context).top;
+    final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
+    final buttons = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FloatingSurface(
+          glass: GlassScope.isOn(context),
+          color: _editing ? scheme.primary : null,
+          glassTint: _editing ? GlassScope.pillPrimary(scheme) : null,
+          child: SizedBox.square(
+            dimension: FloatingSurface.height,
+            child: IconButton(
+              onPressed: () {
+                Haptics.tap();
+                setState(() => _editing = !_editing);
+              },
+              tooltip: _editing ? l10n.done : l10n.arrangeTiles,
+              color: _editing ? scheme.onPrimary : scheme.onSurfaceVariant,
+              icon: Icon(_editing ? Icons.check_rounded : Icons.edit_rounded),
+            ),
+          ),
+        ),
+        if (trailing != null) ...[const SizedBox(width: _buttonGap), trailing],
+      ],
+    );
+    final list = M3EPullToRefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
+        // Not clipped, so what scrolls out at the top is still seen behind
+        // the status bar.
+        clipBehavior: Clip.none,
         padding: pagePadding(context),
         children: [
           PageHeader(
             title: widget.title,
             subtitle: widget.subtitle,
-            trailing: widget.trailing,
-            editing: _editing,
-            onToggleEditing: () => setState(() => _editing = !_editing),
+            reserved:
+                _buttonGap +
+                FloatingSurface.height +
+                (trailing == null ? 0 : _buttonGap + FloatingSurface.height),
           ),
           if (strip != null) ...[strip, const SizedBox(height: 16)],
           if (editMenu != null)
@@ -141,6 +182,19 @@ class _BoardPageState extends State<BoardPage> {
           ?widget.footer,
         ],
       ),
+    );
+    return Stack(
+      children: [
+        // The list starts below the status bar, and with it the indicator
+        // that pulling down brings out.
+        Positioned.fill(
+          child: Padding(
+            padding: EdgeInsets.only(top: top),
+            child: list,
+          ),
+        ),
+        Positioned(top: top + SubPage.buttonTop, right: 16, child: buttons),
+      ],
     );
   }
 }

@@ -6,6 +6,7 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_controller.dart';
 import '../../data/models.dart';
+import '../../widgets/sub_page.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import 'birth_date_sheet.dart';
@@ -31,36 +32,31 @@ class ProfilePage extends StatelessWidget {
       color: scheme.onSurfaceVariant,
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        surfaceTintColor: theme.scaffoldBackgroundColor,
-      ),
-      body: ListenableBuilder(
-        listenable: Listenable.merge([
-          health,
-          settings,
-          scope.language,
-          scope.systemPalette,
-        ]),
-        builder: (context, _) {
-          final ready = health.status == HealthStatus.ready;
-          final loadedAt = ready ? health.snapshot.loadedAt : null;
-          final backfill = health.backfillReached;
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        health,
+        settings,
+        scope.language,
+        scope.systemPalette,
+      ]),
+      builder: (context, _) {
+        final ready = health.status == HealthStatus.ready;
+        final loadedAt = ready ? health.snapshot.loadedAt : null;
+        final backfill = health.backfillReached;
+        return SubPage(
+          title: l10n.profile,
+          glass: settings.liquidGlass,
+          largeTitle: Column(
             children: [
-              Center(
-                child: M3EContainer(
-                  Shapes.c7SidedCookie,
-                  width: 132,
-                  height: 132,
-                  color: scheme.tertiary,
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 64,
-                    color: scheme.onTertiary,
-                  ),
+              M3EContainer(
+                Shapes.c7SidedCookie,
+                width: 132,
+                height: 132,
+                color: scheme.tertiary,
+                child: Icon(
+                  Icons.person_rounded,
+                  size: 64,
+                  color: scheme.onTertiary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -69,6 +65,11 @@ class ProfilePage extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: context.emphasizedTextTheme.headlineLarge,
               ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               SectionTitle(l10n.aboutYou),
               SurfaceCard(
                 padding: EdgeInsets.zero,
@@ -307,9 +308,9 @@ class ProfilePage extends StatelessWidget {
                 ),
               ],
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

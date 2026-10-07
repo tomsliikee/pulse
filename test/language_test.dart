@@ -42,7 +42,7 @@ Future<void> _openLanguageSheet(WidgetTester tester, String language) async {
     200,
     scrollable: find
         .descendant(
-          of: find.byType(ListView).last,
+          of: find.byType(CustomScrollView).last,
           matching: find.byType(Scrollable),
         )
         .first,
@@ -281,7 +281,11 @@ void main() {
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
         expect(find.text(l10n.goals), findsOneWidget);
-        await _scrollThrough(tester, ListView);
+        await tester.drag(
+          find.byType(CustomScrollView).last,
+          const Offset(0, -6000),
+        );
+        await advance(tester);
         expect(find.text(l10n.lastUpdated), findsOneWidget);
         await tester.tap(find.text(l10n.language));
         await advance(tester);
@@ -529,7 +533,7 @@ void main() {
           200,
           scrollable: find
               .descendant(
-                of: find.byType(ListView).last,
+                of: find.byType(CustomScrollView).last,
                 matching: find.byType(Scrollable),
               )
               .first,

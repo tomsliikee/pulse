@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
+import '../../widgets/floating_surface.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/pressable.dart';
@@ -116,8 +117,8 @@ class _ProfileButton extends StatelessWidget {
           onTap: open,
           child: M3EContainer(
             Shapes.c7SidedCookie,
-            width: 56,
-            height: 56,
+            width: FloatingSurface.height,
+            height: FloatingSurface.height,
             color: scheme.tertiary,
             child: Icon(Icons.person_rounded, color: scheme.onTertiary),
           ),
