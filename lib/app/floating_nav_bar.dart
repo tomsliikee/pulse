@@ -31,6 +31,7 @@ class FloatingNavBar extends StatefulWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.showLabel = true,
+    this.maxWidth = double.infinity,
     this.glass = false,
   });
 
@@ -40,6 +41,10 @@ class FloatingNavBar extends StatefulWidget {
 
   /// Narrow screens keep the selected pill icon-only.
   final bool showLabel;
+
+  /// The room the bar has. If its longest label would not fit, no label is
+  /// shown: how long a word is depends on the language.
+  final double maxWidth;
 
   /// Draws the bar as liquid glass that bends the page scrolling under it.
   /// The pill is glass too and turns into a lens while it is dragged.
@@ -58,6 +63,9 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
   static const double _labelGap = 8;
 
   static const double _padding = 8;
+
+  /// Whether the labels fit; decided anew with every build.
+  bool _showLabel = true;
 
   /// The glass lens the pill becomes while dragged is taller than the bar.
   static const double _lensHeight = 80;
@@ -91,18 +99,28 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = context.emphasizedTextTheme.labelLarge;
     final scaler = MediaQuery.textScalerOf(context);
-    final labelWidths = [
+    final measured = [
       for (final destination in widget.destinations)
-        if (widget.showLabel)
-          (TextPainter(
-            text: TextSpan(text: destination.label, style: labelStyle),
-            textDirection: TextDirection.ltr,
-            textScaler: scaler,
-            maxLines: 1,
-          )..layout()).width.ceilToDouble()
-        else
-          0.0,
+        (TextPainter(
+          text: TextSpan(text: destination.label, style: labelStyle),
+          textDirection: TextDirection.ltr,
+          textScaler: scaler,
+          maxLines: 1,
+        )..layout()).width.ceilToDouble(),
     ];
+    final widest = measured.fold<double>(0, (a, b) => a > b ? a : b);
+    // All labels or none, so the bar does not change its kind from one
+    // destination to the next.
+    _showLabel =
+        widget.showLabel &&
+        2 * _padding +
+                widget.destinations.length * _collapsedWidth +
+                2 * _labelGap +
+                widest <=
+            widget.maxWidth;
+    final labelWidths = _showLabel
+        ? measured
+        : List<double>.filled(measured.length, 0);
 
     return SingleMotionBuilder(
       value: _dragged == null ? 0 : 1,
@@ -137,8 +155,7 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
       for (var i = 0; i < shares.length; i++)
         _collapsedWidth +
             shares[i] *
-                (_labelGap +
-                    (widget.showLabel ? _labelGap + labelWidths[i] : 0)),
+                (_labelGap + (_showLabel ? _labelGap + labelWidths[i] : 0)),
     ];
     final lefts = <double>[];
     var total = 0.0;
@@ -190,7 +207,7 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
                       destination: widget.destinations[i],
                       share: shares[i],
                       selected: i == widget.selectedIndex,
-                      showLabel: widget.showLabel,
+                      showLabel: _showLabel,
                       color: Color.lerp(
                         scheme.onSurfaceVariant,
                         onPill,

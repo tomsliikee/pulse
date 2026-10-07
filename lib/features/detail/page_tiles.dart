@@ -7,6 +7,7 @@ import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import 'large_metric_tile.dart';
 import 'metric_spec.dart';
+import '../../app/formatters.dart';
 
 /// The name under which the large form of [metric] on [page] is saved.
 String pageTileId(String page, Metric metric) => '$page/${metric.name}';
@@ -25,7 +26,8 @@ BoardTile statTile(
   String? page,
 }) {
   final spec = metric.spec;
-  final label = title ?? spec.title;
+  final formats = Formats.of(context);
+  final label = title ?? metric.title(formats.l10n);
   final sizeId = page == null ? null : pageTileId(page, metric);
   final resize = settings == null || sizeId == null
       ? null
@@ -55,8 +57,8 @@ BoardTile statTile(
     child: StatTile(
       label: label,
       value: span == TileSpan.third
-          ? metric.format(health.value(metric))
-          : metric.formatWithUnit(health.value(metric)),
+          ? metric.format(formats, health.value(metric))
+          : metric.formatWithUnit(formats, health.value(metric)),
       icon: spec.icon,
       shape: spec.shape,
       tone: spec.tone,

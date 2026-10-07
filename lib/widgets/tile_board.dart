@@ -7,6 +7,7 @@ import 'package:motor/motor.dart';
 import '../app/haptics.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// How much of a row a tile takes. A row has six units.
 enum TileSpan {
@@ -384,7 +385,7 @@ class _Slot extends StatelessWidget {
             child: _CornerButton(
               visible: editing && !lifted,
               icon: Icons.remove_rounded,
-              tooltip: 'Entfernen',
+              tooltip: AppLocalizations.of(context).remove,
               onPressed: onRemove,
             ),
           ),
@@ -397,7 +398,9 @@ class _Slot extends StatelessWidget {
               icon: tile.large
                   ? Icons.close_fullscreen_rounded
                   : Icons.open_in_full_rounded,
-              tooltip: tile.large ? 'Verkleinern' : 'Vergrössern',
+              tooltip: tile.large
+                  ? AppLocalizations.of(context).shrink
+                  : AppLocalizations.of(context).enlarge,
               onPressed: onResize,
             ),
           ),

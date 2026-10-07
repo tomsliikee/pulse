@@ -2,18 +2,19 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/models.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// How a [WorkoutType] is named and drawn.
 extension WorkoutStyle on WorkoutType {
-  String get label => switch (this) {
-    WorkoutType.run => 'Laufen',
-    WorkoutType.ride => 'Radfahren',
-    WorkoutType.walk => 'Spaziergang',
-    WorkoutType.hike => 'Wandern',
-    WorkoutType.other => 'Training',
-    WorkoutType.strength => 'Krafttraining',
-    WorkoutType.yoga => 'Yoga',
-    WorkoutType.swim => 'Schwimmen',
+  String label(AppLocalizations l10n) => switch (this) {
+    WorkoutType.run => l10n.workoutRun,
+    WorkoutType.ride => l10n.workoutRide,
+    WorkoutType.walk => l10n.workoutWalk,
+    WorkoutType.hike => l10n.workoutHike,
+    WorkoutType.other => l10n.workoutOther,
+    WorkoutType.strength => l10n.workoutStrength,
+    WorkoutType.yoga => l10n.workoutYoga,
+    WorkoutType.swim => l10n.workoutSwim,
   };
 
   IconData get icon => switch (this) {

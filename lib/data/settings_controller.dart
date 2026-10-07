@@ -40,6 +40,10 @@ final Set<String> defaultLargeTiles = Set.unmodifiable({
   Metric.energyIntake.name,
 });
 
+/// The languages the app is translated into. The first is shown when the
+/// system's language is none of them.
+const List<String> appLanguages = ['en', 'de', 'pl'];
+
 /// Whether [date] can be a living user's date of birth.
 bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
   final today = now ?? DateTime.now();
@@ -70,6 +74,7 @@ class SettingsController extends ChangeNotifier {
   bool _dynamicColor = true;
   bool _showAllData = false;
   bool _liquidGlass = false;
+  String? _language;
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
   Set<String> _largeTiles = defaultLargeTiles;
@@ -96,6 +101,10 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the navigation bar and the tiles are drawn as liquid glass.
   bool get liquidGlass => _liquidGlass;
+
+  /// The chosen language, or null to follow the system. Only used where the
+  /// system keeps no language per app; see `LanguageController`.
+  String? get language => _language;
 
   /// The saved order of tile ids on [page]; empty if never rearranged.
   List<String> tileOrder(String page) => _tileOrder[page] ?? const [];
@@ -144,6 +153,9 @@ class SettingsController extends ChangeNotifier {
     if (json['dynamicColor'] case final bool v) _dynamicColor = v;
     if (json['showAllData'] case final bool v) _showAllData = v;
     if (json['liquidGlass'] case final bool v) _liquidGlass = v;
+    if (json['language'] case final String v when appLanguages.contains(v)) {
+      _language = v;
+    }
     if (json['tileOrder'] case final Map<String, Object?> pages) {
       _tileOrder = {
         for (final MapEntry(:key, :value) in pages.entries)
@@ -198,6 +210,11 @@ class SettingsController extends ChangeNotifier {
   void setShowAllData(bool value) => _update(() => _showAllData = value);
 
   void setLiquidGlass(bool value) => _update(() => _liquidGlass = value);
+
+  void setLanguage(String? value) {
+    if (value != null && !appLanguages.contains(value)) return;
+    _update(() => _language = value);
+  }
 
   void setTileOrder(String page, List<String> order) =>
       _update(() => _tileOrder = {..._tileOrder, page: List.of(order)});
@@ -256,6 +273,7 @@ class SettingsController extends ChangeNotifier {
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,
             'liquidGlass': _liquidGlass,
+            'language': ?_language,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,
             'largeTiles': _largeTiles.toList(),

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_scope.dart';
 import '../../data/health_controller.dart';
 import '../../widgets/morphing_shape.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Shown instead of the pages while there is no data to show: loading, no
 /// permission yet, Health Connect missing, or a platform without it.
@@ -17,6 +18,7 @@ class AccessPage extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final health = AppScope.of(context).health;
+    final l10n = AppLocalizations.of(context);
 
     if (status == HealthStatus.loading) {
       return const Center(child: M3ELoadingIndicator());
@@ -31,36 +33,32 @@ class AccessPage extends StatelessWidget {
       IconData icon,
     ) = switch (status) {
       HealthStatus.needsAccess => (
-        'Deine Gesundheitsdaten',
-        'Pulse liest Schritte, Puls, Schlaf und weitere Werte aus Health '
-            'Connect und schreibt Wasser, Gewicht und Mahlzeiten, die du hier '
-            'einträgst. Die Daten bleiben auf diesem Gerät.',
-        'Zugriff erlauben',
+        l10n.accessTitle,
+        l10n.accessBody,
+        l10n.accessAction,
         health.requestAccess,
         Shapes.c9SidedCookie,
         Icons.favorite_rounded,
       ),
       HealthStatus.unavailable => (
-        'Health Connect fehlt',
-        'Pulse liest seine Daten aus Health Connect. Die App ist auf diesem '
-            'Gerät nicht installiert oder braucht ein Update.',
-        'Health Connect öffnen',
+        l10n.missingTitle,
+        l10n.missingBody,
+        l10n.missingAction,
         health.installStore,
         Shapes.softBurst,
         Icons.download_rounded,
       ),
       HealthStatus.failed => (
-        'Daten nicht lesbar',
-        'Health Connect hat nicht geantwortet. Versuche es noch einmal.',
-        'Erneut versuchen',
+        l10n.failedTitle,
+        l10n.failedBody,
+        l10n.failedAction,
         health.refresh,
         Shapes.puffy,
         Icons.refresh_rounded,
       ),
       _ => (
-        'Nur auf Android',
-        'Pulse zeigt Daten aus Health Connect. Das gibt es auf diesem System '
-            'nicht.',
+        l10n.androidOnlyTitle,
+        l10n.androidOnlyBody,
         null,
         null,
         Shapes.gem,

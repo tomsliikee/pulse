@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/app/formatters.dart';
 import 'package:pulse/app/pulse_app.dart';
 import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/health_repository.dart';
@@ -12,6 +14,7 @@ import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
 
 /// The moment every test treats as "now": Tuesday afternoon.
@@ -359,7 +362,11 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   Size size = const Size(412, 915),
   FixtureRepository? repository,
   MemoryJsonStore? store,
+  Locale locale = const Locale('de'),
 }) async {
+  // The system's language; the tests read German unless they ask otherwise.
+  tester.platformDispatcher.localesTestValue = [locale];
+  addTearDown(tester.platformDispatcher.clearLocalesTestValue);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -377,8 +384,22 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   return (repository: repo, store: memory);
 }
 
+/// The formats of [language] for tests that have no widget tree. Inside the
+/// app the Material translations load the date names; here nothing does.
+Formats formatsOf([String language = 'de']) {
+  initializeDateFormatting();
+  return Formats.from(lookupAppLocalizations(Locale(language)));
+}
+
 /// Wraps a single widget in the app's theme for tests that need no app.
-Widget themed(Widget child) => MaterialApp(
-  theme: AppTheme.light(),
-  home: Scaffold(body: child),
-);
+Widget themed(Widget child, {Locale locale = const Locale('de')}) =>
+    MaterialApp(
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      theme: AppTheme.light(),
+      home: Scaffold(body: child),
+    );

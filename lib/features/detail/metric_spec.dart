@@ -5,221 +5,207 @@ import '../../app/container_route.dart';
 import '../../app/formatters.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
+import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../sleep/sleep_detail_page.dart';
 import 'metric_detail_page.dart';
 
-/// How a [Metric] is named and drawn.
+/// How a [Metric] is drawn.
 @immutable
 class MetricSpec {
-  const MetricSpec(
-    this.title,
-    this.icon,
-    this.shape, [
-    this.tone = Tone.neutral,
-  ]);
+  const MetricSpec(this.icon, this.shape, [this.tone = Tone.neutral]);
 
-  final String title;
   final IconData icon;
   final Shapes shape;
   final Tone tone;
 }
 
 extension MetricGroupLabel on MetricGroup {
-  String get label => switch (this) {
-    MetricGroup.activity => 'Aktivität',
-    MetricGroup.vitals => 'Vitalwerte',
-    MetricGroup.body => 'Körper',
-    MetricGroup.sleep => 'Schlaf',
-    MetricGroup.nutrition => 'Ernährung',
+  String label(AppLocalizations l10n) => switch (this) {
+    MetricGroup.activity => l10n.groupActivity,
+    MetricGroup.vitals => l10n.groupVitals,
+    MetricGroup.body => l10n.groupBody,
+    MetricGroup.sleep => l10n.groupSleep,
+    MetricGroup.nutrition => l10n.groupNutrition,
   };
 }
 
 extension MetricPresentation on Metric {
   MetricSpec get spec => switch (this) {
     Metric.steps => const MetricSpec(
-      'Schritte',
       Icons.directions_walk_rounded,
       Shapes.c12SidedCookie,
       Tone.primary,
     ),
     Metric.distance => const MetricSpec(
-      'Distanz',
       Icons.route_rounded,
       Shapes.pentagon,
       Tone.primary,
     ),
     Metric.floors => const MetricSpec(
-      'Etagen',
       Icons.stairs_rounded,
       Shapes.arch,
       Tone.secondary,
     ),
     Metric.activeEnergy => const MetricSpec(
-      'Aktive Kalorien',
       Icons.local_fire_department_rounded,
       Shapes.softBurst,
     ),
     Metric.totalEnergy => const MetricSpec(
-      'Kalorien gesamt',
       Icons.whatshot_rounded,
       Shapes.burst,
     ),
     Metric.intensityMinutes => const MetricSpec(
-      'Aktive Minuten',
       Icons.bolt_rounded,
       Shapes.sunny,
       Tone.tertiary,
     ),
-    Metric.speed => const MetricSpec(
-      'Geschwindigkeit',
-      Icons.speed_rounded,
-      Shapes.slanted,
-    ),
+    Metric.speed => const MetricSpec(Icons.speed_rounded, Shapes.slanted),
     Metric.heartRate => const MetricSpec(
-      'Puls',
       Icons.monitor_heart_rounded,
       Shapes.heart,
       Tone.tertiary,
     ),
     Metric.restingHeartRate => const MetricSpec(
-      'Ruhepuls',
       Icons.favorite_rounded,
       Shapes.l4LeafClover,
       Tone.tertiary,
     ),
     Metric.heartRateVariability => const MetricSpec(
-      'Herzfrequenzvariabilität',
       Icons.graphic_eq_rounded,
       Shapes.c6SidedCookie,
       Tone.secondary,
     ),
     Metric.oxygenSaturation => const MetricSpec(
-      'Sauerstoffsättigung',
       Icons.air_rounded,
       Shapes.flower,
       Tone.primary,
     ),
     Metric.respiratoryRate => const MetricSpec(
-      'Atemfrequenz',
       Icons.waves_rounded,
       Shapes.puffy,
     ),
-    Metric.systolic => const MetricSpec(
-      'Blutdruck systolisch',
-      Icons.compress_rounded,
-      Shapes.gem,
-    ),
-    Metric.diastolic => const MetricSpec(
-      'Blutdruck diastolisch',
-      Icons.expand_rounded,
-      Shapes.gem,
-    ),
+    Metric.systolic => const MetricSpec(Icons.compress_rounded, Shapes.gem),
+    Metric.diastolic => const MetricSpec(Icons.expand_rounded, Shapes.gem),
     Metric.bloodGlucose => const MetricSpec(
-      'Blutzucker',
       Icons.bloodtype_rounded,
       Shapes.oval,
     ),
     Metric.bodyTemperature => const MetricSpec(
-      'Körpertemperatur',
       Icons.thermostat_rounded,
       Shapes.pill,
     ),
     Metric.skinTemperature => const MetricSpec(
-      'Hauttemperatur (Abweichung)',
       Icons.device_thermostat_rounded,
       Shapes.semicircle,
     ),
     Metric.weight => const MetricSpec(
-      'Gewicht',
       Icons.monitor_weight_rounded,
       Shapes.c4SidedCookie,
       Tone.secondary,
     ),
-    Metric.height => const MetricSpec(
-      'Grösse',
-      Icons.height_rounded,
-      Shapes.arch,
-    ),
+    Metric.height => const MetricSpec(Icons.height_rounded, Shapes.arch),
     Metric.bodyMassIndex => const MetricSpec(
-      'Body-Mass-Index',
       Icons.accessibility_new_rounded,
       Shapes.diamond,
     ),
     Metric.bodyFat => const MetricSpec(
-      'Körperfett',
       Icons.percent_rounded,
       Shapes.clampShell,
     ),
     Metric.leanMass => const MetricSpec(
-      'Magermasse',
       Icons.fitness_center_rounded,
       Shapes.gem,
     ),
-    Metric.bodyWater => const MetricSpec(
-      'Körperwasser',
-      Icons.opacity_rounded,
-      Shapes.pill,
-    ),
+    Metric.bodyWater => const MetricSpec(Icons.opacity_rounded, Shapes.pill),
     Metric.basalEnergy => const MetricSpec(
-      'Grundumsatz',
       Icons.battery_charging_full_rounded,
       Shapes.fan,
     ),
     Metric.sleep => const MetricSpec(
-      'Schlaf',
       Icons.bedtime_rounded,
       Shapes.puffy,
       Tone.secondary,
     ),
-    Metric.water => const MetricSpec(
-      'Wasser',
-      Icons.water_drop_rounded,
-      Shapes.pill,
-    ),
+    Metric.water => const MetricSpec(Icons.water_drop_rounded, Shapes.pill),
     Metric.energyIntake => const MetricSpec(
-      'Gegessene Kalorien',
       Icons.restaurant_rounded,
       Shapes.bun,
       Tone.tertiary,
     ),
     Metric.carbs => const MetricSpec(
-      'Kohlenhydrate',
       Icons.bakery_dining_rounded,
       Shapes.c9SidedCookie,
     ),
-    Metric.protein => const MetricSpec(
-      'Eiweiss',
-      Icons.egg_alt_rounded,
-      Shapes.oval,
-    ),
-    Metric.fat => const MetricSpec(
-      'Fett',
-      Icons.water_rounded,
-      Shapes.puffyDiamond,
-    ),
-    Metric.fiber => const MetricSpec(
-      'Ballaststoffe',
-      Icons.grass_rounded,
-      Shapes.l8LeafClover,
-    ),
+    Metric.protein => const MetricSpec(Icons.egg_alt_rounded, Shapes.oval),
+    Metric.fat => const MetricSpec(Icons.water_rounded, Shapes.puffyDiamond),
+    Metric.fiber => const MetricSpec(Icons.grass_rounded, Shapes.l8LeafClover),
     Metric.sugar => const MetricSpec(
-      'Zucker',
       Icons.icecream_rounded,
       Shapes.pixelCircle,
     ),
   };
 
+  String title(AppLocalizations l10n) => switch (this) {
+    Metric.steps => l10n.metricSteps,
+    Metric.distance => l10n.metricDistance,
+    Metric.floors => l10n.metricFloors,
+    Metric.activeEnergy => l10n.metricActiveEnergy,
+    Metric.totalEnergy => l10n.metricTotalEnergy,
+    Metric.intensityMinutes => l10n.metricIntensityMinutes,
+    Metric.speed => l10n.metricSpeed,
+    Metric.heartRate => l10n.metricHeartRate,
+    Metric.restingHeartRate => l10n.metricRestingHeartRate,
+    Metric.heartRateVariability => l10n.metricHeartRateVariability,
+    Metric.oxygenSaturation => l10n.metricOxygenSaturation,
+    Metric.respiratoryRate => l10n.metricRespiratoryRate,
+    Metric.systolic => l10n.metricSystolic,
+    Metric.diastolic => l10n.metricDiastolic,
+    Metric.bloodGlucose => l10n.metricBloodGlucose,
+    Metric.bodyTemperature => l10n.metricBodyTemperature,
+    Metric.skinTemperature => l10n.metricSkinTemperature,
+    Metric.weight => l10n.metricWeight,
+    Metric.height => l10n.metricHeight,
+    Metric.bodyMassIndex => l10n.metricBodyMassIndex,
+    Metric.bodyFat => l10n.metricBodyFat,
+    Metric.leanMass => l10n.metricLeanMass,
+    Metric.bodyWater => l10n.metricBodyWater,
+    Metric.basalEnergy => l10n.metricBasalEnergy,
+    Metric.sleep => l10n.metricSleep,
+    Metric.water => l10n.metricWater,
+    Metric.energyIntake => l10n.metricEnergyIntake,
+    Metric.carbs => l10n.metricCarbs,
+    Metric.protein => l10n.metricProtein,
+    Metric.fat => l10n.metricFat,
+    Metric.fiber => l10n.metricFiber,
+    Metric.sugar => l10n.metricSugar,
+  };
+
+  /// Steps and floors are counted: what follows the number is a word that
+  /// changes with it, not a unit.
+  bool get isCount => this == Metric.steps || this == Metric.floors;
+
+  /// The unit as it reads after [value].
+  String unitFor(AppLocalizations l10n, double? value) => switch (this) {
+    Metric.steps => l10n.unitSteps((value ?? 0).round()),
+    Metric.floors => l10n.unitFloors((value ?? 0).round()),
+    _ => unit,
+  };
+
   /// "–" stands for a day without data.
-  String format(double? value) {
+  String format(Formats formats, double? value) {
     if (value == null) return '–';
     return digits == 0
-        ? formatInt(value.round())
-        : formatDecimal(value, digits: digits);
+        ? formats.integer(value.round())
+        : formats.decimal(value, digits: digits);
   }
 
-  String formatWithUnit(double? value) =>
-      value == null || unit.isEmpty ? format(value) : '${format(value)} $unit';
+  String formatWithUnit(Formats formats, double? value) {
+    final unit = unitFor(formats.l10n, value);
+    return value == null || unit.isEmpty
+        ? format(formats, value)
+        : '${format(formats, value)} $unit';
+  }
 
   /// The kind of entry the app can record for this metric, if any.
   EntryKind? get entryKind => switch (this) {

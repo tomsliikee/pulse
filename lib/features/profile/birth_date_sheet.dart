@@ -5,15 +5,14 @@ import '../../app/app_scope.dart';
 import '../../app/haptics.dart';
 import '../../data/settings_controller.dart';
 import '../../theme/app_shapes.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../app/formatters.dart';
 
-/// "7.3.1992".
-String formatBirthDate(DateTime date) =>
-    '${date.day}.${date.month}.${date.year}';
-
-/// Reads "7.3.1992" and "07.03.1992". Null for anything that is not a day
-/// of the calendar, such as 31.2.
+/// Reads "7.3.1992", "07.03.1992" and "7/3/1992": day, month, year in every
+/// language of the app. Null for anything that is not a day of the calendar,
+/// such as 31.2.
 DateTime? parseBirthDate(String text) {
-  final parts = text.trim().split('.');
+  final parts = text.trim().split(RegExp('[./-]'));
   if (parts.length != 3) return null;
   final day = int.tryParse(parts[0].trim());
   final month = int.tryParse(parts[1].trim());
@@ -25,8 +24,7 @@ DateTime? parseBirthDate(String text) {
   return date;
 }
 
-/// Asks for the date of birth as text. The framework's date picker would be
-/// English here, because the app carries no localisations.
+/// Asks for the date of birth as text.
 Future<void> showBirthDateSheet(BuildContext context) => showModalBottomSheet(
   context: context,
   isScrollControlled: true,
@@ -50,7 +48,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
     super.didChangeDependencies();
     final current = AppScope.of(context).settings.birthDate;
     _controller ??= TextEditingController(
-      text: current == null ? '' : formatBirthDate(current),
+      text: current == null ? '' : Formats.of(context).birthDate(current),
     );
   }
 
@@ -74,6 +72,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     return Padding(
       padding: EdgeInsets.fromLTRB(
         24,
@@ -86,7 +85,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Geburtsdatum',
+            l10n.birthDate,
             style: context.emphasizedTextTheme.headlineSmall,
           ),
           const SizedBox(height: 20),
@@ -96,7 +95,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
             keyboardType: TextInputType.datetime,
             onSubmitted: (_) => _save(),
             decoration: InputDecoration(
-              labelText: 'TT.MM.JJJJ',
+              labelText: l10n.birthDateHint,
               filled: true,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadii.large),
@@ -107,7 +106,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
           if (_invalid) ...[
             const SizedBox(height: 12),
             Text(
-              'Bitte ein Datum wie 7.3.1992 eingeben.',
+              l10n.birthDateInvalid,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
@@ -117,7 +116,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
           M3EFilledButton(
             size: M3EButtonSize.md,
             onPressed: _save,
-            child: const Text('Speichern'),
+            child: Text(l10n.save),
           ),
         ],
       ),

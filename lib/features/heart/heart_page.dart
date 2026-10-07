@@ -32,6 +32,8 @@ class HeartPage extends StatelessWidget {
       builder: (context, _) {
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
+        final formats = Formats.of(context);
+        final l10n = formats.l10n;
         final snapshot = health.snapshot;
         final samples = health.heartSamples;
         final current = samples.isEmpty ? null : samples.last;
@@ -53,13 +55,13 @@ class HeartPage extends StatelessWidget {
 
         return BoardPage(
           pageId: 'heart',
-          title: 'Herz',
-          subtitle: formatLongDate(health.selectedDate),
+          title: l10n.navHeart,
+          subtitle: formats.longDate(health.selectedDate),
           removable: true,
           tiles: [
             BoardTile(
               id: 'hero',
-              title: 'Herzfrequenz',
+              title: l10n.shortHeartRate,
               height: 152,
               child: TileSurface(
                 color: scheme.tertiaryContainer,
@@ -97,9 +99,10 @@ class HeartPage extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             current == null
-                                ? 'Kein Puls an diesem Tag'
-                                : 'Zuletzt um '
-                                      '${formatClock(current.minuteOfDay)}',
+                                ? l10n.noPulseThatDay
+                                : l10n.lastAtTime(
+                                    formatClock(current.minuteOfDay),
+                                  ),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: scheme.onTertiaryContainer.withValues(
                                 alpha: 0.72,
@@ -115,7 +118,7 @@ class HeartPage extends StatelessWidget {
             ),
             BoardTile(
               id: 'day',
-              title: 'Tagesverlauf',
+              title: l10n.dayCurve,
               height: 300,
               child: SurfaceCard(
                 child: Column(
@@ -125,13 +128,13 @@ class HeartPage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Tagesverlauf',
+                            l10n.dayCurve,
                             style: context.emphasizedTextTheme.titleMedium,
                           ),
                         ),
                         if (samples.length >= 2)
                           Text(
-                            '$low bis $high bpm',
+                            l10n.bpmRange(low, high),
                             style: context.emphasizedTextTheme.labelLarge
                                 ?.copyWith(color: scheme.tertiary),
                           ),
@@ -140,11 +143,7 @@ class HeartPage extends StatelessWidget {
                     const SizedBox(height: 12),
                     Expanded(
                       child: samples.length < 2
-                          ? const EmptyNote(
-                              'Für diesen Tag liegt kein Pulsverlauf vor. '
-                              'Verläufe werden für die letzten acht Tage '
-                              'geladen.',
-                            )
+                          ? EmptyNote(l10n.noHeartCurve)
                           : LineChart(
                               // Draw the line again for every day.
                               key: ValueKey(health.selectedDate),
@@ -190,11 +189,11 @@ class HeartPage extends StatelessWidget {
             if (snapshot.has(Metric.systolic))
               BoardTile(
                 id: 'bloodPressure',
-                title: 'Blutdruck',
+                title: l10n.bloodPressure,
                 span: TileSpan.half,
                 height: 132,
                 child: StatTile(
-                  label: 'Blutdruck',
+                  label: l10n.bloodPressure,
                   value: systolic == null || diastolic == null
                       ? '–'
                       : '${systolic.round()}/${diastolic.round()}',
@@ -225,14 +224,14 @@ class HeartPage extends StatelessWidget {
                 context,
                 health,
                 Metric.skinTemperature,
-                title: 'Hauttemperatur',
+                title: l10n.shortSkinTemperature,
                 settings: settings,
                 page: 'heart',
               ),
             if (samples.isNotEmpty)
               BoardTile(
                 id: 'zones',
-                title: 'Herzfrequenzzonen',
+                title: l10n.heartRateZones,
                 height: 304,
                 child: SurfaceCard(child: _Zones(samples: samples)),
               ),
@@ -324,11 +323,13 @@ class _Zones extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final zones = [
-      (label: 'Ruhe', from: 0, color: scheme.secondary),
-      (label: 'Leicht', from: 70, color: scheme.primary),
-      (label: 'Cardio', from: 115, color: scheme.tertiary),
-      (label: 'Spitze', from: 140, color: scheme.error),
+      (label: l10n.zoneRest, from: 0, color: scheme.secondary),
+      (label: l10n.zoneLight, from: 70, color: scheme.primary),
+      (label: l10n.zoneCardio, from: 115, color: scheme.tertiary),
+      (label: l10n.zonePeak, from: 140, color: scheme.error),
     ];
     final minutes = List<int>.filled(zones.length, 0);
     for (final sample in samples) {
@@ -343,7 +344,7 @@ class _Zones extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Zeit in Zonen', style: context.emphasizedTextTheme.titleMedium),
+        Text(l10n.timeInZones, style: context.emphasizedTextTheme.titleMedium),
         const Spacer(),
         for (var i = 0; i < zones.length; i++) ...[
           if (i > 0) const SizedBox(height: 14),
@@ -353,7 +354,7 @@ class _Zones extends StatelessWidget {
                 child: Text(zones[i].label, style: theme.textTheme.titleSmall),
               ),
               Text(
-                formatDuration(minutes[i]),
+                formats.duration(minutes[i]),
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),

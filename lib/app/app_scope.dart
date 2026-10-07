@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/health_controller.dart';
 import '../data/settings_controller.dart';
 import '../theme/system_palette.dart';
+import 'app_language.dart';
 
 /// Hands the app-wide controllers down the tree.
 class AppScope extends InheritedWidget {
@@ -11,12 +12,14 @@ class AppScope extends InheritedWidget {
     super.key,
     required this.health,
     required this.settings,
+    required this.language,
     required this.systemPalette,
     required super.child,
   });
 
   final HealthController health;
   final SettingsController settings;
+  final LanguageController language;
   final ValueListenable<SystemPalette?> systemPalette;
 
   static AppScope of(BuildContext context) {
@@ -29,5 +32,6 @@ class AppScope extends InheritedWidget {
   bool updateShouldNotify(AppScope oldWidget) =>
       health != oldWidget.health ||
       settings != oldWidget.settings ||
+      language != oldWidget.language ||
       systemPalette != oldWidget.systemPalette;
 }

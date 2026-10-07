@@ -10,9 +10,9 @@ enum DayRule { sum, average, last }
 /// [min] and [max] bound what is accepted from outside; a reading beyond them
 /// is treated as a faulty record and dropped.
 enum Metric {
-  steps(MetricGroup.activity, 'Schritte', DayRule.sum, max: 200000),
+  steps(MetricGroup.activity, '', DayRule.sum, max: 200000),
   distance(MetricGroup.activity, 'km', DayRule.sum, digits: 1, max: 500),
-  floors(MetricGroup.activity, 'Etagen', DayRule.sum, max: 2000),
+  floors(MetricGroup.activity, '', DayRule.sum, max: 2000),
   activeEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
   totalEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 30000),
   intensityMinutes(MetricGroup.activity, 'min', DayRule.sum, max: 1440),
@@ -85,6 +85,9 @@ enum Metric {
   });
 
   final MetricGroup group;
+
+  /// Empty for what is counted or has none. The word after a count is the
+  /// interface's to choose, because it depends on the language.
   final String unit;
   final DayRule rule;
   final int digits;

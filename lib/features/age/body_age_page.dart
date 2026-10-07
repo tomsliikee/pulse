@@ -11,6 +11,7 @@ import '../../data/settings_controller.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../profile/birth_date_sheet.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// The body age from what the app holds, or null while the store is not
 /// read or the date of birth is not known.
@@ -33,10 +34,12 @@ BodyAge? bodyAgeOf(HealthController health, SettingsController settings) {
 }
 
 /// 0.6 becomes "+0,6 Jahre", -1 becomes "−1,0 Jahre".
-String formatYears(double years) {
+String formatYears(Formats formats, double years) {
   final rounded = (years * 10).round() / 10;
-  if (rounded == 0) return '±0 Jahre';
-  return '${rounded < 0 ? '−' : '+'}${formatDecimal(rounded.abs())} Jahre';
+  if (rounded == 0) return formats.l10n.yearsZero;
+  return formats.l10n.yearsSigned(
+    '${rounded < 0 ? '−' : '+'}${formats.decimal(rounded.abs())}',
+  );
 }
 
 /// How the body age comes about: every factor with the user's value, the
@@ -59,7 +62,7 @@ class BodyAgePage extends StatelessWidget {
               backgroundColor: theme.scaffoldBackgroundColor,
               surfaceTintColor: theme.scaffoldBackgroundColor,
               title: Text(
-                'Körperalter',
+                AppLocalizations.of(context).bodyAge,
                 style: context.emphasizedTextTheme.headlineMedium,
               ),
             ),
@@ -86,25 +89,23 @@ class BodyAgePage extends StatelessWidget {
     SettingsController settings,
   ) {
     final theme = Theme.of(context);
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
     final result = bodyAgeOf(health, settings);
     if (result == null) {
       return SectionCard(
-        title: 'Geburtsdatum fehlt',
+        title: l10n.birthDateMissing,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Das Körperalter geht von deinem echten Alter aus. Health '
-              'Connect kennt es nicht, deshalb fragt Pulse danach.',
-              style: muted,
-            ),
+            Text(l10n.birthDateWhy, style: muted),
             const SizedBox(height: 16),
             M3EFilledButton.tonal(
               onPressed: () => showBirthDateSheet(context),
-              child: const Text('Geburtsdatum eintragen'),
+              child: Text(l10n.enterBirthDate),
             ),
           ],
         ),
@@ -119,48 +120,41 @@ class BodyAgePage extends StatelessWidget {
       for (final factor in result.factors)
         _FactorCard(factor: factor, sex: settings.sex),
       SectionCard(
-        title: 'Deine Angaben',
+        title: l10n.yourDetails,
         child: Column(
           children: [
-            _Line('Geburtsdatum', formatBirthDate(settings.birthDate!)),
-            _Line('Geschlecht', switch (settings.sex) {
-              Sex.female => 'Weiblich',
-              Sex.male => 'Männlich',
-              null => 'Nicht angegeben',
+            _Line(l10n.birthDate, formats.birthDate(settings.birthDate!)),
+            _Line(l10n.sex, switch (settings.sex) {
+              Sex.female => l10n.female,
+              Sex.male => l10n.male,
+              null => l10n.notGiven,
             }),
             _Line(
-              'Größe',
-              height == null ? 'Keine Messung' : '${height.value.round()} cm',
+              l10n.heightLabel,
+              height == null
+                  ? l10n.noMeasurement
+                  : '${height.value.round()} cm',
             ),
             _Line(
-              'Gewicht',
+              l10n.metricWeight,
               weight == null
-                  ? 'Keine Messung'
-                  : '${formatDecimal(weight.value)} kg, '
-                        '${formatRelativeDay(weight.day, snapshot.today)}',
+                  ? l10n.noMeasurement
+                  : '${formats.decimal(weight.value)} kg, '
+                        '${formats.relativeDay(weight.day, snapshot.today)}',
             ),
             const SizedBox(height: 8),
-            Text(
-              'Geburtsdatum und Geschlecht änderst du im Profil.',
-              style: muted,
-            ),
+            Text(l10n.changeInProfile, style: muted),
           ],
         ),
       ),
       SectionCard(
-        title: 'So wird gerechnet',
+        title: l10n.howCalculated,
         child: Text(
-          'Pulse beginnt bei deinem echten Alter. Jeder Faktor zieht Jahre '
-          'ab oder legt welche dazu, je nachdem, wo dein Wert der letzten '
-          '${snapshot.dayCount} Tage zwischen dem besten und dem '
-          'schlechtesten Ende liegt. Die Summe ist das Körperalter.\n\n'
-          'Ein Faktor zählt erst ab $minFactorDays Tagen mit Daten, ein '
-          'Alter gibt es ab $minAgeFactors Faktoren. Was fehlt, verändert '
-          'nichts.\n\n'
-          'Die Richtwerte folgen gängigen Empfehlungen. Wie viele Jahre '
-          'ein Faktor wert ist, hat Pulse selbst festgelegt; das ist nicht '
-          'wissenschaftlich geprüft. Das Körperalter ist eine Schätzung '
-          'und keine medizinische Aussage.',
+          l10n.howCalculatedBody(
+            snapshot.dayCount,
+            minFactorDays,
+            minAgeFactors,
+          ),
           style: muted,
         ),
       ),
@@ -187,14 +181,16 @@ class _Overview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final age = result.age;
     final difference = result.difference;
-    final real = formatDecimal(result.chronological);
+    final real = formats.decimal(result.chronological);
     return SurfaceCard(
       child: Row(
         children: [
           Text(
-            age == null ? '–' : formatDecimal(age),
+            age == null ? '–' : formats.decimal(age),
             style: context.emphasizedTextTheme.displayMedium?.copyWith(
               color: scheme.primary,
             ),
@@ -205,19 +201,19 @@ class _Overview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(switch (difference) {
-                  null => 'Noch zu wenig Daten',
-                  final d when d.abs() < 0.05 => 'Genau dein Alter ($real)',
-                  final d when d < 0 =>
-                    '${formatDecimal(-d)} Jahre jünger als dein Alter ($real)',
-                  final d =>
-                    '${formatDecimal(d)} Jahre älter als dein Alter ($real)',
+                  null => l10n.tooLittleData,
+                  final d when d.abs() < 0.05 => l10n.exactlyYourAge(real),
+                  final d when d < 0 => l10n.yearsYounger(
+                    formats.decimal(-d),
+                    real,
+                  ),
+                  final d => l10n.yearsOlder(formats.decimal(d), real),
                 }, style: theme.textTheme.titleMedium),
                 const SizedBox(height: 4),
                 Text(
                   age == null
-                      ? 'Für eine Schätzung braucht es mindestens '
-                            '$minAgeFactors Faktoren mit Daten.'
-                      : 'Schätzung aus den letzten 30 Tagen',
+                      ? l10n.needFactors(minAgeFactors)
+                      : l10n.estimateLast30,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),
@@ -243,6 +239,8 @@ class _FactorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -250,15 +248,15 @@ class _FactorCard extends StatelessWidget {
     final position = factor.position;
     final value = factor.value;
     return SectionCard(
-      title: _title,
-      trailing: years == null ? null : formatYears(years),
+      title: _title(l10n),
+      trailing: years == null ? null : formatYears(formats, years),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (value == null)
-            Text(_missing, style: muted)
+            Text(_missing(l10n), style: muted)
           else ...[
-            Text(_reading(value), style: theme.textTheme.titleMedium),
+            Text(_reading(formats, value), style: theme.textTheme.titleMedium),
             if (position != null) ...[
               const SizedBox(height: 12),
               M3ELinearWavyProgressIndicator(
@@ -270,9 +268,8 @@ class _FactorCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               years == null
-                  ? 'Zählt noch nicht: ${factor.days} von $minFactorDays '
-                        'Tagen mit Daten.'
-                  : _guide,
+                  ? l10n.notCountedYet(factor.days, minFactorDays)
+                  : _guide(formats),
               style: muted,
             ),
           ],
@@ -281,79 +278,97 @@ class _FactorCard extends StatelessWidget {
     );
   }
 
-  String get _title => switch (factor.kind) {
-    AgeFactorKind.steps => 'Schritte',
-    AgeFactorKind.intensity => 'Intensitätsminuten',
-    AgeFactorKind.sleepDuration => 'Schlafdauer',
-    AgeFactorKind.sleepRegularity => 'Schlafrhythmus',
-    AgeFactorKind.restingHeartRate => 'Ruhepuls',
-    AgeFactorKind.heartRateVariability => 'Herzfrequenzvariabilität',
-    AgeFactorKind.bodyFat => 'Körperfett',
-    AgeFactorKind.bodyMassIndex => 'Body-Mass-Index',
-    AgeFactorKind.bloodPressure => 'Blutdruck',
-    AgeFactorKind.strength => 'Krafttraining',
+  String _title(AppLocalizations l10n) => switch (factor.kind) {
+    AgeFactorKind.steps => l10n.metricSteps,
+    AgeFactorKind.intensity => l10n.factorIntensity,
+    AgeFactorKind.sleepDuration => l10n.sleepDuration,
+    AgeFactorKind.sleepRegularity => l10n.factorSleepRhythm,
+    AgeFactorKind.restingHeartRate => l10n.metricRestingHeartRate,
+    AgeFactorKind.heartRateVariability => l10n.metricHeartRateVariability,
+    AgeFactorKind.bodyFat => l10n.metricBodyFat,
+    AgeFactorKind.bodyMassIndex => l10n.metricBodyMassIndex,
+    AgeFactorKind.bloodPressure => l10n.bloodPressure,
+    AgeFactorKind.strength => l10n.workoutStrength,
   };
 
-  String get _missing => switch (factor.kind) {
+  String _missing(AppLocalizations l10n) => switch (factor.kind) {
     AgeFactorKind.bodyFat ||
-    AgeFactorKind.bodyMassIndex => 'Gewicht oder Größe fehlen.',
-    AgeFactorKind.bloodPressure => 'Keine Messung.',
-    AgeFactorKind.strength => 'Keine Trainings in den letzten 30 Tagen.',
-    _ => 'Keine Daten in den letzten 30 Tagen.',
+    AgeFactorKind.bodyMassIndex => l10n.missingWeightOrHeight,
+    AgeFactorKind.bloodPressure => l10n.noMeasurementSentence,
+    AgeFactorKind.strength => l10n.noWorkouts30,
+    _ => l10n.noData30,
   };
 
-  String _reading(double value) {
-    final days = 'aus ${factor.days} Tagen';
+  String _reading(Formats formats, double value) {
+    final l10n = formats.l10n;
+    final days = factor.days;
+    final whole = '${value.round()}';
     return switch (factor.kind) {
-      AgeFactorKind.steps => 'Ø ${formatInt(value.round())} am Tag, $days',
-      AgeFactorKind.intensity => 'Ø ${value.round()} min pro Woche, $days',
-      AgeFactorKind.sleepDuration =>
-        'Ø ${formatDuration((value * 60).round())}, aus ${factor.days} Nächten',
-      AgeFactorKind.sleepRegularity =>
-        'Einschlafzeit schwankt um ${value.round()} min',
-      AgeFactorKind.restingHeartRate => 'Ø ${value.round()} bpm, $days',
-      AgeFactorKind.heartRateVariability => 'Ø ${value.round()} ms, $days',
-      AgeFactorKind.bodyFat => '${formatDecimal(value)} %',
-      AgeFactorKind.bodyMassIndex => formatDecimal(value),
+      AgeFactorKind.steps => l10n.readingSteps(
+        formats.integer(value.round()),
+        days,
+      ),
+      AgeFactorKind.intensity => l10n.readingIntensity(whole, days),
+      AgeFactorKind.sleepDuration => l10n.readingSleep(
+        formats.duration((value * 60).round()),
+        days,
+      ),
+      AgeFactorKind.sleepRegularity => l10n.readingRegularity(value.round()),
+      AgeFactorKind.restingHeartRate => l10n.readingBpm(whole, days),
+      AgeFactorKind.heartRateVariability => l10n.readingMs(whole, days),
+      AgeFactorKind.bodyFat => l10n.percentText(formats.decimal(value)),
+      AgeFactorKind.bodyMassIndex => formats.decimal(value),
       AgeFactorKind.bloodPressure =>
         '${value.round()}/${factor.second!.round()} mmHg',
-      AgeFactorKind.strength => '${formatDecimal(value)} Einheiten pro Woche',
+      AgeFactorKind.strength => l10n.readingStrength(formats.decimal(value)),
     };
   }
 
-  String get _guide {
-    String ends(AgeCurve curve, {String unit = ''}) {
+  String _guide(Formats formats) {
+    final l10n = formats.l10n;
+    String number(double value) => value == value.roundToDouble()
+        ? formats.integer(value.round())
+        : formats.decimal(value);
+    String ends(AgeCurve curve, [String Function(String)? withUnit]) {
+      String unit(String number) => withUnit?.call(number) ?? number;
       final lowIsBest = curve.first.$2 < curve.last.$2;
-      final best = (lowIsBest ? curve.first : curve.last).$1;
-      return 'Neutral bei ${_number(neutralOf(curve))}$unit, am besten '
-          '${lowIsBest ? 'bis' : 'ab'} ${_number(best)}$unit.';
+      final neutral = unit(number(neutralOf(curve)));
+      final best = unit(number((lowIsBest ? curve.first : curve.last).$1));
+      return lowIsBest
+          ? l10n.guideLowBest(neutral, best)
+          : l10n.guideHighBest(neutral, best);
     }
 
     return switch (factor.kind) {
       AgeFactorKind.steps => ends(stepsCurve),
-      AgeFactorKind.intensity => ends(intensityCurve, unit: ' min'),
-      AgeFactorKind.sleepDuration =>
-        'Am besten 7,5 bis 8,5 Stunden, neutral bei 7 und bei 9.',
-      AgeFactorKind.sleepRegularity => ends(sleepRegularityCurve, unit: ' min'),
+      AgeFactorKind.intensity => ends(intensityCurve, (n) => '$n min'),
+      AgeFactorKind.sleepDuration => l10n.guideSleep(
+        formats.decimal(7.5),
+        formats.decimal(8.5),
+        '7',
+        '9',
+      ),
+      AgeFactorKind.sleepRegularity => ends(
+        sleepRegularityCurve,
+        (n) => '$n min',
+      ),
       AgeFactorKind.restingHeartRate => ends(
         restingHeartRateCurve(sex),
-        unit: ' bpm',
+        (n) => '$n bpm',
       ),
-      AgeFactorKind.heartRateVariability =>
-        'Für dein Alter üblich: ${factor.second!.round()} ms. Am besten ab '
-            '${(factor.second! * heartRateVariabilityCurve.last.$1).round()} '
-            'ms.',
-      AgeFactorKind.bodyFat => ends(bodyFatCurve(sex ?? Sex.male), unit: ' %'),
-      AgeFactorKind.bodyMassIndex => 'Am besten um 22, neutral bei 25.',
-      AgeFactorKind.bloodPressure =>
-        'Neutral bei 130/85, am besten unter 120/80.',
-      AgeFactorKind.strength => 'Am besten ab 2 Einheiten pro Woche.',
+      AgeFactorKind.heartRateVariability => l10n.guideHrv(
+        factor.second!.round(),
+        (factor.second! * heartRateVariabilityCurve.last.$1).round(),
+      ),
+      AgeFactorKind.bodyFat => ends(
+        bodyFatCurve(sex ?? Sex.male),
+        l10n.percentText,
+      ),
+      AgeFactorKind.bodyMassIndex => l10n.guideBmi,
+      AgeFactorKind.bloodPressure => l10n.guideBloodPressure,
+      AgeFactorKind.strength => l10n.guideStrength,
     };
   }
-
-  static String _number(double value) => value == value.roundToDouble()
-      ? formatInt(value.round())
-      : formatDecimal(value);
 }
 
 /// A name and its value on one line.

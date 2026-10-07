@@ -2,6 +2,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app/haptics.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// The large emphasized title every top-level page starts with.
 ///
@@ -53,7 +54,9 @@ class PageHeader extends StatelessWidget {
                           Haptics.tap();
                           onToggleEditing?.call();
                         },
-                        tooltip: editing ? 'Fertig' : 'Kacheln anordnen',
+                        tooltip: editing
+                            ? AppLocalizations.of(context).done
+                            : AppLocalizations.of(context).arrangeTiles,
                         iconSize: 18,
                         visualDensity: VisualDensity.compact,
                         style: IconButton.styleFrom(

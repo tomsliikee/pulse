@@ -18,34 +18,35 @@ import '../../widgets/stat_tile.dart';
 import '../entry/entry_sheet.dart';
 import 'metric_spec.dart';
 import 'metric_tiles.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 extension PeriodKindLabel on PeriodKind {
-  String get tab => switch (this) {
-    PeriodKind.today => 'Heute',
-    PeriodKind.yesterday => 'Gestern',
-    PeriodKind.week => 'Woche',
-    PeriodKind.month => 'Monat',
-    PeriodKind.year => 'Jahr',
-    PeriodKind.all => 'Gesamt',
+  String tab(AppLocalizations l10n) => switch (this) {
+    PeriodKind.today => l10n.navToday,
+    PeriodKind.yesterday => l10n.periodYesterday,
+    PeriodKind.week => l10n.periodWeek,
+    PeriodKind.month => l10n.periodMonth,
+    PeriodKind.year => l10n.periodYear,
+    PeriodKind.all => l10n.periodAll,
   };
 
   /// What the large number is for this span.
-  String get headline => switch (this) {
-    PeriodKind.today => 'Heute',
-    PeriodKind.yesterday => 'Gestern',
-    PeriodKind.week => 'Wochenschnitt pro Tag',
-    PeriodKind.month => 'Monatsschnitt pro Tag',
-    PeriodKind.year => 'Jahresschnitt pro Tag',
-    PeriodKind.all => 'Schnitt pro Tag',
+  String headline(AppLocalizations l10n) => switch (this) {
+    PeriodKind.today => l10n.navToday,
+    PeriodKind.yesterday => l10n.periodYesterday,
+    PeriodKind.week => l10n.headlineWeek,
+    PeriodKind.month => l10n.headlineMonth,
+    PeriodKind.year => l10n.headlineYear,
+    PeriodKind.all => l10n.headlineAll,
   };
 
-  /// Completes "… als …" when comparing with the span before.
-  String get before => switch (this) {
-    PeriodKind.today || PeriodKind.yesterday => 'am Tag davor',
-    PeriodKind.week => 'in der Woche davor',
-    PeriodKind.month => 'im Monat davor',
-    PeriodKind.year => 'im Jahr davor',
-    PeriodKind.all => '',
+  /// Names the span before this one in the comparison messages, which hold
+  /// one whole sentence for each.
+  String get span => switch (this) {
+    PeriodKind.today || PeriodKind.yesterday => 'day',
+    PeriodKind.week => 'week',
+    PeriodKind.month => 'month',
+    PeriodKind.year || PeriodKind.all => 'year',
   };
 }
 
@@ -89,6 +90,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final media = MediaQuery.of(context);
+    final l10n = AppLocalizations.of(context);
     final AppScope(:health, :settings) = AppScope.of(context);
     // The page lies on top of the shell, which stays built beneath it. Its own
     // messenger keeps a snackbar from appearing on both scaffolds.
@@ -107,7 +109,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                       backgroundColor: theme.scaffoldBackgroundColor,
                       surfaceTintColor: theme.scaffoldBackgroundColor,
                       title: Text(
-                        widget.metric.spec.title,
+                        widget.metric.title(l10n),
                         style: context.emphasizedTextTheme.headlineMedium,
                       ),
                     ),
@@ -138,7 +140,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                     child: Center(
                       child: FloatingTabBar(
                         labels: [
-                          for (final kind in PeriodKind.values) kind.tab,
+                          for (final kind in PeriodKind.values) kind.tab(l10n),
                         ],
                         selectedIndex: _kind.index,
                         glass: settings.liquidGlass,
@@ -154,51 +156,59 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
     );
   }
 
-  String _rangeLabel(PeriodView view) => switch (view.kind) {
-    PeriodKind.today || PeriodKind.yesterday => formatLongDate(view.start),
-    PeriodKind.week => formatDayRange(view.start, view.end),
-    PeriodKind.month => formatMonth(view.start),
+  String _rangeLabel(Formats formats, PeriodView view) => switch (view.kind) {
+    PeriodKind.today || PeriodKind.yesterday => formats.longDate(view.start),
+    PeriodKind.week => formats.dayRange(view.start, view.end),
+    PeriodKind.month => formats.month(view.start),
     PeriodKind.year => '${view.start.year}',
     PeriodKind.all =>
       view.start.year == view.end.year
           ? '${view.start.year}'
-          : '${view.start.year} bis ${view.end.year}',
+          : formats.l10n.rangeFromTo('${view.start.year}', '${view.end.year}'),
   };
 
-  String _bucketLabel(PeriodView view, PeriodBucket bucket) =>
+  String _bucketLabel(Formats formats, PeriodView view, PeriodBucket bucket) =>
       switch (view.kind) {
-        PeriodKind.year => formatMonth(bucket.start),
+        PeriodKind.year => formats.month(bucket.start),
         PeriodKind.all => '${bucket.start.year}',
-        _ => formatLongDate(bucket.start),
+        _ => formats.longDate(bucket.start),
       };
 
-  List<String>? _axisLabels(PeriodView view) => switch (view.kind) {
-    PeriodKind.week => [
-      for (final b in view.buckets) weekdayShort[b.start.weekday - 1],
-    ],
-    PeriodKind.year => monthInitials,
-    PeriodKind.all => [
-      for (final b in view.buckets) "'${'${b.start.year}'.substring(2)}",
-    ],
-    _ => null,
-  };
+  List<String>? _axisLabels(Formats formats, PeriodView view) =>
+      switch (view.kind) {
+        PeriodKind.week => [
+          for (final b in view.buckets)
+            formats.weekdayShort[b.start.weekday - 1],
+        ],
+        PeriodKind.year => formats.monthInitials,
+        PeriodKind.all => [
+          for (final b in view.buckets) "'${'${b.start.year}'.substring(2)}",
+        ],
+        _ => null,
+      };
 
   /// "412 mehr als in der Woche davor", or null without a span to compare.
-  String? _comparison(PeriodView view) {
+  String? _comparison(Formats formats, PeriodView view) {
     final current = view.headline;
     final previous = view.previous;
     if (current == null || previous == null) return null;
     final metric = widget.metric;
+    final l10n = formats.l10n;
+    final span = view.kind.span;
     final difference = current - previous;
-    final shown = metric.format(difference.abs());
-    if (shown == metric.format(0)) return 'Gleich wie ${view.kind.before}';
-    return '${metric.formatWithUnit(difference.abs())} '
-        '${difference > 0 ? 'mehr' : 'weniger'} als ${view.kind.before}';
+    final shown = metric.format(formats, difference.abs());
+    if (shown == metric.format(formats, 0)) return l10n.comparisonSame(span);
+    final value = metric.formatWithUnit(formats, difference.abs());
+    return difference > 0
+        ? l10n.comparisonMore(value, span)
+        : l10n.comparisonLess(value, span);
   }
 
   Widget _content(BuildContext context, HealthController health) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final metric = widget.metric;
     final spec = metric.spec;
     final snapshot = health.snapshot;
@@ -225,14 +235,14 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
     final known = [for (final b in view.buckets) ?b.value];
     // A measurement taken now and then still holds on a day without one.
     final latest = view.kind == PeriodKind.today && view.headline == null
-        ? tileReading(snapshot, metric)
+        ? tileReading(formats, snapshot, metric)
         : null;
     final latestNote = latest?.note;
     final comparison = bucket != null
         ? null
         : latest?.value != null && latestNote != null
-        ? 'Zuletzt gemessen: $latestNote'
-        : _comparison(view);
+        ? l10n.lastMeasured(latestNote)
+        : _comparison(formats, view);
     final kind = metric.entryKind;
 
     var low = known.isEmpty ? 0.0 : known.first;
@@ -245,7 +255,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
     Widget row(String label, double value) => M3EListItem(
       headline: Text(label),
       trailing: Text(
-        metric.formatWithUnit(value),
+        metric.formatWithUnit(formats, value),
         style: context.emphasizedTextTheme.titleMedium,
       ),
     );
@@ -273,10 +283,10 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                       children: [
                         Text(
                           bucket != null
-                              ? _bucketLabel(view, bucket)
+                              ? _bucketLabel(formats, view, bucket)
                               : latest?.value != null && latestNote != null
-                              ? 'Letzter Wert'
-                              : view.kind.headline,
+                              ? l10n.latestValue
+                              : view.kind.headline(l10n),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: muted,
@@ -286,6 +296,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                           alignment: Alignment.centerLeft,
                           child: Text(
                             metric.formatWithUnit(
+                              formats,
                               bucket == null
                                   ? view.headline ?? latest?.value
                                   : bucket.value,
@@ -304,13 +315,13 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                 children: [
                   if (view.kind.pages)
                     IconButton(
-                      tooltip: 'Früher',
+                      tooltip: l10n.earlier,
                       onPressed: view.canGoBack ? () => _page(1) : null,
                       icon: const Icon(Icons.chevron_left_rounded),
                     ),
                   Expanded(
                     child: Text(
-                      _rangeLabel(view),
+                      _rangeLabel(formats, view),
                       textAlign: view.kind.pages
                           ? TextAlign.center
                           : TextAlign.start,
@@ -319,7 +330,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                   ),
                   if (view.kind.pages)
                     IconButton(
-                      tooltip: 'Später',
+                      tooltip: l10n.later,
                       onPressed: view.canGoForward ? () => _page(-1) : null,
                       icon: const Icon(Icons.chevron_right_rounded),
                     ),
@@ -359,21 +370,15 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                     color: colors.accent,
                   )
                 else if (view.headline == null && latest?.value == null)
-                  const SizedBox(
-                    height: 96,
-                    child: EmptyNote('Keine Daten an diesem Tag.'),
-                  ),
+                  SizedBox(height: 96, child: EmptyNote(l10n.noDataThatDay)),
               ] else if (known.isEmpty)
-                const SizedBox(
-                  height: 180,
-                  child: EmptyNote('Keine Daten in diesem Zeitraum.'),
-                )
+                SizedBox(height: 180, child: EmptyNote(l10n.noDataInPeriod))
               else
                 BarChart(
                   // Bars grow again for every span.
                   key: ValueKey((view.kind, view.start)),
                   values: [for (final b in view.buckets) b.value],
-                  labels: _axisLabels(view),
+                  labels: _axisLabels(formats, view),
                   selectedIndex: _bucket,
                   onSelected: (i) =>
                       setState(() => _bucket = _bucket == i ? null : i),
@@ -390,7 +395,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
           ),
         ),
         if (kind != null && dayIndex != null) ...[
-          const SectionTitle('Einträge'),
+          SectionTitle(l10n.entries),
           _Entries(
             entries: snapshot.entriesOn(dayIndex, kind),
             kind: kind,
@@ -398,10 +403,10 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
           ),
         ],
         if (known.length >= 2) ...[
-          const SectionTitle('Im Zeitraum'),
+          SectionTitle(l10n.inPeriod),
           M3ESegmentedColumn(
             color: scheme.surfaceBright,
-            children: [row('Höchstwert', high), row('Tiefstwert', low)],
+            children: [row(l10n.highest, high), row(l10n.lowest, low)],
           ),
         ],
       ],
@@ -423,23 +428,22 @@ class _Entries extends StatelessWidget {
   final EntryKind kind;
   final HealthController health;
 
-  String _describe(EntryDraft draft) => switch (draft.kind) {
-    EntryKind.water => '${formatInt(draft.amount.round())} ml',
-    EntryKind.weight => '${formatDecimal(draft.amount)} kg',
+  String _describe(Formats formats, EntryDraft draft) => switch (draft.kind) {
+    EntryKind.water => '${formats.integer(draft.amount.round())} ml',
+    EntryKind.weight => '${formats.decimal(draft.amount)} kg',
     EntryKind.meal => [
       ?draft.name,
-      '${formatInt(draft.amount.round())} kcal',
+      '${formats.integer(draft.amount.round())} kcal',
     ].join(' · '),
   };
 
   Future<void> _delete(BuildContext context, HealthEntry entry) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
     try {
       await health.deleteEntry(entry);
     } on Exception {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Löschen fehlgeschlagen')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l10n.deleteFailed)));
       return;
     }
     Haptics.confirm();
@@ -447,18 +451,16 @@ class _Entries extends StatelessWidget {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: const Text('Eintrag gelöscht'),
+          content: Text(l10n.entryDeleted),
           action: SnackBarAction(
-            label: 'Rückgängig',
+            label: l10n.undo,
             // Health Connect has no undo; the entry is written again.
             onPressed: () async {
               try {
                 await health.addEntry(entry.draft);
               } on Exception {
                 messenger.showSnackBar(
-                  const SnackBar(
-                    content: Text('Wiederherstellen fehlgeschlagen'),
-                  ),
+                  SnackBar(content: Text(l10n.restoreFailed)),
                 );
               }
             },
@@ -471,16 +473,15 @@ class _Entries extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     return SurfaceCard(
       padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (entries.isEmpty)
-            const SizedBox(
-              height: 72,
-              child: EmptyNote('Keine Einträge an diesem Tag.'),
-            ),
+            SizedBox(height: 72, child: EmptyNote(l10n.noEntriesThatDay)),
           for (final entry in entries)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
@@ -491,7 +492,7 @@ class _Entries extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _describe(entry.draft),
+                          _describe(formats, entry.draft),
                           style: theme.textTheme.titleMedium,
                         ),
                         Text(
@@ -513,13 +514,13 @@ class _Entries extends StatelessWidget {
                   ),
                   if (entry.isOwn) ...[
                     IconButton(
-                      tooltip: 'Bearbeiten',
+                      tooltip: l10n.edit,
                       onPressed: () =>
                           showEntrySheet(context, kind, existing: entry),
                       icon: const Icon(Icons.edit_rounded),
                     ),
                     IconButton(
-                      tooltip: 'Löschen',
+                      tooltip: l10n.delete,
                       onPressed: () => _delete(context, entry),
                       icon: const Icon(Icons.delete_outline_rounded),
                     ),
@@ -532,7 +533,7 @@ class _Entries extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: M3ETextButton(
               onPressed: () => showEntrySheet(context, kind),
-              child: Text('${kind.label} eintragen'),
+              child: Text(kind.addTitle(l10n)),
             ),
           ),
         ],

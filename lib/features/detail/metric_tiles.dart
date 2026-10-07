@@ -8,6 +8,7 @@ import '../../widgets/animated_count.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/tile_board.dart';
 import 'metric_spec.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// What a tile shows for a metric, and a remark when that is not simply
 /// today's value.
@@ -17,14 +18,18 @@ typedef TileReading = ({double? value, String? note});
 /// today. Measurements taken now and then (weight, blood pressure, the one
 /// resting heart rate a day) show the most recent one with its day, because
 /// "nothing today" would hide a value that still holds.
-TileReading tileReading(HealthSnapshot snapshot, Metric metric) {
+TileReading tileReading(
+  Formats formats,
+  HealthSnapshot snapshot,
+  Metric metric,
+) {
   final today = snapshot.dayCount - 1;
   if (metric == Metric.heartRate) {
     final samples = snapshot.heart[today];
     if (samples.isEmpty) return (value: null, note: null);
     return (
       value: samples.last.bpm.toDouble(),
-      note: 'Zuletzt um ${formatClock(samples.last.minuteOfDay)}',
+      note: formats.l10n.lastAtTime(formatClock(samples.last.minuteOfDay)),
     );
   }
   if (metric.rule == DayRule.last || metric == Metric.restingHeartRate) {
@@ -34,7 +39,7 @@ TileReading tileReading(HealthSnapshot snapshot, Metric metric) {
       value: snapshot.value(metric, index),
       note: index == today
           ? null
-          : formatRelativeDay(snapshot.dateAt(index), snapshot.dateAt(today)),
+          : formats.relativeDay(snapshot.dateAt(index), snapshot.dateAt(today)),
     );
   }
   return (value: snapshot.value(metric, today), note: null);
@@ -57,7 +62,10 @@ Widget metricValueOf(Metric metric, double? value) {
   if (value != null && metric.digits == 0) {
     return AnimatedCount(value: value.round());
   }
-  return Text(metric.format(value), maxLines: 1);
+  return Builder(
+    builder: (context) =>
+        Text(metric.format(Formats.of(context), value), maxLines: 1),
+  );
 }
 
 /// A half-width tile with the large value of [metric]; opens its detail page.
@@ -70,14 +78,18 @@ BoardTile metricTile(
   int? dayIndex,
 }) {
   final spec = metric.spec;
+  final l10n = AppLocalizations.of(context);
+  final shown = dayIndex == null
+      ? health.value(metric)
+      : health.valueAt(metric, dayIndex);
   return BoardTile(
     id: metric.name,
     span: TileSpan.half,
     height: 176,
     child: MetricCard(
-      label: title ?? spec.title,
+      label: title ?? metric.title(l10n),
       value: metricValue(health, metric, dayIndex: dayIndex),
-      unit: metric.unit,
+      unit: metric.unitFor(l10n, shown),
       icon: spec.icon,
       shape: spec.shape,
       tone: spec.tone,

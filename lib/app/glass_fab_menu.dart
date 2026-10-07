@@ -11,6 +11,7 @@ import '../widgets/glass_rim.dart';
 import '../widgets/glass_scope.dart';
 import 'haptics.dart';
 import 'layout.dart';
+import '../l10n/generated/app_localizations.dart';
 
 @immutable
 class GlassFabMenuItem {
@@ -319,10 +320,11 @@ class _Button extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context);
     return Semantics(
       container: true,
       button: true,
-      label: turn > 0.5 ? 'Schliessen' : 'Eintrag hinzufügen',
+      label: turn > 0.5 ? l10n.close : l10n.addEntry,
       onTap: onTap,
       excludeSemantics: true,
       child: Material(

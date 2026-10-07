@@ -33,7 +33,10 @@ void main() {
         raw: RawReadings(samples: [RawSample(Metric.steps, _at(1, 9), 4000)]),
       );
 
-      expect(tileReading(snapshot, Metric.steps), (value: null, note: null));
+      expect(tileReading(formatsOf(), snapshot, Metric.steps), (
+        value: null,
+        note: null,
+      ));
     });
 
     test('a measurement taken now and then shows the latest with its day', () {
@@ -48,15 +51,18 @@ void main() {
         ),
       );
 
-      expect(tileReading(snapshot, Metric.weight), (
+      expect(tileReading(formatsOf(), snapshot, Metric.weight), (
         value: 113.0,
         note: 'Do, 1.10.',
       ));
-      expect(tileReading(snapshot, Metric.restingHeartRate), (
+      expect(tileReading(formatsOf(), snapshot, Metric.restingHeartRate), (
         value: 68.0,
         note: 'gestern',
       ));
-      expect(tileReading(snapshot, Metric.height), (value: 181.0, note: null));
+      expect(tileReading(formatsOf(), snapshot, Metric.height), (
+        value: 181.0,
+        note: null,
+      ));
     });
 
     test('the heart rate is the latest sample of today', () {
@@ -70,7 +76,7 @@ void main() {
         ),
       );
 
-      expect(tileReading(snapshot, Metric.heartRate), (
+      expect(tileReading(formatsOf(), snapshot, Metric.heartRate), (
         value: 82.0,
         note: 'Zuletzt um 14:20',
       ));

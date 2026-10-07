@@ -43,6 +43,8 @@ class _SleepPageState extends State<SleepPage> {
       builder: (context, _) {
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
+        final formats = Formats.of(context);
+        final l10n = formats.l10n;
         final snapshot = health.snapshot;
         final night = health.night;
         final selected = health.selectedIndex - health.weekStart;
@@ -66,7 +68,7 @@ class _SleepPageState extends State<SleepPage> {
           height: 132,
           child: StatTile(
             label: label,
-            value: formatDuration(night?.minutesIn(stage) ?? 0),
+            value: formats.duration(night?.minutesIn(stage) ?? 0),
             icon: icon,
             shape: shape,
             tone: tone,
@@ -75,13 +77,13 @@ class _SleepPageState extends State<SleepPage> {
 
         return BoardPage(
           pageId: 'sleep',
-          title: 'Schlaf',
-          subtitle: 'Nacht auf ${formatLongDate(health.selectedDate)}',
+          title: l10n.groupSleep,
+          subtitle: l10n.nightTo(formats.longDate(health.selectedDate)),
           removable: true,
           tiles: [
             BoardTile(
               id: 'hero',
-              title: 'Schlafdauer',
+              title: l10n.sleepDuration,
               height: 172,
               child: _SleepHero(
                 night: night,
@@ -93,14 +95,14 @@ class _SleepPageState extends State<SleepPage> {
             if (night != null) ...[
               BoardTile(
                 id: 'stages',
-                title: 'Schlafphasen',
+                title: l10n.sleepStages,
                 height: 284,
                 child: SurfaceCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Schlafphasen',
+                        l10n.sleepStages,
                         style: context.emphasizedTextTheme.titleMedium,
                       ),
                       const SizedBox(height: 16),
@@ -110,10 +112,7 @@ class _SleepPageState extends State<SleepPage> {
                                 night: night,
                                 colors: stageColors,
                               )
-                            : const EmptyNote(
-                                'Für diese Nacht wurden keine Schlafphasen '
-                                'aufgezeichnet.',
-                              ),
+                            : EmptyNote(l10n.noStagesRecorded),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -138,28 +137,28 @@ class _SleepPageState extends State<SleepPage> {
               if (night.hasStages) ...[
                 stage(
                   SleepStage.deep,
-                  'Tiefschlaf',
+                  l10n.stageDeep,
                   Icons.waves_rounded,
                   Shapes.puffy,
                   Tone.primary,
                 ),
                 stage(
                   SleepStage.light,
-                  'Leichter Schlaf',
+                  l10n.stageLight,
                   Icons.cloud_rounded,
                   Shapes.bun,
                   Tone.secondary,
                 ),
                 stage(
                   SleepStage.rem,
-                  'REM',
+                  l10n.stageRem,
                   Icons.auto_awesome_rounded,
                   Shapes.softBoom,
                   Tone.tertiary,
                 ),
                 stage(
                   SleepStage.awake,
-                  'Wach',
+                  l10n.stageAwake,
                   Icons.visibility_rounded,
                   Shapes.oval,
                   Tone.neutral,
@@ -168,14 +167,14 @@ class _SleepPageState extends State<SleepPage> {
             ],
             BoardTile(
               id: 'week',
-              title: 'Diese Woche',
+              title: l10n.thisWeek,
               height: 268,
               child: SurfaceCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Diese Woche',
+                      l10n.thisWeek,
                       style: context.emphasizedTextTheme.titleMedium,
                     ),
                     const Spacer(),
@@ -197,7 +196,7 @@ class _SleepPageState extends State<SleepPage> {
                           i < snapshot.dayCount;
                           i++
                         )
-                          weekdayShort[snapshot.dateAt(i).weekday - 1],
+                          formats.weekdayShort[snapshot.dateAt(i).weekday - 1],
                       ],
                       selectedIndex: selected >= 0 ? selected : null,
                       onSelected: (i) => health.selectDay(health.weekStart + i),
@@ -262,6 +261,8 @@ class _SleepHero extends StatelessWidget {
   Widget _content(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final emphasized = context.emphasizedTextTheme;
     final night = this.night;
     final onContainer = scheme.onSecondaryContainer;
@@ -278,8 +279,8 @@ class _SleepHero extends StatelessWidget {
           container: true,
           button: true,
           label: night == null
-              ? 'Kein Schlafscore'
-              : 'Geschätzter Schlafscore ${night.estimatedScore}',
+              ? l10n.noSleepScore
+              : l10n.estimatedSleepScore(night.estimatedScore),
           onTap: onShapeTap,
           excludeSemantics: true,
           child: Pressable(
@@ -301,7 +302,7 @@ class _SleepHero extends StatelessWidget {
                         style: scoreStyle,
                       ),
                     Text(
-                      'Schätzung',
+                      l10n.estimate,
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: scheme.onSecondary,
                       ),
@@ -316,7 +317,7 @@ class _SleepHero extends StatelessWidget {
         Expanded(
           child: night == null
               ? Text(
-                  'Keine Schlafdaten für diese Nacht.',
+                  l10n.noSleepData,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: onContainer,
                   ),
@@ -329,7 +330,7 @@ class _SleepHero extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        formatDuration(night.asleepMinutes),
+                        formats.duration(night.asleepMinutes),
                         maxLines: 1,
                         style: emphasized.headlineMedium?.copyWith(
                           color: onContainer,
@@ -337,8 +338,10 @@ class _SleepHero extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${formatClock(night.bedtimeMinute)} bis '
-                      '${formatClock(night.wakeMinute)}',
+                      l10n.rangeFromTo(
+                        formatClock(night.bedtimeMinute),
+                        formatClock(night.wakeMinute),
+                      ),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: onContainer.withValues(alpha: 0.72),
                       ),
@@ -351,8 +354,10 @@ class _SleepHero extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      '${(progress * 100).round()} % von '
-                      '${formatDecimal(goalHours)} h',
+                      l10n.percentOfGoal(
+                        (progress * 100).round(),
+                        '${formats.decimal(goalHours)} h',
+                      ),
                       style: theme.textTheme.labelMedium?.copyWith(
                         color: onContainer.withValues(alpha: 0.72),
                       ),
@@ -363,7 +368,7 @@ class _SleepHero extends StatelessWidget {
         Icon(
           Icons.chevron_right_rounded,
           color: onContainer.withValues(alpha: 0.72),
-          semanticLabel: 'Schlaf im Detail',
+          semanticLabel: l10n.sleepInDetail,
         ),
       ],
     );

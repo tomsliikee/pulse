@@ -16,6 +16,7 @@ import 'app_scope.dart';
 import 'floating_nav_bar.dart';
 import 'glass_fab_menu.dart';
 import 'haptics.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -25,24 +26,24 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  static const _destinations = [
+  static List<NavDestination> _destinations(AppLocalizations l10n) => [
     NavDestination(
-      label: 'Heute',
+      label: l10n.navToday,
       icon: Icons.wb_sunny_outlined,
       selectedIcon: Icons.wb_sunny_rounded,
     ),
     NavDestination(
-      label: 'Aktivität',
+      label: l10n.groupActivity,
       icon: Icons.directions_run_outlined,
       selectedIcon: Icons.directions_run_rounded,
     ),
     NavDestination(
-      label: 'Schlaf',
+      label: l10n.groupSleep,
       icon: Icons.bedtime_outlined,
       selectedIcon: Icons.bedtime_rounded,
     ),
     NavDestination(
-      label: 'Herz',
+      label: l10n.navHeart,
       icon: Icons.favorite_outline_rounded,
       selectedIcon: Icons.favorite_rounded,
     ),
@@ -66,6 +67,7 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
+    final l10n = AppLocalizations.of(context);
     final AppScope(:health, :settings) = AppScope.of(context);
     return Scaffold(
       body: ListenableBuilder(
@@ -103,12 +105,19 @@ class _AppShellState extends State<AppShell> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    FloatingNavBar(
-                      destinations: _destinations,
-                      selectedIndex: _index,
-                      showLabel: media.size.width >= 400,
-                      glass: glass,
-                      onSelected: (index) => setState(() => _index = index),
+                    // Flexible, so the bar learns how much room the add
+                    // button leaves it.
+                    Flexible(
+                      child: LayoutBuilder(
+                        builder: (context, box) => FloatingNavBar(
+                          destinations: _destinations(l10n),
+                          selectedIndex: _index,
+                          showLabel: media.size.width >= 400,
+                          maxWidth: box.maxWidth,
+                          glass: glass,
+                          onSelected: (index) => setState(() => _index = index),
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     if (glass)
@@ -117,7 +126,7 @@ class _AppShellState extends State<AppShell> {
                           for (final (kind, icon) in _entries)
                             GlassFabMenuItem(
                               icon: icon,
-                              label: kind.label,
+                              label: kind.label(l10n),
                               onPressed: () => showEntrySheet(context, kind),
                             ),
                         ],
@@ -130,7 +139,7 @@ class _AppShellState extends State<AppShell> {
                           for (final (kind, icon) in _entries)
                             M3EFabMenuItem(
                               icon: Icon(icon),
-                              label: kind.label,
+                              label: kind.label(l10n),
                               onPressed: () {
                                 Haptics.tap();
                                 showEntrySheet(context, kind);

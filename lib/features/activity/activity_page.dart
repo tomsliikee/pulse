@@ -15,6 +15,7 @@ import '../../widgets/tile_board.dart';
 import '../detail/metric_spec.dart';
 import '../detail/page_tiles.dart';
 import 'workout_style.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Steps over the week or month and the list of workouts.
 class ActivityPage extends StatelessWidget {
@@ -30,17 +31,18 @@ class ActivityPage extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([health, scope.settings]),
       builder: (context, _) {
+        final l10n = AppLocalizations.of(context);
         final snapshot = health.snapshot;
         final workouts = snapshot.workouts.reversed.take(_maxWorkouts).toList();
         return BoardPage(
           pageId: 'activity',
-          title: 'Aktivität',
-          subtitle: 'Schritte und Trainings',
+          title: l10n.groupActivity,
+          subtitle: l10n.activitySubtitle,
           removable: true,
           tiles: [
             BoardTile(
               id: 'chart',
-              title: 'Schrittverlauf',
+              title: l10n.stepsChartTitle,
               height: 420,
               child: _StepsChart(
                 health: health,
@@ -61,8 +63,8 @@ class ActivityPage extends StatelessWidget {
                   settings: scope.settings,
                   page: 'activity',
                   title: switch (metric) {
-                    Metric.distance => 'Kilometer',
-                    Metric.intensityMinutes => 'Aktive Min.',
+                    Metric.distance => l10n.kilometers,
+                    Metric.intensityMinutes => l10n.shortActiveMinutes,
                     _ => null,
                   },
                 ),
@@ -81,7 +83,7 @@ class ActivityPage extends StatelessWidget {
             if (workouts.isNotEmpty)
               BoardTile(
                 id: 'workouts',
-                title: 'Trainings',
+                title: l10n.workouts,
                 height: 76 + workouts.length * _workoutRowHeight,
                 child: _Workouts(
                   workouts: workouts,
@@ -112,12 +114,17 @@ class _StepsChartState extends State<_StepsChart> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final health = widget.health;
     final snapshot = health.snapshot;
     final start = _month ? 0 : health.weekStart;
     final range = snapshot.valuesOf(Metric.steps).sublist(start);
     final known = [for (final value in range) ?value];
     final selected = health.selectedIndex - start;
+    final average = known.isEmpty
+        ? null
+        : (known.reduce((a, b) => a + b) / known.length).round();
 
     return SurfaceCard(
       child: Column(
@@ -132,14 +139,14 @@ class _StepsChartState extends State<_StepsChart> {
             onSelectedIndexChanged: (index) {
               if (index != null) setState(() => _month = index == 1);
             },
-            actions: const [
-              M3EToggleButtonGroupAction(label: Text('Woche')),
-              M3EToggleButtonGroupAction(label: Text('Monat')),
+            actions: [
+              M3EToggleButtonGroupAction(label: Text(l10n.periodWeek)),
+              M3EToggleButtonGroupAction(label: Text(l10n.periodMonth)),
             ],
           ),
           const SizedBox(height: 16),
           Text(
-            'Durchschnitt pro Tag',
+            l10n.averagePerDay,
             style: theme.textTheme.labelLarge?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -148,16 +155,16 @@ class _StepsChartState extends State<_StepsChart> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              if (known.isEmpty)
+              if (average == null)
                 Text('–', style: context.emphasizedTextTheme.displaySmall)
               else
                 AnimatedCount(
-                  value: (known.reduce((a, b) => a + b) / known.length).round(),
+                  value: average,
                   style: context.emphasizedTextTheme.displaySmall,
                 ),
               const SizedBox(width: 8),
               Text(
-                'Schritte',
+                l10n.unitSteps(average ?? 0),
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -173,7 +180,7 @@ class _StepsChartState extends State<_StepsChart> {
                 ? null
                 : [
                     for (var i = start; i < snapshot.dayCount; i++)
-                      weekdayShort[snapshot.dateAt(i).weekday - 1],
+                      formats.weekdayShort[snapshot.dateAt(i).weekday - 1],
                   ],
             selectedIndex: selected >= 0 ? selected : null,
             onSelected: (i) => health.selectDay(start + i),
@@ -183,8 +190,8 @@ class _StepsChartState extends State<_StepsChart> {
           ),
           const SizedBox(height: 16),
           Text(
-            '${formatShortDate(health.selectedDate)}  ·  '
-            '${Metric.steps.formatWithUnit(health.value(Metric.steps))}',
+            '${formats.shortDate(health.selectedDate)}  ·  '
+            '${Metric.steps.formatWithUnit(formats, health.value(Metric.steps))}',
             style: context.emphasizedTextTheme.titleSmall?.copyWith(
               color: scheme.primary,
             ),
@@ -205,12 +212,14 @@ class _Workouts extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     return SurfaceCard(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Trainings', style: context.emphasizedTextTheme.titleMedium),
+          Text(l10n.workouts, style: context.emphasizedTextTheme.titleMedium),
           const SizedBox(height: 12),
           for (final workout in workouts)
             SizedBox(
@@ -231,12 +240,12 @@ class _Workouts extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          workout.type.label,
+                          workout.type.label(l10n),
                           style: theme.textTheme.titleSmall,
                         ),
                         Text(
-                          '${formatShortDate(workout.start)} · '
-                          '${formatDuration(workout.minutes)}',
+                          '${formats.shortDate(workout.start)} · '
+                          '${formats.duration(workout.minutes)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(

@@ -72,7 +72,8 @@ void main() {
     await advance(tester);
     expect(app.store.documents['settings'], contains('"liquidGlass":true'));
 
-    await tester.pageBack();
+    // Not pageBack: it looks for the English tooltip, and the app is German.
+    await tester.tap(find.byType(BackButton));
     await advance(tester);
     // The bar, its pill and the add button.
     expect(find.byType(LiquidGlass), findsNWidgets(3));

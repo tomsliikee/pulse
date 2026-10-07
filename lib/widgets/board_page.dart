@@ -8,6 +8,7 @@ import '../app/layout.dart';
 import '../theme/app_motion.dart';
 import 'page_header.dart';
 import 'tile_board.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// A top-level page: title with the edit pencil, an optional fixed strip and
 /// a board of tiles the user can rearrange. Pulling down reloads the data.
@@ -188,7 +189,7 @@ class _RemovedTiles extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionTitle('Hinzufügen'),
+        SectionTitle(AppLocalizations.of(context).add),
         M3ESegmentedColumn(
           color: scheme.surfaceBright,
           haptic: M3EHapticFeedback.light,

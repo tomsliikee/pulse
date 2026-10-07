@@ -9,6 +9,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/shape_badge.dart';
 import '../detail/metric_spec.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Every measurement that has data, grouped, with its most recent value.
 /// Does not scroll on its own; it is appended to a page.
@@ -21,6 +22,7 @@ class AllDataSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final missing = [
       for (final metric in Metric.values)
         if (!snapshot.has(metric)) metric,
@@ -36,7 +38,7 @@ class AllDataSection extends StatelessWidget {
               ]
               case final metrics when metrics.isNotEmpty) ...[
             SectionTitle(
-              group.label,
+              group.label(l10n),
               padding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
             ),
             Builder(
@@ -58,14 +60,14 @@ class AllDataSection extends StatelessWidget {
             const SizedBox(height: 12),
           ],
         if (missing.isNotEmpty) ...[
-          const SectionTitle(
-            'Keine Daten',
-            padding: EdgeInsets.fromLTRB(4, 12, 4, 12),
+          SectionTitle(
+            l10n.noData,
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              [for (final metric in missing) metric.spec.title].join(', '),
+              [for (final metric in missing) metric.title(l10n)].join(', '),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -78,6 +80,7 @@ class AllDataSection extends StatelessWidget {
 
   Widget _row(BuildContext context, Metric metric, int index) {
     final scheme = Theme.of(context).colorScheme;
+    final formats = Formats.of(context);
     final spec = metric.spec;
     final colors = scheme.tone(spec.tone);
     final neutral = spec.tone == Tone.neutral;
@@ -89,10 +92,10 @@ class AllDataSection extends StatelessWidget {
         color: neutral ? scheme.secondaryContainer : colors.accent,
         iconColor: neutral ? scheme.onSecondaryContainer : scheme.surfaceBright,
       ),
-      headline: Text(spec.title),
-      supportingText: Text(formatShortDate(snapshot.dateAt(index))),
+      headline: Text(metric.title(formats.l10n)),
+      supportingText: Text(formats.shortDate(snapshot.dateAt(index))),
       trailing: Text(
-        metric.formatWithUnit(snapshot.value(metric, index)),
+        metric.formatWithUnit(formats, snapshot.value(metric, index)),
         style: context.emphasizedTextTheme.titleMedium,
       ),
     );

@@ -50,13 +50,15 @@ class LargeMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final spec = metric.spec;
     final colors = scheme.tone(spec.tone);
     final neutral = spec.tone == Tone.neutral;
     final snapshot = health.snapshot;
     final day = dayIndex ?? health.todayIndex;
     final TileReading reading = dayIndex == null
-        ? tileReading(snapshot, metric)
+        ? tileReading(formats, snapshot, metric)
         : (value: snapshot.value(metric, day), note: null);
     final night = snapshot.nights[day];
     final heart = snapshot.heart[day];
@@ -85,21 +87,23 @@ class LargeMetricTile extends StatelessWidget {
           if (s.bpm < min) min = s.bpm;
           if (s.bpm > max) max = s.bpm;
         }
-        return '$min bis $max bpm';
+        return l10n.bpmRange(min, max);
       }(),
       Metric.heartRate => null,
-      _ when average != null => 'Ø ${metric.formatWithUnit(average)}',
+      _ when average != null => l10n.averageValue(
+        metric.formatWithUnit(formats, average),
+      ),
       _ => null,
     };
     final value = reading.value;
     final String? remark = switch (metric) {
       Metric.sleep when night != null =>
-        '${formatClock(night.bedtimeMinute)} bis '
-            '${formatClock(night.wakeMinute)} · '
-            'Score ${night.estimatedScore} (Schätzung)',
-      Metric.water when goal != null =>
-        '${((value ?? 0) / goal * 100).round()} % von '
-            '${metric.formatWithUnit(goal)}',
+        '${l10n.rangeFromTo(formatClock(night.bedtimeMinute), formatClock(night.wakeMinute))} · '
+            '${l10n.scoreEstimate(night.estimatedScore)}',
+      Metric.water when goal != null => l10n.percentOfGoal(
+        ((value ?? 0) / goal * 100).round(),
+        metric.formatWithUnit(formats, goal),
+      ),
       _ => reading.note,
     };
 
@@ -164,7 +168,7 @@ class LargeMetricTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        metric.unit,
+                        metric.unitFor(l10n, value),
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: muted,
                         ),
@@ -202,7 +206,7 @@ class LargeMetricTile extends StatelessWidget {
                               values: week,
                               labels: [
                                 for (var i = 0; i < 7; i++)
-                                  weekdayShort[snapshot
+                                  formats.weekdayShort[snapshot
                                           .dateAt(snapshot.dayCount - 7 + i)
                                           .weekday -
                                       1],

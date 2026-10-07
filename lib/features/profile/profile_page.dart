@@ -9,6 +9,7 @@ import '../../data/models.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import 'birth_date_sheet.dart';
+import 'language_sheet.dart';
 
 /// Goals, appearance and background refresh.
 class ProfilePage extends StatelessWidget {
@@ -22,6 +23,8 @@ class ProfilePage extends StatelessWidget {
     final scope = AppScope.of(context);
     final health = scope.health;
     final settings = scope.settings;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final muted = theme.textTheme.bodyMedium?.copyWith(
@@ -34,7 +37,12 @@ class ProfilePage extends StatelessWidget {
         surfaceTintColor: theme.scaffoldBackgroundColor,
       ),
       body: ListenableBuilder(
-        listenable: Listenable.merge([health, settings, scope.systemPalette]),
+        listenable: Listenable.merge([
+          health,
+          settings,
+          scope.language,
+          scope.systemPalette,
+        ]),
         builder: (context, _) {
           final ready = health.status == HealthStatus.ready;
           final loadedAt = ready ? health.snapshot.loadedAt : null;
@@ -57,11 +65,11 @@ class ProfilePage extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Profil',
+                l10n.profile,
                 textAlign: TextAlign.center,
                 style: context.emphasizedTextTheme.headlineLarge,
               ),
-              const SectionTitle('Über dich'),
+              SectionTitle(l10n.aboutYou),
               SurfaceCard(
                 padding: EdgeInsets.zero,
                 child: InkWell(
@@ -72,14 +80,14 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Geburtsdatum',
+                            l10n.birthDate,
                             style: theme.textTheme.titleMedium,
                           ),
                         ),
                         Text(
                           switch (settings.birthDate) {
-                            final date? => formatBirthDate(date),
-                            null => 'Nicht angegeben',
+                            final date? => formats.birthDate(date),
+                            null => l10n.notGiven,
                           },
                           style: context.emphasizedTextTheme.titleMedium
                               ?.copyWith(color: scheme.primary),
@@ -103,19 +111,19 @@ class ProfilePage extends StatelessWidget {
                   },
                   onSelectedIndexChanged: (index) =>
                       settings.setSex(index == null ? null : _sexes[index]),
-                  actions: const [
-                    M3EToggleButtonGroupAction(label: Text('Weiblich')),
-                    M3EToggleButtonGroupAction(label: Text('Männlich')),
+                  actions: [
+                    M3EToggleButtonGroupAction(label: Text(l10n.female)),
+                    M3EToggleButtonGroupAction(label: Text(l10n.male)),
                   ],
                 ),
               ),
-              const SectionTitle('Ziele'),
+              SectionTitle(l10n.goals),
               SurfaceCard(
                 child: Column(
                   children: [
                     _GoalSlider(
-                      label: 'Schritte',
-                      display: formatInt(settings.stepGoal),
+                      label: l10n.metricSteps,
+                      display: formats.integer(settings.stepGoal),
                       value: settings.stepGoal.toDouble(),
                       min: 4000,
                       max: 20000,
@@ -124,8 +132,8 @@ class ProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     _GoalSlider(
-                      label: 'Schlaf',
-                      display: '${formatDecimal(settings.sleepGoalHours)} h',
+                      label: l10n.groupSleep,
+                      display: '${formats.decimal(settings.sleepGoalHours)} h',
                       value: settings.sleepGoalHours,
                       min: 5,
                       max: 10,
@@ -134,9 +142,9 @@ class ProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     _GoalSlider(
-                      label: 'Wasser',
+                      label: l10n.metricWater,
                       display:
-                          '${formatDecimal(settings.waterGoalMl / 1000)} l',
+                          '${formats.decimal(settings.waterGoalMl / 1000)} l',
                       value: settings.waterGoalMl.toDouble(),
                       min: 1000,
                       max: 4000,
@@ -145,8 +153,9 @@ class ProfilePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
                     _GoalSlider(
-                      label: 'Aktive Kalorien',
-                      display: '${formatInt(settings.activeEnergyGoal)} kcal',
+                      label: l10n.metricActiveEnergy,
+                      display:
+                          '${formats.integer(settings.activeEnergyGoal)} kcal',
                       value: settings.activeEnergyGoal.toDouble(),
                       min: 200,
                       max: 1500,
@@ -156,7 +165,7 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
-              const SectionTitle('Darstellung'),
+              SectionTitle(l10n.appearance),
               Align(
                 alignment: Alignment.centerLeft,
                 child: M3EToggleButtonGroup(
@@ -168,10 +177,10 @@ class ProfilePage extends StatelessWidget {
                   onSelectedIndexChanged: (index) {
                     if (index != null) settings.setThemeMode(_modes[index]);
                   },
-                  actions: const [
-                    M3EToggleButtonGroupAction(label: Text('System')),
-                    M3EToggleButtonGroupAction(label: Text('Hell')),
-                    M3EToggleButtonGroupAction(label: Text('Dunkel')),
+                  actions: [
+                    M3EToggleButtonGroupAction(label: Text(l10n.themeSystem)),
+                    M3EToggleButtonGroupAction(label: Text(l10n.themeLight)),
+                    M3EToggleButtonGroupAction(label: Text(l10n.themeDark)),
                   ],
                 ),
               ),
@@ -184,7 +193,7 @@ class ProfilePage extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          'Farben vom Hintergrundbild',
+                          l10n.wallpaperColors,
                           style: theme.textTheme.titleMedium,
                         ),
                       ),
@@ -220,48 +229,77 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              SurfaceCard(
+                padding: EdgeInsets.zero,
+                child: InkWell(
+                  onTap: () => showLanguageSheet(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.language,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        Text(
+                          switch (scope.language.choice) {
+                            final code? => languageName(code),
+                            null => l10n.languageSystem,
+                          },
+                          style: context.emphasizedTextTheme.titleMedium
+                              ?.copyWith(color: scheme.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               if (ready) ...[
-                const SectionTitle('Daten'),
+                SectionTitle(l10n.data),
                 SurfaceCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Zuletzt aktualisiert',
+                        l10n.lastUpdated,
                         style: theme.textTheme.titleMedium,
                       ),
                       if (loadedAt != null)
                         Text(
-                          '${formatShortDate(loadedAt)} um '
-                          '${formatClock(loadedAt.hour * 60 + loadedAt.minute)}',
+                          l10n.dateAtTime(
+                            formats.shortDate(loadedAt),
+                            formatClock(loadedAt.hour * 60 + loadedAt.minute),
+                          ),
                           style: muted,
                         ),
                       if (backfill != null) ...[
                         const SizedBox(height: 16),
                         Text(
-                          'Ältere Daten werden geladen',
+                          l10n.loadingOlderData,
                           style: theme.textTheme.titleMedium,
                         ),
                         Text(
-                          'Bisher bis ${formatShortDate(backfill)} '
-                          '${backfill.year}',
+                          l10n.reachedSoFar(
+                            '${formats.shortDate(backfill)} ${backfill.year}',
+                          ),
                           style: muted,
                         ),
                       ],
                       const SizedBox(height: 16),
                       Text(
                         health.backgroundAccess
-                            ? 'Pulse aktualisiert die Daten etwa stündlich '
-                                  'im Hintergrund.'
-                            : 'Ohne Hintergrundzugriff werden die Daten nur '
-                                  'beim Öffnen der App aktualisiert.',
+                            ? l10n.backgroundOn
+                            : l10n.backgroundOff,
                         style: muted,
                       ),
                       if (!health.backgroundAccess) ...[
                         const SizedBox(height: 12),
                         M3EFilledButton.tonal(
                           onPressed: health.requestBackgroundAccess,
-                          child: const Text('Im Hintergrund aktualisieren'),
+                          child: Text(l10n.refreshInBackground),
                         ),
                       ],
                     ],

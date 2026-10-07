@@ -26,6 +26,7 @@ import '../age/body_age_page.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Whether the tile [id] has something to show: data in the store, or a
 /// measurement the user can record here.
@@ -38,18 +39,19 @@ bool todayTileAvailable(String id, HealthController health) {
 
 /// The name on a tile. Shorter than the catalog's where that would not fit
 /// a half-width tile.
-String todayTileTitle(String id) => switch (Metric.byName(id)) {
-  null => 'Letztes Training',
-  Metric.heartRate => 'Herzfrequenz',
-  Metric.totalEnergy => 'Kalorien',
-  Metric.oxygenSaturation => 'Sauerstoff',
-  Metric.energyIntake => 'Ernährung',
-  Metric.heartRateVariability => 'HRV',
-  Metric.skinTemperature => 'Hauttemperatur',
-  Metric.systolic => 'Systolisch',
-  Metric.diastolic => 'Diastolisch',
-  final metric => metric.spec.title,
-};
+String todayTileTitle(AppLocalizations l10n, String id) =>
+    switch (Metric.byName(id)) {
+      null => l10n.lastWorkout,
+      Metric.heartRate => l10n.shortHeartRate,
+      Metric.totalEnergy => l10n.shortCalories,
+      Metric.oxygenSaturation => l10n.shortOxygen,
+      Metric.energyIntake => l10n.groupNutrition,
+      Metric.heartRateVariability => l10n.shortHrv,
+      Metric.skinTemperature => l10n.shortSkinTemperature,
+      Metric.systolic => l10n.shortSystolic,
+      Metric.diastolic => l10n.shortDiastolic,
+      final metric => metric.title(l10n),
+    };
 
 /// The tile [id] of the Today page in the size the user chose, or null when
 /// there is nothing to show for it.
@@ -102,7 +104,7 @@ BoardTile? buildTodayTile(
       ),
       _ => LargeMetricTile(
         metric: metric,
-        title: todayTileTitle(id),
+        title: todayTileTitle(AppLocalizations.of(context), id),
         health: health,
         settings: settings,
       ),
@@ -124,11 +126,13 @@ class _SmallTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final spec = metric.spec;
     final colors = scheme.tone(spec.tone);
     final snapshot = health.snapshot;
     final today = health.todayIndex;
-    final reading = tileReading(snapshot, metric);
+    final reading = tileReading(formats, snapshot, metric);
     final value = reading.value;
     final note = reading.note;
     final night = snapshot.nights[today];
@@ -142,7 +146,7 @@ class _SmallTile extends StatelessWidget {
         strokeWidth: 3,
       ),
       Metric.sleep when night != null => _Caption(
-        'Score ${night.estimatedScore} (Schätzung)',
+        l10n.scoreEstimate(night.estimatedScore),
         color: colors.onContainer,
       ),
       Metric.water => M3ELinearWavyProgressIndicator(
@@ -158,10 +162,10 @@ class _SmallTile extends StatelessWidget {
     };
 
     return MetricCard(
-      label: todayTileTitle(metric.name),
+      label: todayTileTitle(l10n, metric.name),
       value: metricValueOf(metric, value),
       // "Schritte" twice in one tile says nothing.
-      unit: metric.unit == spec.title ? null : metric.unit,
+      unit: metric.isCount ? null : metric.unit,
       icon: spec.icon,
       shape: spec.shape,
       tone: spec.tone,
@@ -211,6 +215,8 @@ class _StepsHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final today = health.todayIndex;
     final steps = health.valueAt(Metric.steps, today);
     final distance = health.valueAt(Metric.distance, today);
@@ -280,21 +286,21 @@ class _StepsHero extends StatelessWidget {
                   Row(
                     children: [
                       _HeroStat(
-                        value: Metric.steps.format(steps),
-                        label: 'Schritte',
+                        value: Metric.steps.format(formats, steps),
+                        label: l10n.metricSteps,
                         shape: Shapes.circle,
                         color: scheme.primary,
                       ),
                       _HeroStat(
-                        value: Metric.activeEnergy.format(energy),
-                        label: 'Kalorien',
+                        value: Metric.activeEnergy.format(formats, energy),
+                        label: l10n.shortCalories,
                         shape: Shapes.burst,
                         color: scheme.tertiary,
                       ),
                       if (distance != null)
                         _HeroStat(
-                          value: Metric.distance.format(distance),
-                          label: 'Kilometer',
+                          value: Metric.distance.format(formats, distance),
+                          label: l10n.kilometers,
                           shape: Shapes.pentagon,
                           color: scheme.onPrimaryContainer.withValues(
                             alpha: 0.72,
@@ -328,13 +334,15 @@ class _AgeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final onContainer = theme.colorScheme.onPrimaryContainer;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final age = this.age;
     return Semantics(
       container: true,
       button: true,
       label: age == null
-          ? 'Körperalter im Detail'
-          : 'Geschätztes Körperalter ${formatDecimal(age)}, im Detail',
+          ? l10n.bodyAgeDetailsA11y
+          : l10n.bodyAgeEstimateA11y(formats.decimal(age)),
       onTap: onTap,
       excludeSemantics: true,
       child: Pressable(
@@ -349,14 +357,14 @@ class _AgeButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  age == null ? '–' : formatDecimal(age),
+                  age == null ? '–' : formats.decimal(age),
                   maxLines: 1,
                   style: context.emphasizedTextTheme.headlineLarge?.copyWith(
                     color: onContainer,
                   ),
                 ),
                 Text(
-                  hasBirthDate ? 'Körperalter' : 'Alter festlegen',
+                  hasBirthDate ? l10n.bodyAge : l10n.setAge,
                   maxLines: 1,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: onContainer.withValues(alpha: 0.72),
@@ -433,11 +441,13 @@ class _NutritionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final kcal = snapshot.value(Metric.energyIntake, dayIndex);
     final parts = [
-      (Metric.carbs, 'Kohlenhydrate', scheme.primary),
-      (Metric.protein, 'Eiweiss', scheme.secondary),
-      (Metric.fat, 'Fett', scheme.tertiary),
+      (Metric.carbs, l10n.metricCarbs, scheme.primary),
+      (Metric.protein, l10n.metricProtein, scheme.secondary),
+      (Metric.fat, l10n.metricFat, scheme.tertiary),
     ];
     var total = 0.0;
     for (final (metric, _, _) in parts) {
@@ -474,14 +484,14 @@ class _NutritionCard extends StatelessWidget {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Ernährung',
+                          l10n.groupNutrition,
                           style: theme.textTheme.titleSmall,
                         ),
                       ),
                       Text(
                         kcal == null
-                            ? 'Noch nichts eingetragen'
-                            : Metric.energyIntake.formatWithUnit(kcal),
+                            ? l10n.nothingEntered
+                            : Metric.energyIntake.formatWithUnit(formats, kcal),
                         style: kcal == null
                             ? theme.textTheme.bodyMedium?.copyWith(
                                 color: scheme.onSurfaceVariant,
@@ -512,6 +522,7 @@ class _NutritionCard extends StatelessWidget {
                           width: 56,
                           child: Text(
                             metric.formatWithUnit(
+                              formats,
                               snapshot.value(metric, dayIndex),
                             ),
                             textAlign: TextAlign.end,
@@ -585,6 +596,8 @@ class _WorkoutCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final distance = workout.distanceKm;
     final kcal = workout.kcal;
     return SurfaceCard(
@@ -592,7 +605,7 @@ class _WorkoutCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Letztes Training', style: theme.textTheme.titleSmall),
+          Text(l10n.lastWorkout, style: theme.textTheme.titleSmall),
           const Spacer(),
           Row(
             children: [
@@ -609,14 +622,14 @@ class _WorkoutCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      workout.type.label,
+                      workout.type.label(l10n),
                       style: context.emphasizedTextTheme.titleMedium,
                     ),
                     Text(
                       [
-                        formatShortDate(workout.start),
-                        formatDuration(workout.minutes),
-                        if (distance != null) '${formatDecimal(distance)} km',
+                        formats.shortDate(workout.start),
+                        formats.duration(workout.minutes),
+                        if (distance != null) '${formats.decimal(distance)} km',
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

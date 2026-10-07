@@ -10,15 +10,18 @@ class AnimatedCount extends StatelessWidget {
     super.key,
     required this.value,
     this.style,
-    this.format = formatInt,
+    this.format,
   });
 
   final int value;
   final TextStyle? style;
-  final String Function(int value) format;
+
+  /// How a number is written; the language's whole number when null.
+  final String Function(int value)? format;
 
   @override
   Widget build(BuildContext context) {
+    final format = this.format ?? Formats.of(context).integer;
     return SingleMotionBuilder(
       from: 0,
       value: value.toDouble(),

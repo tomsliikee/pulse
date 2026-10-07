@@ -1,0 +1,744 @@
+{
+  "@@locale": "de",
+  "appTitle": "Pulse",
+  "patternDay": "d.M.",
+  "patternShortDate": "ccc, d.M.",
+  "patternLongDate": "EEEE, d. MMMM",
+  "patternBirthDate": "d.M.y",
+  "weekdaysShort": "Mo,Di,Mi,Do,Fr,Sa,So",
+  "relToday": "heute",
+  "relYesterday": "gestern",
+  "rangeFromTo": "{a} bis {b}",
+  "@rangeFromTo": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "durationHoursMinutes": "{h} h {m} min",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "h": {
+        "type": "int"
+      },
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutes": "{m} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "m": {
+        "type": "int"
+      }
+    }
+  },
+  "groupActivity": "Aktivität",
+  "groupVitals": "Vitalwerte",
+  "groupBody": "Körper",
+  "groupSleep": "Schlaf",
+  "groupNutrition": "Ernährung",
+  "metricSteps": "Schritte",
+  "metricDistance": "Distanz",
+  "metricFloors": "Etagen",
+  "metricActiveEnergy": "Aktive Kalorien",
+  "metricTotalEnergy": "Kalorien gesamt",
+  "metricIntensityMinutes": "Aktive Minuten",
+  "metricSpeed": "Geschwindigkeit",
+  "metricHeartRate": "Puls",
+  "metricRestingHeartRate": "Ruhepuls",
+  "metricHeartRateVariability": "Herzfrequenzvariabilität",
+  "metricOxygenSaturation": "Sauerstoffsättigung",
+  "metricRespiratoryRate": "Atemfrequenz",
+  "metricSystolic": "Blutdruck systolisch",
+  "metricDiastolic": "Blutdruck diastolisch",
+  "metricBloodGlucose": "Blutzucker",
+  "metricBodyTemperature": "Körpertemperatur",
+  "metricSkinTemperature": "Hauttemperatur (Abweichung)",
+  "metricWeight": "Gewicht",
+  "metricHeight": "Grösse",
+  "metricBodyMassIndex": "Body-Mass-Index",
+  "metricBodyFat": "Körperfett",
+  "metricLeanMass": "Magermasse",
+  "metricBodyWater": "Körperwasser",
+  "metricBasalEnergy": "Grundumsatz",
+  "metricSleep": "Schlaf",
+  "metricWater": "Wasser",
+  "metricEnergyIntake": "Gegessene Kalorien",
+  "metricCarbs": "Kohlenhydrate",
+  "metricProtein": "Eiweiss",
+  "metricFat": "Fett",
+  "metricFiber": "Ballaststoffe",
+  "metricSugar": "Zucker",
+  "unitSteps": "{n, plural, =1{Schritt} other{Schritte}}",
+  "@unitSteps": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "unitFloors": "{n, plural, =1{Etage} other{Etagen}}",
+  "@unitFloors": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "workoutRun": "Laufen",
+  "workoutRide": "Radfahren",
+  "workoutWalk": "Spaziergang",
+  "workoutHike": "Wandern",
+  "workoutOther": "Training",
+  "workoutStrength": "Krafttraining",
+  "workoutYoga": "Yoga",
+  "workoutSwim": "Schwimmen",
+  "navToday": "Heute",
+  "navHeart": "Herz",
+  "profile": "Profil",
+  "lastAtTime": "Zuletzt um {time}",
+  "@lastAtTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "bpmRange": "{low} bis {high} bpm",
+  "@bpmRange": {
+    "placeholders": {
+      "low": {
+        "type": "int"
+      },
+      "high": {
+        "type": "int"
+      }
+    }
+  },
+  "averageValue": "Ø {value}",
+  "@averageValue": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "scoreEstimate": "Score {score} (Schätzung)",
+  "@scoreEstimate": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "percentOfGoal": "{percent} % von {goal}",
+  "@percentOfGoal": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "noData": "Keine Daten",
+  "add": "Hinzufügen",
+  "addTilesAllShown": "Alles, wozu Health Connect Daten hat, ist schon auf der Seite.",
+  "nothingEntered": "Noch nichts eingetragen",
+  "groupWorkout": "Training",
+  "showAllData": "Alle Daten anzeigen",
+  "allData": "Alle Daten",
+  "last30FromHealthConnect": "Letzte 30 Tage aus Health Connect",
+  "lastWorkout": "Letztes Training",
+  "shortHeartRate": "Herzfrequenz",
+  "shortCalories": "Kalorien",
+  "shortOxygen": "Sauerstoff",
+  "shortHrv": "HRV",
+  "shortSkinTemperature": "Hauttemperatur",
+  "shortSystolic": "Systolisch",
+  "shortDiastolic": "Diastolisch",
+  "kilometers": "Kilometer",
+  "bodyAge": "Körperalter",
+  "setAge": "Alter festlegen",
+  "bodyAgeDetailsA11y": "Körperalter im Detail",
+  "bodyAgeEstimateA11y": "Geschätztes Körperalter {age}, im Detail",
+  "@bodyAgeEstimateA11y": {
+    "placeholders": {
+      "age": {
+        "type": "String"
+      }
+    }
+  },
+  "remove": "Entfernen",
+  "shrink": "Verkleinern",
+  "enlarge": "Vergrössern",
+  "done": "Fertig",
+  "arrangeTiles": "Kacheln anordnen",
+  "close": "Schliessen",
+  "addEntry": "Eintrag hinzufügen",
+  "activitySubtitle": "Schritte und Trainings",
+  "stepsChartTitle": "Schrittverlauf",
+  "shortActiveMinutes": "Aktive Min.",
+  "workouts": "Trainings",
+  "periodWeek": "Woche",
+  "periodMonth": "Monat",
+  "averagePerDay": "Durchschnitt pro Tag",
+  "nightTo": "Nacht auf {date}",
+  "@nightTo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepDuration": "Schlafdauer",
+  "sleepStages": "Schlafphasen",
+  "noStagesRecorded": "Für diese Nacht wurden keine Schlafphasen aufgezeichnet.",
+  "stageDeep": "Tiefschlaf",
+  "stageLight": "Leichter Schlaf",
+  "stageRem": "REM",
+  "stageAwake": "Wach",
+  "thisWeek": "Diese Woche",
+  "noSleepScore": "Kein Schlafscore",
+  "estimatedSleepScore": "Geschätzter Schlafscore {score}",
+  "@estimatedSleepScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "estimate": "Schätzung",
+  "noSleepData": "Keine Schlafdaten für diese Nacht.",
+  "sleepInDetail": "Schlaf im Detail",
+  "noPulseThatDay": "Kein Puls an diesem Tag",
+  "dayCurve": "Tagesverlauf",
+  "noHeartCurve": "Für diesen Tag liegt kein Pulsverlauf vor. Verläufe werden für die letzten acht Tage geladen.",
+  "bloodPressure": "Blutdruck",
+  "heartRateZones": "Herzfrequenzzonen",
+  "timeInZones": "Zeit in Zonen",
+  "zoneRest": "Ruhe",
+  "zoneLight": "Leicht",
+  "zoneCardio": "Cardio",
+  "zonePeak": "Spitze",
+  "periodYesterday": "Gestern",
+  "periodYear": "Jahr",
+  "periodAll": "Gesamt",
+  "headlineWeek": "Wochenschnitt pro Tag",
+  "headlineMonth": "Monatsschnitt pro Tag",
+  "headlineYear": "Jahresschnitt pro Tag",
+  "headlineAll": "Schnitt pro Tag",
+  "comparisonMore": "{span, select, day{{value} mehr als am Tag davor} week{{value} mehr als in der Woche davor} month{{value} mehr als im Monat davor} other{{value} mehr als im Jahr davor}}",
+  "@comparisonMore": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "comparisonLess": "{span, select, day{{value} weniger als am Tag davor} week{{value} weniger als in der Woche davor} month{{value} weniger als im Monat davor} other{{value} weniger als im Jahr davor}}",
+  "@comparisonLess": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "comparisonSame": "{span, select, day{Gleich wie am Tag davor} week{Gleich wie in der Woche davor} month{Gleich wie im Monat davor} other{Gleich wie im Jahr davor}}",
+  "@comparisonSame": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "lastMeasured": "Zuletzt gemessen: {day}",
+  "@lastMeasured": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "latestValue": "Letzter Wert",
+  "earlier": "Früher",
+  "later": "Später",
+  "noDataThatDay": "Keine Daten an diesem Tag.",
+  "noDataInPeriod": "Keine Daten in diesem Zeitraum.",
+  "entries": "Einträge",
+  "inPeriod": "Im Zeitraum",
+  "highest": "Höchstwert",
+  "lowest": "Tiefstwert",
+  "deleteFailed": "Löschen fehlgeschlagen",
+  "entryDeleted": "Eintrag gelöscht",
+  "undo": "Rückgängig",
+  "restoreFailed": "Wiederherstellen fehlgeschlagen",
+  "noEntriesThatDay": "Keine Einträge an diesem Tag.",
+  "edit": "Bearbeiten",
+  "delete": "Löschen",
+  "entryMeal": "Mahlzeit",
+  "addWater": "Wasser eintragen",
+  "addWeight": "Gewicht eintragen",
+  "addMeal": "Mahlzeit eintragen",
+  "editWater": "Wasser bearbeiten",
+  "editWeight": "Gewicht bearbeiten",
+  "editMeal": "Mahlzeit bearbeiten",
+  "amountWater": "Menge in ml",
+  "amountWeight": "Gewicht in kg",
+  "amountMeal": "Kalorien in kcal",
+  "numberBetween": "Bitte eine Zahl zwischen {min} und {max} eingeben.",
+  "@numberBetween": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "nutrientsRange": "Nährwerte müssen Zahlen zwischen 0 und {max} g sein.",
+  "@nutrientsRange": {
+    "placeholders": {
+      "max": {
+        "type": "String"
+      }
+    }
+  },
+  "entrySaveFailed": "Der Eintrag konnte nicht gespeichert werden.",
+  "nameOptional": "Name (optional)",
+  "nutrientInGrams": "{name} in g (optional)",
+  "@nutrientInGrams": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "saving": "Speichert …",
+  "save": "Speichern",
+  "aboutYou": "Über dich",
+  "birthDate": "Geburtsdatum",
+  "birthDateHint": "TT.MM.JJJJ",
+  "birthDateInvalid": "Bitte ein Datum wie 7.3.1992 eingeben.",
+  "notGiven": "Nicht angegeben",
+  "female": "Weiblich",
+  "male": "Männlich",
+  "goals": "Ziele",
+  "appearance": "Darstellung",
+  "themeSystem": "System",
+  "themeLight": "Hell",
+  "themeDark": "Dunkel",
+  "wallpaperColors": "Farben vom Hintergrundbild",
+  "language": "Sprache",
+  "languageSystem": "Systemsprache",
+  "data": "Daten",
+  "lastUpdated": "Zuletzt aktualisiert",
+  "dateAtTime": "{date} um {time}",
+  "@dateAtTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "loadingOlderData": "Ältere Daten werden geladen",
+  "reachedSoFar": "Bisher bis {date}",
+  "@reachedSoFar": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "backgroundOn": "Pulse aktualisiert die Daten etwa stündlich im Hintergrund.",
+  "backgroundOff": "Ohne Hintergrundzugriff werden die Daten nur beim Öffnen der App aktualisiert.",
+  "refreshInBackground": "Im Hintergrund aktualisieren",
+  "accessTitle": "Deine Gesundheitsdaten",
+  "accessBody": "Pulse liest Schritte, Puls, Schlaf und weitere Werte aus Health Connect und schreibt Wasser, Gewicht und Mahlzeiten, die du hier einträgst. Die Daten bleiben auf diesem Gerät.",
+  "accessAction": "Zugriff erlauben",
+  "missingTitle": "Health Connect fehlt",
+  "missingBody": "Pulse liest seine Daten aus Health Connect. Die App ist auf diesem Gerät nicht installiert oder braucht ein Update.",
+  "missingAction": "Health Connect öffnen",
+  "failedTitle": "Daten nicht lesbar",
+  "failedBody": "Health Connect hat nicht geantwortet. Versuche es noch einmal.",
+  "failedAction": "Erneut versuchen",
+  "androidOnlyTitle": "Nur auf Android",
+  "androidOnlyBody": "Pulse zeigt Daten aus Health Connect. Das gibt es auf diesem System nicht.",
+  "stagesCompared": "Phasen im Vergleich",
+  "regularity": "Regelmäßigkeit",
+  "nightsCount": "{n, plural, =1{1 Nacht} other{{n} Nächte}}",
+  "@nightsCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepDebt": "Schlafschuld",
+  "nightPulse": "Puls in der Nacht",
+  "heartSummary": "Tiefster {low} · Ø {average} bpm",
+  "@heartSummary": {
+    "placeholders": {
+      "low": {
+        "type": "int"
+      },
+      "average": {
+        "type": "int"
+      }
+    }
+  },
+  "nightValues": "Werte zur Nacht",
+  "nightValuesNote": "Tageswerte aus Health Connect, verglichen mit deinen letzten 30 Tagen. Uhren messen sie meist im Schlaf.",
+  "asleepFromTo": "geschlafen, von {from} bis {to}",
+  "@asleepFromTo": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "inBed": "Im Bett",
+  "efficiency": "Effizienz",
+  "scoreEstimated": "Score, geschätzt",
+  "stageGuideNote": "Richtwerte für Erwachsene, als Anteil an der Schlafzeit; Wach als Anteil an der Zeit im Bett. Sie verschieben sich mit dem Alter und schwanken von Nacht zu Nacht.",
+  "percentValue": "{percent} %",
+  "@percentValue": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "percentUpTo": "bis {max} %",
+  "@percentUpTo": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "percentRange": "{min} bis {max} %",
+  "@percentRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "belowGuide": "Unter dem Richtbereich ({span})",
+  "@belowGuide": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "withinGuide": "Im Richtbereich ({span})",
+  "@withinGuide": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "aboveGuide": "Über dem Richtbereich ({span})",
+  "@aboveGuide": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "avgBedtime": "Ø Einschlafen",
+  "avgWake": "Ø Aufwachen",
+  "goalReached": "Ziel erreicht",
+  "underGoal": "{duration} unter dem Ziel",
+  "@underGoal": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "debtNights": "{n, plural, =1{Eine Nacht bei einem Ziel von {goal}} other{{n} Nächte bei einem Ziel von {goal} je Nacht}}",
+  "@debtNights": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "noValueThisNight": "Kein Wert für diese Nacht",
+  "tooFewValues": "Zu wenige Werte für einen Vergleich",
+  "belowUsual": "Unter deinem üblichen Bereich ({span})",
+  "@belowUsual": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "withinUsual": "In deinem üblichen Bereich ({span})",
+  "@withinUsual": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "aboveUsual": "Über deinem üblichen Bereich ({span})",
+  "@aboveUsual": {
+    "placeholders": {
+      "span": {
+        "type": "String"
+      }
+    }
+  },
+  "birthDateMissing": "Geburtsdatum fehlt",
+  "birthDateWhy": "Das Körperalter geht von deinem echten Alter aus. Health Connect kennt es nicht, deshalb fragt Pulse danach.",
+  "enterBirthDate": "Geburtsdatum eintragen",
+  "yourDetails": "Deine Angaben",
+  "sex": "Geschlecht",
+  "heightLabel": "Größe",
+  "noMeasurement": "Keine Messung",
+  "changeInProfile": "Geburtsdatum und Geschlecht änderst du im Profil.",
+  "howCalculated": "So wird gerechnet",
+  "howCalculatedBody": "Pulse beginnt bei deinem echten Alter. Jeder Faktor zieht Jahre ab oder legt welche dazu, je nachdem, wo dein Wert der letzten {days} Tage zwischen dem besten und dem schlechtesten Ende liegt. Die Summe ist das Körperalter.\n\nEin Faktor zählt erst ab {minDays} Tagen mit Daten, ein Alter gibt es ab {minFactors} Faktoren. Was fehlt, verändert nichts.\n\nDie Richtwerte folgen gängigen Empfehlungen. Wie viele Jahre ein Faktor wert ist, hat Pulse selbst festgelegt; das ist nicht wissenschaftlich geprüft. Das Körperalter ist eine Schätzung und keine medizinische Aussage.",
+  "@howCalculatedBody": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "minDays": {
+        "type": "int"
+      },
+      "minFactors": {
+        "type": "int"
+      }
+    }
+  },
+  "tooLittleData": "Noch zu wenig Daten",
+  "exactlyYourAge": "Genau dein Alter ({real})",
+  "@exactlyYourAge": {
+    "placeholders": {
+      "real": {
+        "type": "String"
+      }
+    }
+  },
+  "yearsYounger": "{years} Jahre jünger als dein Alter ({real})",
+  "@yearsYounger": {
+    "placeholders": {
+      "years": {
+        "type": "String"
+      },
+      "real": {
+        "type": "String"
+      }
+    }
+  },
+  "yearsOlder": "{years} Jahre älter als dein Alter ({real})",
+  "@yearsOlder": {
+    "placeholders": {
+      "years": {
+        "type": "String"
+      },
+      "real": {
+        "type": "String"
+      }
+    }
+  },
+  "yearsSigned": "{value} Jahre",
+  "@yearsSigned": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "yearsZero": "±0 Jahre",
+  "needFactors": "Für eine Schätzung braucht es mindestens {n} Faktoren mit Daten.",
+  "@needFactors": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "estimateLast30": "Schätzung aus den letzten 30 Tagen",
+  "notCountedYet": "Zählt noch nicht: {days} von {min} Tagen mit Daten.",
+  "@notCountedYet": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "factorIntensity": "Intensitätsminuten",
+  "factorSleepRhythm": "Schlafrhythmus",
+  "missingWeightOrHeight": "Gewicht oder Größe fehlen.",
+  "noMeasurementSentence": "Keine Messung.",
+  "noWorkouts30": "Keine Trainings in den letzten 30 Tagen.",
+  "noData30": "Keine Daten in den letzten 30 Tagen.",
+  "readingSteps": "Ø {value} am Tag, aus {days, plural, =1{1 Tag} other{{days} Tagen}}",
+  "@readingSteps": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "readingIntensity": "Ø {value} min pro Woche, aus {days, plural, =1{1 Tag} other{{days} Tagen}}",
+  "@readingIntensity": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "readingSleep": "Ø {value}, aus {nights, plural, =1{1 Nacht} other{{nights} Nächten}}",
+  "@readingSleep": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "readingRegularity": "Einschlafzeit schwankt um {minutes} min",
+  "@readingRegularity": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "readingBpm": "Ø {value} bpm, aus {days, plural, =1{1 Tag} other{{days} Tagen}}",
+  "@readingBpm": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "readingMs": "Ø {value} ms, aus {days, plural, =1{1 Tag} other{{days} Tagen}}",
+  "@readingMs": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "readingStrength": "{value} Einheiten pro Woche",
+  "@readingStrength": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "percentText": "{value} %",
+  "@percentText": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "guideLowBest": "Neutral bei {neutral}, am besten bis {best}.",
+  "@guideLowBest": {
+    "placeholders": {
+      "neutral": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      }
+    }
+  },
+  "guideHighBest": "Neutral bei {neutral}, am besten ab {best}.",
+  "@guideHighBest": {
+    "placeholders": {
+      "neutral": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      }
+    }
+  },
+  "guideSleep": "Am besten {from} bis {to} Stunden, neutral bei {low} und bei {high}.",
+  "@guideSleep": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      },
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "guideHrv": "Für dein Alter üblich: {usual} ms. Am besten ab {best} ms.",
+  "@guideHrv": {
+    "placeholders": {
+      "usual": {
+        "type": "int"
+      },
+      "best": {
+        "type": "int"
+      }
+    }
+  },
+  "guideBmi": "Am besten um 22, neutral bei 25.",
+  "guideBloodPressure": "Neutral bei 130/85, am besten unter 120/80.",
+  "guideStrength": "Am besten ab 2 Einheiten pro Woche."
+}

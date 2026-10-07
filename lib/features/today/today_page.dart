@@ -12,6 +12,7 @@ import '../browse/all_data_section.dart';
 import '../profile/profile_page.dart';
 import 'add_tiles_section.dart';
 import 'today_tiles.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Today at a glance. Which tiles it shows, and how large, is the user's
 /// choice; see [buildTodayTile].
@@ -27,13 +28,15 @@ class TodayPage extends StatelessWidget {
       listenable: Listenable.merge([health, settings]),
       builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
+        final formats = Formats.of(context);
+        final l10n = formats.l10n;
         final snapshot = health.snapshot;
 
         return BoardPage(
           pageId: 'today',
-          title: 'Heute',
+          title: l10n.navToday,
           // This page always shows today, whatever day is selected elsewhere.
-          subtitle: formatLongDate(snapshot.dateAt(health.todayIndex)),
+          subtitle: formats.longDate(snapshot.dateAt(health.todayIndex)),
           trailing: const _ProfileButton(),
           editMenu: SurfaceCard(
             padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
@@ -41,7 +44,7 @@ class TodayPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Alle Daten anzeigen',
+                    l10n.showAllData,
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
@@ -62,14 +65,14 @@ class TodayPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 40),
-                    const SectionTitle(
-                      'Alle Daten',
-                      padding: EdgeInsets.symmetric(horizontal: 4),
+                    SectionTitle(
+                      l10n.allData,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
                       child: Text(
-                        'Letzte 30 Tage aus Health Connect',
+                        l10n.last30FromHealthConnect,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
@@ -104,7 +107,7 @@ class _ProfileButton extends StatelessWidget {
     return Semantics(
       container: true,
       button: true,
-      label: 'Profil',
+      label: AppLocalizations.of(context).profile,
       onTap: open,
       excludeSemantics: true,
       child: Pressable(

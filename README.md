@@ -116,6 +116,7 @@ sequenceDiagram
 - **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. On **Aktivität**, **Schlaf** and **Herz** a **minus** takes a tile off the page and a list below the board brings it back; the compact measurement tiles there can be enlarged to the wide form with the last seven days.
 - **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
 - **Own Entries:** Add **water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button. They are written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps are shown but cannot be changed, because Health Connect does not allow it.
+- **Three Languages:** German, English and Polish, with numbers, dates and plurals written as each language does (**7.432** / **7,432** / **7 432**; "1 krok, 2 kroki, 5 kroków"). The app follows the system language and falls back to English for any other. A row in the profile opens a sheet with **System / Deutsch / English / Polski**. On **Android 13** and newer the choice is the language Android keeps per app, so the system's own *App languages* page and the profile show and set the same value; before that it is a setting of the app. Units stay metric in every language. The page names in this document are the German ones. ***Tested*** by widget tests of every page in English and Polish at both screen sizes, and on an **Android 17** emulator: the choice set in the profile was read back with `cmd locale get-app-locales`, a change made from the system side rebuilt the open app, and the system's page lists exactly the three languages. The Polish text is not reviewed by a native speaker.
 - **Material You:** The colour scheme follows the phone's wallpaper. It can be switched off in the profile, which falls back to the app's own palette. Light, dark or system.
 - **Navigation:** The selected pill of the floating bar can be dragged to another destination; the page changes when it is let go. The period tabs of a metric work the same way.
 - **Liquid Glass:** A switch in the profile turns the **navigation bar**, the **period tabs**, the **add button** and its menu into clear glass that bends the page beneath it at its edge, and the tiles into translucent glass over soft colour fields. The selected pill is a second piece of glass lying on its bar, tinted in the primary colour; while it is dragged it becomes a clear lens. The entries of the add button flow out of it as drops. The light **rim** and the **shadow** of each piece are painted by the app, not by the renderer. Shapes, colours and motion stay Material 3 Expressive. Off by default. ***Tested*** by widget tests in a blurred fallback and by stills and a screen recording on a **Pixel 8** emulator under **Vulkan**, in the light theme. On a **Pixel 10 Pro** this state is ***built*** only; an earlier one was recorded there.
@@ -177,7 +178,7 @@ An average counts only days **with** data; a day without a measurement is not a 
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **217** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **277** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -213,7 +214,7 @@ git clone https://github.com/tomsliikee/pulse.git
 cd pulse
 ```
 
-**2. Fetch dependencies:**
+**2. Fetch dependencies** (this also generates the translations from the ARB files):
 ```bash
 flutter pub get
 ```
@@ -247,7 +248,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | :--- | :--- |
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
-| **`settings.json`** | Goals, date of birth and sex, theme, the Material You and Liquid Glass switches, tile order per page, the tiles on Heute and their sizes |
+| **`settings.json`** | Goals, date of birth and sex, theme, the Material You and Liquid Glass switches, the language (only before Android 13), tile order per page, the tiles on Heute and their sizes |
 | **`backfill.json`** | How far back the one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.
@@ -260,7 +261,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Hourly bars:** only for steps, distance, active and total calories, water and intensity minutes.
 - **Body age:** the app's own estimate. The values it is judged against follow common guidance; the years each factor is worth are constants of this app and are not validated. It is not a medical statement, and it does not use **VO2 max**, which the plugin cannot read.
 - **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
-- **Language:** the interface is German and not yet translatable.
+- **Navigation labels:** the selected destination shows its name only if the longest name fits beside the add button. In Polish at 412 pixels it misses by a few pixels, so the bar shows icons only there.
 - **Orientation:** portrait only.
 - **Liquid Glass:** relies on a pre-release package that needs Impeller; elsewhere it falls back to a plain blur. Tiles do not refract, because that made scrolling stutter. Only the four main pages turn to glass, not the detail page or the sheets; the detail page's floating tabs are glass like the navigation bar. The dark theme of the current glass has not been looked at on a device.
 
@@ -278,6 +279,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 | **`dynamic_color`** | The system colour palette |
 | **`liquid_glass_renderer`** | The refracting glass of the Liquid Glass switch; Flutter itself can only blur |
 | **`path_provider`** | The private directory |
+| **`flutter_localizations`**, **`intl`** | The translations generated from **`lib/l10n/app_*.arb`**, and numbers and dates per language. Both ship with `material_ui` already |
 
 The bundled typeface is **Google Sans Flex**, under the **SIL Open Font License** (see [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).
 

@@ -10,6 +10,8 @@ import '../../widgets/shape_badge.dart';
 import '../activity/workout_style.dart';
 import '../detail/metric_spec.dart';
 import 'today_tiles.dart';
+import '../../l10n/generated/app_localizations.dart';
+import '../../app/formatters.dart';
 
 /// Everything that could be a tile on the Today page and is not one yet,
 /// each with a plus. Shown while the page is being edited.
@@ -27,6 +29,7 @@ class AddTilesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context);
     final shown = settings.todayTiles.toSet();
     bool open(String id) =>
         !shown.contains(id) && todayTileAvailable(id, health);
@@ -34,27 +37,27 @@ class AddTilesSection extends StatelessWidget {
     final groups = [
       for (final group in MetricGroup.values)
         (
-          group.label,
+          group.label(l10n),
           [
             for (final metric in Metric.values)
               if (metric.group == group && open(metric.name)) metric.name,
           ],
         ),
-      ('Training', [if (open(workoutTileId)) workoutTileId]),
+      (l10n.groupWorkout, [if (open(workoutTileId)) workoutTileId]),
     ].where((g) => g.$2.isNotEmpty).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SectionTitle(
-          'Hinzufügen',
-          padding: EdgeInsets.symmetric(horizontal: 4),
+        SectionTitle(
+          l10n.add,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
         ),
         if (groups.isEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
             child: Text(
-              'Alles, wozu Health Connect Daten hat, ist schon auf der Seite.',
+              l10n.addTilesAllShown,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -83,6 +86,8 @@ class AddTilesSection extends StatelessWidget {
 
   Widget _row(BuildContext context, String id) {
     final scheme = Theme.of(context).colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final metric = Metric.byName(id);
     final workout = health.latestWorkout;
     final tone = metric?.spec.tone ?? Tone.primary;
@@ -98,13 +103,13 @@ class AddTilesSection extends StatelessWidget {
         color: neutral ? scheme.secondaryContainer : colors.accent,
         iconColor: neutral ? scheme.onSecondaryContainer : scheme.surfaceBright,
       ),
-      headline: Text(metric?.spec.title ?? todayTileTitle(id)),
+      headline: Text(metric?.title(l10n) ?? todayTileTitle(l10n, id)),
       supportingText: Text(
         metric == null
-            ? workout?.type.label ?? ''
+            ? workout?.type.label(l10n) ?? ''
             : latest == null
-            ? 'Noch nichts eingetragen'
-            : metric.formatWithUnit(snapshot.value(metric, latest)),
+            ? l10n.nothingEntered
+            : metric.formatWithUnit(formats, snapshot.value(metric, latest)),
       ),
       trailing: Icon(Icons.add_circle_rounded, color: scheme.primary),
     );

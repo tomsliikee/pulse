@@ -5,8 +5,11 @@ import '../../app/app_scope.dart';
 import '../../app/back_gesture.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
+import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../theme/app_shapes.dart';
+import '../detail/metric_spec.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// Opens the form that records a new entry of [kind], or changes [existing].
 Future<void> showEntrySheet(
@@ -69,16 +72,28 @@ double? parseAmount(String text) =>
     double.tryParse(text.trim().replaceAll(',', '.'));
 
 extension EntryKindLabel on EntryKind {
-  String get label => switch (this) {
-    EntryKind.water => 'Wasser',
-    EntryKind.weight => 'Gewicht',
-    EntryKind.meal => 'Mahlzeit',
+  String label(AppLocalizations l10n) => switch (this) {
+    EntryKind.water => l10n.metricWater,
+    EntryKind.weight => l10n.metricWeight,
+    EntryKind.meal => l10n.entryMeal,
   };
 
-  String get amountLabel => switch (this) {
-    EntryKind.water => 'Menge in ml',
-    EntryKind.weight => 'Gewicht in kg',
-    EntryKind.meal => 'Kalorien in kcal',
+  String addTitle(AppLocalizations l10n) => switch (this) {
+    EntryKind.water => l10n.addWater,
+    EntryKind.weight => l10n.addWeight,
+    EntryKind.meal => l10n.addMeal,
+  };
+
+  String editTitle(AppLocalizations l10n) => switch (this) {
+    EntryKind.water => l10n.editWater,
+    EntryKind.weight => l10n.editWeight,
+    EntryKind.meal => l10n.editMeal,
+  };
+
+  String amountLabel(AppLocalizations l10n) => switch (this) {
+    EntryKind.water => l10n.amountWater,
+    EntryKind.weight => l10n.amountWeight,
+    EntryKind.meal => l10n.amountMeal,
   };
 
   /// The range a value must lie in to be saved.
@@ -103,36 +118,46 @@ class _EntrySheetState extends State<EntrySheet> {
   static const _quickWater = [200, 300, 500];
   static const _nutrientMax = 1000.0;
 
-  late final TextEditingController _amount = TextEditingController(
-    text: _initial(widget.existing?.draft.amount),
-  );
+  final TextEditingController _amount = TextEditingController();
   late final TextEditingController _name = TextEditingController(
     text: widget.existing?.draft.name ?? '',
   );
-  late final Map<String, TextEditingController> _nutrients = {
-    'Kohlenhydrate': TextEditingController(
-      text: _initial(widget.existing?.draft.carbs),
-    ),
-    'Eiweiss': TextEditingController(
-      text: _initial(widget.existing?.draft.protein),
-    ),
-    'Fett': TextEditingController(text: _initial(widget.existing?.draft.fat)),
-    'Ballaststoffe': TextEditingController(
-      text: _initial(widget.existing?.draft.fiber),
-    ),
-    'Zucker': TextEditingController(
-      text: _initial(widget.existing?.draft.sugar),
-    ),
+  final Map<Metric, TextEditingController> _nutrients = {
+    for (final metric in const [
+      Metric.carbs,
+      Metric.protein,
+      Metric.fat,
+      Metric.fiber,
+      Metric.sugar,
+    ])
+      metric: TextEditingController(),
   };
 
   String? _error;
   bool _saving = false;
+  bool _filled = false;
 
-  static String _initial(double? value) {
-    if (value == null) return '';
-    return value == value.roundToDouble()
-        ? value.round().toString()
-        : formatDecimal(value);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Here and not in initState: the decimal sign is the language's.
+    if (_filled) return;
+    _filled = true;
+    final formats = Formats.of(context);
+    String initial(double? value) {
+      if (value == null) return '';
+      return value == value.roundToDouble()
+          ? value.round().toString()
+          : formats.decimal(value);
+    }
+
+    final draft = widget.existing?.draft;
+    _amount.text = initial(draft?.amount);
+    _nutrients[Metric.carbs]!.text = initial(draft?.carbs);
+    _nutrients[Metric.protein]!.text = initial(draft?.protein);
+    _nutrients[Metric.fat]!.text = initial(draft?.fat);
+    _nutrients[Metric.fiber]!.text = initial(draft?.fiber);
+    _nutrients[Metric.sugar]!.text = initial(draft?.sugar);
   }
 
   @override
@@ -146,8 +171,8 @@ class _EntrySheetState extends State<EntrySheet> {
   }
 
   /// An empty field is valid and means "not given".
-  ({bool valid, double? value}) _nutrient(String label) {
-    final text = _nutrients[label]!.text.trim();
+  ({bool valid, double? value}) _nutrient(Metric metric) {
+    final text = _nutrients[metric]!.text.trim();
     if (text.isEmpty) return (valid: true, value: null);
     final value = parseAmount(text);
     final valid = value != null && value >= 0 && value <= _nutrientMax;
@@ -156,22 +181,26 @@ class _EntrySheetState extends State<EntrySheet> {
 
   Future<void> _save() async {
     final kind = widget.kind;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
     final (min, max) = kind.range;
     final amount = parseAmount(_amount.text);
     if (amount == null || amount < min || amount > max) {
       setState(
-        () => _error =
-            'Bitte eine Zahl zwischen ${formatInt(min.round())} und '
-            '${formatInt(max.round())} eingeben.',
+        () => _error = l10n.numberBetween(
+          formats.integer(min.round()),
+          formats.integer(max.round()),
+        ),
       );
       return;
     }
     final parts = {
-      for (final label in _nutrients.keys) label: _nutrient(label),
+      for (final metric in _nutrients.keys) metric: _nutrient(metric),
     };
     if (parts.values.any((p) => !p.valid)) {
       setState(
-        () => _error = 'Nährwerte müssen Zahlen zwischen 0 und 1.000 g sein.',
+        () =>
+            _error = l10n.nutrientsRange(formats.integer(_nutrientMax.round())),
       );
       return;
     }
@@ -182,11 +211,11 @@ class _EntrySheetState extends State<EntrySheet> {
       time: widget.existing?.draft.time ?? DateTime.now(),
       amount: amount,
       name: kind == EntryKind.meal && name.isNotEmpty ? name : null,
-      carbs: parts['Kohlenhydrate']!.value,
-      protein: parts['Eiweiss']!.value,
-      fat: parts['Fett']!.value,
-      fiber: parts['Ballaststoffe']!.value,
-      sugar: parts['Zucker']!.value,
+      carbs: parts[Metric.carbs]!.value,
+      protein: parts[Metric.protein]!.value,
+      fat: parts[Metric.fat]!.value,
+      fiber: parts[Metric.fiber]!.value,
+      sugar: parts[Metric.sugar]!.value,
     );
 
     final health = AppScope.of(context).health;
@@ -208,7 +237,7 @@ class _EntrySheetState extends State<EntrySheet> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Der Eintrag konnte nicht gespeichert werden.';
+        _error = l10n.entrySaveFailed;
       });
     }
   }
@@ -225,6 +254,7 @@ class _EntrySheetState extends State<EntrySheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final kind = widget.kind;
     const number = TextInputType.numberWithOptions(decimal: true);
     final error = _error;
@@ -243,8 +273,8 @@ class _EntrySheetState extends State<EntrySheet> {
           children: [
             Text(
               widget.existing == null
-                  ? '${kind.label} eintragen'
-                  : '${kind.label} bearbeiten',
+                  ? kind.addTitle(l10n)
+                  : kind.editTitle(l10n),
               style: context.emphasizedTextTheme.headlineSmall,
             ),
             const SizedBox(height: 20),
@@ -271,23 +301,25 @@ class _EntrySheetState extends State<EntrySheet> {
               TextField(
                 controller: _name,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: _decoration('Name (optional)'),
+                decoration: _decoration(l10n.nameOptional),
               ),
               const SizedBox(height: 12),
             ],
             TextField(
               controller: _amount,
               keyboardType: number,
-              decoration: _decoration(kind.amountLabel),
+              decoration: _decoration(kind.amountLabel(l10n)),
             ),
             if (kind == EntryKind.meal)
-              for (final MapEntry(key: label, value: controller)
+              for (final MapEntry(key: metric, value: controller)
                   in _nutrients.entries) ...[
                 const SizedBox(height: 12),
                 TextField(
                   controller: controller,
                   keyboardType: number,
-                  decoration: _decoration('$label in g (optional)'),
+                  decoration: _decoration(
+                    l10n.nutrientInGrams(metric.title(l10n)),
+                  ),
                 ),
               ],
             if (error != null) ...[
@@ -304,7 +336,7 @@ class _EntrySheetState extends State<EntrySheet> {
               size: M3EButtonSize.md,
               enabled: !_saving,
               onPressed: _save,
-              child: Text(_saving ? 'Speichert …' : 'Speichern'),
+              child: Text(_saving ? l10n.saving : l10n.save),
             ),
           ],
         ),

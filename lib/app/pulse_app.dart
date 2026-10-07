@@ -4,8 +4,10 @@ import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
 import '../data/settings_controller.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/system_palette.dart';
+import 'app_language.dart';
 import 'app_scope.dart';
 import 'app_shell.dart';
 
@@ -36,6 +38,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     clock: widget.clock,
   );
   late final SettingsController _settings = SettingsController(widget.store);
+  late final LanguageController _language = LanguageController(_settings);
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
 
   @override
@@ -43,18 +46,26 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _settings.load();
+    _language.refresh();
     _health.start();
     _loadPalette();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Back in the foreground: other apps may have written new data and the
-    // wallpaper may have changed.
+    // Back in the foreground: other apps may have written new data, and the
+    // wallpaper or the app's language may have changed in the system.
     if (state == AppLifecycleState.resumed) {
+      _language.refresh();
       _health.refreshIfStale();
       _loadPalette();
     }
+  }
+
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    // The system's settings may just have set another language for the app.
+    _language.refresh();
   }
 
   Future<void> _loadPalette() async {
@@ -66,6 +77,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _health.dispose();
+    _language.dispose();
     _settings.dispose();
     _palette.dispose();
     super.dispose();
@@ -76,13 +88,24 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     return AppScope(
       health: _health,
       settings: _settings,
+      language: _language,
       systemPalette: _palette,
       child: ListenableBuilder(
-        listenable: Listenable.merge([_settings, _palette]),
+        listenable: Listenable.merge([_settings, _language, _palette]),
         builder: (context, _) {
           final system = _settings.dynamicColor ? _palette.value : null;
+          final language = _language.forced;
           return MaterialApp(
-            title: 'Pulse',
+            onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+            locale: language == null ? null : Locale(language),
+            // The first entry is used when the system's language is not offered.
+            supportedLocales: [for (final code in appLanguages) Locale(code)],
+            // Not the generated list: that one names the SDK's Material
+            // translations, and the app's widgets come from material_ui.
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light(system: system?.light),
             darkTheme: AppTheme.dark(system: system?.dark),
