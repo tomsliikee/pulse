@@ -250,6 +250,33 @@ void _addNutrition(
   }
 }
 
+/// The minutes covered by [intervals], per hour and keyed by the start of
+/// the hour. Time that several intervals cover counts once, so two sources
+/// recording the same activity do not double it.
+Map<DateTime, double> minutesByHour(List<(DateTime, DateTime)> intervals) {
+  final sorted = [
+    for (final interval in intervals)
+      if (interval.$2.isAfter(interval.$1)) interval,
+  ]..sort((a, b) => a.$1.compareTo(b.$1));
+  final minutes = <DateTime, double>{};
+  DateTime? covered;
+  for (final (start, end) in sorted) {
+    var from = covered != null && covered.isAfter(start) ? covered : start;
+    if (!end.isAfter(from)) continue;
+    covered = end;
+    while (from.isBefore(end)) {
+      final hour = DateTime(from.year, from.month, from.day, from.hour);
+      final next = DateTime(from.year, from.month, from.day, from.hour + 1);
+      final to = next.isBefore(end) ? next : end;
+      minutes[hour] =
+          (minutes[hour] ?? 0) +
+          to.difference(from).inMilliseconds / Duration.millisecondsPerMinute;
+      from = to;
+    }
+  }
+  return minutes;
+}
+
 /// [fresh] with the heart rate of the days before [from] taken from
 /// [previous]. Those days were not read again: their samples cannot change
 /// any more, and a wearable writes thousands per day.

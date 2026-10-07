@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/health_controller.dart';
+import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/health_repository.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/settings_controller.dart';
+import 'package:pulse/data/snapshot_builder.dart';
 
 import 'support/fixtures.dart';
 
@@ -31,6 +33,30 @@ void main() {
       expect(controller.isTodaySelected, isTrue);
       expect(controller.value(Metric.steps), 7432);
       expect(store.documents, contains(StoreKeys.snapshot));
+    });
+
+    test('keeps what the background task stored in the meantime', () async {
+      final store = MemoryJsonStore();
+      final repository = FixtureRepository();
+      final controller = _controller(repository, store);
+      await controller.start();
+
+      // A day outside the window, as only another writer could have added.
+      final older = DateTime(2026, 3, 1);
+      await HistoryArchive(store).mergeIntoStore({
+        Metric.steps: {older: 4321},
+      });
+      final today = DateTime(2026, 10, 6);
+      repository.readings = RawReadings(
+        dailyTotals: {
+          Metric.steps: {today: 8000},
+        },
+      );
+      await controller.refresh();
+
+      final stored = await HistoryArchive(store).load(fixtureNow);
+      expect(stored.value(Metric.steps, older), 4321);
+      expect(stored.value(Metric.steps, today), 8000);
     });
 
     test('asks for access and becomes ready once it is granted', () async {

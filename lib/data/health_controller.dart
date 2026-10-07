@@ -173,8 +173,9 @@ class HealthController extends ChangeNotifier {
   Future<void> _archiveDays(DailyValues values) async {
     final history = _history;
     if (history == null) return;
-    final changed = history.merge(values);
-    if (changed.isNotEmpty) await _archive.save(history, changed);
+    // Merged into the stored years rather than written over them: the
+    // background task may have added to them since they were loaded.
+    if (history.merge(values).isNotEmpty) await _archive.mergeIntoStore(values);
   }
 
   /// Fills the history once with what the store already holds, going back in

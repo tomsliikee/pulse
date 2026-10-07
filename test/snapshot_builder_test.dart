@@ -253,4 +253,36 @@ void main() {
     expect(merged.value(Metric.heartRate, today), 80);
     expect(merged.loadedAt, now);
   });
+
+  group('minutesByHour', () {
+    test('an interval is split where an hour ends', () {
+      expect(minutesByHour([(at(0, 9, 50), at(0, 10, 20))]), {
+        at(0, 9): 10,
+        at(0, 10): 20,
+      });
+    });
+
+    test('an interval over midnight belongs to both days', () {
+      expect(minutesByHour([(at(1, 23, 45), at(0, 0, 15))]), {
+        at(1, 23): 15,
+        at(0, 0): 15,
+      });
+    });
+
+    test('time that two sources both recorded counts once', () {
+      final minutes = minutesByHour([
+        (at(0, 9, 10), at(0, 9, 40)),
+        (at(0, 9, 0), at(0, 9, 30)),
+        // Lies inside what is already covered.
+        (at(0, 9, 15), at(0, 9, 20)),
+      ]);
+
+      expect(minutes, {at(0, 9): 40});
+    });
+
+    test('nothing, and intervals without a length, give nothing', () {
+      expect(minutesByHour([]), isEmpty);
+      expect(minutesByHour([(at(0, 9), at(0, 9))]), isEmpty);
+    });
+  });
 }

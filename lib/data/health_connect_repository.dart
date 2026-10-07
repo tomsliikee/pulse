@@ -32,8 +32,11 @@ class HealthConnectRepository implements HealthRepository {
     Metric.activeEnergy: HealthDataType.ACTIVE_ENERGY_BURNED,
     Metric.totalEnergy: HealthDataType.TOTAL_CALORIES_BURNED,
     Metric.water: HealthDataType.WATER,
-    Metric.intensityMinutes: HealthDataType.ACTIVITY_INTENSITY,
   };
+
+  /// Minutes of activity are added up here from their records: the store
+  /// refuses to aggregate them on some phones, and the plugin hides that.
+  static const HealthDataType _intensity = HealthDataType.ACTIVITY_INTENSITY;
 
   /// Metrics read as individual records and combined by their [DayRule].
   static const Map<Metric, HealthDataType> _samples = {
@@ -90,6 +93,7 @@ class HealthConnectRepository implements HealthRepository {
     final skin = await _health.isSkinTemperatureAvailable();
     return [
       ..._totals.values,
+      _intensity,
       for (final type in _samples.values)
         if (type != HealthDataType.SKIN_TEMPERATURE || skin) type,
       HealthDataType.HEART_RATE,
@@ -291,6 +295,18 @@ class HealthConnectRepository implements HealthRepository {
       if (days.isNotEmpty) totals[metric] = days;
     }
 
+    final active = minutesByHour([
+      for (final point in await _read(_intensity, start, end))
+        (point.dateFrom, point.dateTo),
+    ]);
+    if (active.isNotEmpty) {
+      final days = totals[Metric.intensityMinutes] = <DateTime, double>{};
+      for (final MapEntry(key: hour, value: minutes) in active.entries) {
+        final day = DateTime(hour.year, hour.month, hour.day);
+        days[day] = (days[day] ?? 0) + minutes;
+      }
+    }
+
     final samples = <RawSample>[];
     for (final MapEntry(key: metric, value: type) in _samples.entries) {
       if (type == HealthDataType.SKIN_TEMPERATURE && !skin) continue;
@@ -358,7 +374,10 @@ class HealthConnectRepository implements HealthRepository {
             ]
           : const [],
       entries: entries,
-      hourlyTotals: hourly,
+      hourlyTotals: {
+        ...hourly,
+        if (active.isNotEmpty) Metric.intensityMinutes: active,
+      },
     );
   }
 
