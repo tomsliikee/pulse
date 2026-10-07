@@ -2,7 +2,9 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
+import '../../app/container_route.dart';
 import '../../app/formatters.dart';
+import '../../app/layout.dart';
 import '../../data/models.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
@@ -15,6 +17,7 @@ import '../../widgets/pressable.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
+import 'sleep_detail_page.dart';
 import 'sleep_stages_chart.dart';
 
 /// Last night's sleep and the week around it.
@@ -215,7 +218,7 @@ class _SleepPageState extends State<SleepPage> {
 }
 
 /// The estimated score in a shape that morphs on tap, next to duration and
-/// goal.
+/// goal. A tap anywhere else on the tile opens the detailed page.
 class _SleepHero extends StatelessWidget {
   const _SleepHero({
     required this.night,
@@ -231,6 +234,32 @@ class _SleepHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return TileSurface(
+      color: scheme.secondaryContainer,
+      radius: AppRadii.extraExtraLarge,
+      child: InkWell(
+        onTap: () {
+          final origin = globalRectOf(context);
+          if (origin == null) return;
+          Navigator.of(context).push(
+            ContainerRoute<void>(
+              origin: origin,
+              originColor: scheme.secondaryContainer,
+              originRadius: AppRadii.extraExtraLarge,
+              builder: (_) => const SleepDetailPage(),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: _content(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _content(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final emphasized = context.emphasizedTextTheme;
@@ -243,103 +272,100 @@ class _SleepHero extends StatelessWidget {
       color: scheme.onSecondary,
       height: 1,
     );
-
-    return TileSurface(
-      color: scheme.secondaryContainer,
-      radius: AppRadii.extraExtraLarge,
-      padding: const EdgeInsets.all(20),
-      child: Row(
-        children: [
-          Semantics(
-            container: true,
-            button: true,
-            label: night == null
-                ? 'Kein Schlafscore'
-                : 'Geschätzter Schlafscore ${night.estimatedScore}',
-            onTap: onShapeTap,
-            excludeSemantics: true,
-            child: Pressable(
-              pressedScale: 0.9,
-              child: GestureDetector(
-                onTap: onShapeTap,
-                child: MorphingShape(
-                  shape: shape,
-                  color: scheme.secondary,
-                  size: 124,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (night == null)
-                        Text('–', style: scoreStyle)
-                      else
-                        AnimatedCount(
-                          value: night.estimatedScore,
-                          style: scoreStyle,
-                        ),
-                      Text(
-                        'Schätzung',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: scheme.onSecondary,
-                        ),
+    return Row(
+      children: [
+        Semantics(
+          container: true,
+          button: true,
+          label: night == null
+              ? 'Kein Schlafscore'
+              : 'Geschätzter Schlafscore ${night.estimatedScore}',
+          onTap: onShapeTap,
+          excludeSemantics: true,
+          child: Pressable(
+            pressedScale: 0.9,
+            child: GestureDetector(
+              onTap: onShapeTap,
+              child: MorphingShape(
+                shape: shape,
+                color: scheme.secondary,
+                size: 124,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (night == null)
+                      Text('–', style: scoreStyle)
+                    else
+                      AnimatedCount(
+                        value: night.estimatedScore,
+                        style: scoreStyle,
                       ),
-                    ],
-                  ),
+                    Text(
+                      'Schätzung',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: scheme.onSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: night == null
-                ? Text(
-                    'Keine Schlafdaten für diese Nacht.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: onContainer,
-                    ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatDuration(night.asleepMinutes),
-                          maxLines: 1,
-                          style: emphasized.headlineMedium?.copyWith(
-                            color: onContainer,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '${formatClock(night.bedtimeMinute)} bis '
-                        '${formatClock(night.wakeMinute)}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: onContainer.withValues(alpha: 0.72),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      M3ELinearWavyProgressIndicator(
-                        value: progress,
-                        color: scheme.secondary,
-                        backgroundColor: scheme.secondary.withValues(
-                          alpha: 0.2,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${(progress * 100).round()} % von '
-                        '${formatDecimal(goalHours)} h',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: onContainer.withValues(alpha: 0.72),
-                        ),
-                      ),
-                    ],
+        ),
+        const SizedBox(width: 20),
+        Expanded(
+          child: night == null
+              ? Text(
+                  'Keine Schlafdaten für diese Nacht.',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: onContainer,
                   ),
-          ),
-        ],
-      ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        formatDuration(night.asleepMinutes),
+                        maxLines: 1,
+                        style: emphasized.headlineMedium?.copyWith(
+                          color: onContainer,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${formatClock(night.bedtimeMinute)} bis '
+                      '${formatClock(night.wakeMinute)}',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: onContainer.withValues(alpha: 0.72),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    M3ELinearWavyProgressIndicator(
+                      value: progress,
+                      color: scheme.secondary,
+                      backgroundColor: scheme.secondary.withValues(alpha: 0.2),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${(progress * 100).round()} % von '
+                      '${formatDecimal(goalHours)} h',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: onContainer.withValues(alpha: 0.72),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
+        Icon(
+          Icons.chevron_right_rounded,
+          color: onContainer.withValues(alpha: 0.72),
+          semanticLabel: 'Schlaf im Detail',
+        ),
+      ],
     );
   }
 }
