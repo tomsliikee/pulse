@@ -78,7 +78,7 @@ void main() {
     // The bar, its pill, the add button and the floating pencil.
     expect(find.byType(LiquidGlass), findsNWidgets(4));
     expect(find.byType(GlassScope), findsOneWidget);
-    expect(find.text('7.432'), findsOneWidget);
+    expect(stepsTile(), findsOneWidget);
   });
 
   for (final glass in [false, true]) {
@@ -117,7 +117,7 @@ void main() {
       await gesture.moveTo(from);
       await gesture.up();
       await advance(tester);
-      expect(find.text('7.432'), findsOneWidget);
+      expect(stepsTile(), findsOneWidget);
     });
   }
 
@@ -148,8 +148,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, store: await _glassStore());
-    await tester.tap(find.text('7.432'));
-    await advance(tester);
+    await tapInView(tester, stepsTile());
     final bar = find.byType(GlassBar).last;
     Rect pill() => tester.getRect(
       find.descendant(of: bar, matching: find.byType(LiquidGlass)).at(1),
@@ -175,8 +174,7 @@ void main() {
       tester,
     ) async {
       await pumpApp(tester, store: glass ? await _glassStore() : null);
-      await tester.tap(find.text('7.432'));
-      await advance(tester);
+      await tapInView(tester, stepsTile());
       final bar = find.byType(FloatingTabBar);
       Finder tab(String label) =>
           find.descendant(of: bar, matching: find.bySemanticsLabel(label));

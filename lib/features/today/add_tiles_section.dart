@@ -35,6 +35,19 @@ class AddTilesSection extends StatelessWidget {
         !shown.contains(id) && todayTileAvailable(id, health);
 
     final groups = [
+      (
+        l10n.navToday,
+        [
+          for (final id in const [
+            dayTileId,
+            tipsTileId,
+            nightTileId,
+            goalsTileId,
+            daysTileId,
+          ])
+            if (open(id)) id,
+        ],
+      ),
       for (final group in MetricGroup.values)
         (
           group.label(l10n),
@@ -89,7 +102,16 @@ class AddTilesSection extends StatelessWidget {
     final formats = Formats.of(context);
     final l10n = formats.l10n;
     final metric = Metric.byName(id);
-    final workout = health.latestWorkout;
+    // Only the workout tile is about a workout.
+    final workout = id == workoutTileId ? health.latestWorkout : null;
+    final dayIcon = switch (id) {
+      dayTileId => Icons.wb_sunny_rounded,
+      tipsTileId => Icons.lightbulb_outline_rounded,
+      nightTileId => Icons.bedtime_rounded,
+      goalsTileId => Icons.flag_rounded,
+      daysTileId => Icons.calendar_month_rounded,
+      _ => null,
+    };
     final tone = metric?.spec.tone ?? Tone.primary;
     final colors = scheme.tone(tone);
     final neutral = tone == Tone.neutral;
@@ -98,19 +120,28 @@ class AddTilesSection extends StatelessWidget {
     return M3EListItem(
       leading: ShapeBadge(
         shape: metric?.spec.shape ?? workout?.type.shape ?? Shapes.circle,
-        icon: metric?.spec.icon ?? workout?.type.icon ?? Icons.add_rounded,
+        icon:
+            metric?.spec.icon ??
+            workout?.type.icon ??
+            dayIcon ??
+            Icons.add_rounded,
         size: 44,
         color: neutral ? scheme.secondaryContainer : colors.accent,
         iconColor: neutral ? scheme.onSecondaryContainer : scheme.surfaceBright,
       ),
       headline: Text(metric?.title(l10n) ?? todayTileTitle(l10n, id)),
-      supportingText: Text(
-        metric == null
-            ? workout?.type.label(l10n) ?? ''
-            : latest == null
-            ? l10n.nothingEntered
-            : metric.formatWithUnit(formats, snapshot.value(metric, latest)),
-      ),
+      supportingText: dayIcon != null
+          ? null
+          : Text(
+              metric == null
+                  ? workout?.type.label(l10n) ?? ''
+                  : latest == null
+                  ? l10n.nothingEntered
+                  : metric.formatWithUnit(
+                      formats,
+                      snapshot.value(metric, latest),
+                    ),
+            ),
       trailing: Icon(Icons.add_circle_rounded, color: scheme.primary),
     );
   }

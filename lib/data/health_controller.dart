@@ -74,8 +74,32 @@ class HealthController extends ChangeNotifier {
     return DateTime(now.year, now.month, now.day);
   }
 
+  /// The moment it is, by the clock the app was started with.
+  DateTime get now => _clock();
+
   /// Only valid while [status] is [HealthStatus.ready].
   HealthSnapshot get snapshot => _snapshot!;
+
+  /// The value of [metric] on [day]: from the snapshot inside its window,
+  /// from the history before it.
+  double? valueOn(Metric metric, DateTime day) {
+    final index = _snapshot?.indexOf(day);
+    return (index == null ? null : _snapshot?.value(metric, index)) ??
+        _history?.value(metric, day);
+  }
+
+  /// Every day the app has steps for, oldest first.
+  List<DateTime> get days {
+    final snapshot = _snapshot;
+    final keys = <int>{
+      ...?_history?.daysOf(Metric.steps),
+      if (snapshot != null)
+        for (var i = 0; i < snapshot.dayCount; i++)
+          if (snapshot.value(Metric.steps, i) != null)
+            dayKey(snapshot.dateAt(i)),
+    }.toList()..sort();
+    return [for (final key in keys) dateOfKey(key)];
+  }
 
   int get selectedIndex => _selectedIndex;
   int get todayIndex => snapshot.dayCount - 1;

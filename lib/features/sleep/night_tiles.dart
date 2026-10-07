@@ -8,6 +8,8 @@ import '../../app/layout.dart';
 import '../../data/models.dart';
 import '../../data/night_insights.dart';
 import '../../theme/app_shapes.dart';
+import '../../widgets/entrance.dart';
+import '../../widgets/animated_count.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_surface.dart';
@@ -94,10 +96,10 @@ class LatestNightCard extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              formats.duration(night.asleepMinutes),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            child: AnimatedNumber(
+                              value: night.asleepMinutes.toDouble(),
+                              format: (value) =>
+                                  formats.duration(value.round()),
                               style: context.emphasizedTextTheme.headlineSmall,
                             ),
                           ),
@@ -127,9 +129,10 @@ class LatestNightCard extends StatelessWidget {
                                 padding: const EdgeInsets.only(right: 10),
                                 child: _Figure(
                                   label: comparison.measure.label(l10n),
-                                  value: comparison.measure.format(
-                                    formats,
-                                    comparison.value,
+                                  value: AnimatedNumber(
+                                    value: comparison.value,
+                                    format: (value) => comparison.measure
+                                        .format(formats, value),
                                   ),
                                 ),
                               ),
@@ -161,7 +164,9 @@ class _Figure extends StatelessWidget {
   const _Figure({required this.label, required this.value});
 
   final String label;
-  final String value;
+
+  /// The number, usually one that counts up.
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
@@ -172,10 +177,10 @@ class _Figure extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            maxLines: 1,
+          child: DefaultTextStyle.merge(
             style: context.emphasizedTextTheme.titleMedium,
+            maxLines: 1,
+            child: value,
           ),
         ),
         Text(
@@ -227,10 +232,13 @@ class NightsCard extends StatelessWidget {
             child: Text(title, style: context.emphasizedTextTheme.titleMedium),
           ),
           const SizedBox(height: 12),
-          for (final night in nights)
+          for (final (index, night) in nights.indexed)
             SizedBox(
               height: rowHeight,
-              child: NightRow(night: night),
+              child: Entrance(
+                order: index + 1,
+                child: NightRow(night: night),
+              ),
             ),
           SizedBox(
             height: rowHeight,
@@ -274,9 +282,12 @@ class NightsCard extends StatelessWidget {
 /// One night in a list: its score, date, length and times. Tapping it opens
 /// the page about it.
 class NightRow extends StatelessWidget {
-  const NightRow({super.key, required this.night});
+  const NightRow({super.key, required this.night, this.title});
 
   final SleepNight night;
+
+  /// Shown instead of the night's date, where the row stands alone.
+  final String? title;
 
   @override
   Widget build(BuildContext context) {
@@ -298,14 +309,11 @@ class NightRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           children: [
-            Container(
+            M3EContainer(
+              AppShapes.ofScore(score),
               width: 44,
               height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: scheme.secondaryContainer,
-                shape: BoxShape.circle,
-              ),
+              color: scheme.secondaryContainer,
               child: Text(
                 '$score',
                 style: context.emphasizedTextTheme.titleSmall?.copyWith(
@@ -320,7 +328,7 @@ class NightRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    formats.shortDate(night.date),
+                    title ?? formats.shortDate(night.date),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall,

@@ -5,6 +5,9 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/models.dart';
 import '../../data/workout_insights.dart';
+import '../../widgets/animated_count.dart';
+import '../../widgets/number_grid.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
@@ -44,12 +47,16 @@ class WorkoutDetailPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             spacing: 12,
             children: [
-              _Summary(insights: insights),
-              _Measures(insights: insights),
-              _Comparison(insights: insights),
-              if (insights.trend.length > 1) _Progress(insights: insights),
-              _Frequency(insights: insights),
-              _Tips(insights: insights),
+              // Each section comes in a little after the one above it.
+              for (final (index, section) in [
+                _Summary(insights: insights),
+                _Measures(insights: insights),
+                _Comparison(insights: insights),
+                if (insights.trend.length > 1) _Progress(insights: insights),
+                _Frequency(insights: insights),
+                _Tips(insights: insights),
+              ].indexed)
+                Entrance(order: index, child: section),
             ],
           ),
         );
@@ -111,74 +118,47 @@ class _Measures extends StatelessWidget {
 
   final WorkoutInsights insights;
 
-  static const double _gap = 12;
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return LayoutBuilder(
-      builder: (context, box) => Wrap(
-        spacing: _gap,
-        runSpacing: _gap,
-        children: [
-          for (final comparison in insights.measures)
-            SizedBox(
-              width: (box.maxWidth - _gap) / 2,
-              height: 104,
-              child: SurfaceCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      comparison.measure.label(l10n),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const Spacer(),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        comparison.measure.format(
-                          formats,
-                          insights.workout.type,
-                          comparison.value,
-                        ),
-                        maxLines: 1,
-                        style: context.emphasizedTextTheme.titleLarge,
-                      ),
-                    ),
-                    if (comparison.isBest)
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.emoji_events_rounded,
-                            size: 14,
-                            color: scheme.tertiary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            l10n.personalBest,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: scheme.tertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
+    return NumberGrid(
+      cellHeight: 104,
+      cells: [
+        for (final comparison in insights.measures)
+          NumberCell(
+            label: comparison.measure.label(l10n),
+            value: AnimatedNumber(
+              value: comparison.value,
+              format: (value) => comparison.measure.format(
+                formats,
+                insights.workout.type,
+                value,
               ),
             ),
-        ],
-      ),
+            footer: !comparison.isBest
+                ? null
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.emoji_events_rounded,
+                        size: 14,
+                        color: scheme.tertiary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.personalBest,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: scheme.tertiary,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+      ],
     );
   }
 }
@@ -269,36 +249,38 @@ class _Comparison extends StatelessWidget {
               ),
             ],
           ),
-          for (final comparison in rows)
-            Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Text(
-                    comparison.measure.label(l10n),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
+          ...staggered([
+            for (final comparison in rows)
+              Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                      comparison.measure.label(l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
+                    ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: difference(
-                    comparison,
-                    comparison.previous,
-                    comparison.againstPrevious,
+                  Expanded(
+                    flex: 4,
+                    child: difference(
+                      comparison,
+                      comparison.previous,
+                      comparison.againstPrevious,
+                    ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: difference(
-                    comparison,
-                    comparison.average,
-                    comparison.againstAverage,
+                  Expanded(
+                    flex: 4,
+                    child: difference(
+                      comparison,
+                      comparison.average,
+                      comparison.againstAverage,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+          ], from: 1),
         ],
       ),
     );

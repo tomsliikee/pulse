@@ -16,6 +16,7 @@ import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
+import 'package:pulse/widgets/metric_card.dart';
 
 /// The moment every test treats as "now": Tuesday afternoon.
 final DateTime fixtureNow = DateTime(2026, 10, 6, 15, 30);
@@ -461,3 +462,26 @@ Widget themed(Widget child, {Locale locale = const Locale('de')}) =>
       theme: AppTheme.light(),
       home: Scaffold(body: child),
     );
+
+/// The steps on their own tile of the Today page. The tile about the day
+/// shows them as well, so the number alone is found twice.
+Finder stepsTile([String steps = '7.432']) =>
+    find.descendant(of: find.byType(MetricCard), matching: find.text(steps));
+
+/// The title of a measurement's tile. Other tiles name some measurements
+/// too, so the word alone can be found more than once.
+Finder tileTitled(String title) =>
+    find.descendant(of: find.byType(MetricCard), matching: find.text(title));
+
+/// Scrolls the page until [finder] is clear of the floating bars.
+Future<void> bringIntoView(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.4);
+  await advance(tester);
+}
+
+/// Scrolls to [finder] and taps it.
+Future<void> tapInView(WidgetTester tester, Finder finder) async {
+  await bringIntoView(tester, finder);
+  await tester.tap(finder);
+  await advance(tester);
+}

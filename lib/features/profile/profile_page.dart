@@ -6,9 +6,12 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_controller.dart';
 import '../../data/models.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
+import '../goals/goal_format.dart';
+import '../goals/goals_page.dart';
 import 'birth_date_sheet.dart';
 import 'language_sheet.dart';
 
@@ -69,7 +72,8 @@ class ProfilePage extends StatelessWidget {
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+            // The sections come in one after the other.
+            children: staggered([
               SectionTitle(l10n.aboutYou),
               SurfaceCard(
                 padding: EdgeInsets.zero,
@@ -119,52 +123,24 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
               SectionTitle(l10n.goals),
-              SurfaceCard(
-                child: Column(
-                  children: [
-                    _GoalSlider(
-                      label: l10n.metricSteps,
-                      display: formats.integer(settings.stepGoal),
-                      value: settings.stepGoal.toDouble(),
-                      min: 4000,
-                      max: 20000,
-                      divisions: 16,
-                      onChanged: (v) => settings.setStepGoal(v.round()),
-                    ),
-                    const SizedBox(height: 20),
-                    _GoalSlider(
-                      label: l10n.groupSleep,
-                      display: '${formats.decimal(settings.sleepGoalHours)} h',
-                      value: settings.sleepGoalHours,
-                      min: 5,
-                      max: 10,
-                      divisions: 10,
-                      onChanged: settings.setSleepGoalHours,
-                    ),
-                    const SizedBox(height: 20),
-                    _GoalSlider(
-                      label: l10n.metricWater,
-                      display:
-                          '${formats.decimal(settings.waterGoalMl / 1000)} l',
-                      value: settings.waterGoalMl.toDouble(),
-                      min: 1000,
-                      max: 4000,
-                      divisions: 15,
-                      onChanged: (v) => settings.setWaterGoalMl(v.round()),
-                    ),
-                    const SizedBox(height: 20),
-                    _GoalSlider(
-                      label: l10n.metricActiveEnergy,
-                      display:
-                          '${formats.integer(settings.activeEnergyGoal)} kcal',
-                      value: settings.activeEnergyGoal.toDouble(),
-                      min: 200,
-                      max: 1500,
-                      divisions: 26,
-                      onChanged: (v) => settings.setActiveEnergyGoal(v.round()),
-                    ),
-                  ],
+              M3ESegmentedColumn(
+                color: scheme.surfaceBright,
+                haptic: M3EHapticFeedback.light,
+                onTap: (_) => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const GoalsPage()),
                 ),
+                children: [
+                  M3EListItem(
+                    headline: Text(l10n.goalsOpen),
+                    supportingText: Text(
+                      [for (final goal in settings.goals) goal.label(l10n)]
+                          .join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                  ),
+                ],
               ),
               SectionTitle(l10n.appearance),
               Align(
@@ -307,61 +283,10 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
               ],
-            ],
+            ]),
           ),
         );
       },
-    );
-  }
-}
-
-class _GoalSlider extends StatelessWidget {
-  const _GoalSlider({
-    required this.label,
-    required this.display,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String display;
-  final double value;
-  final double min;
-  final double max;
-  final int divisions;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: Text(label, style: theme.textTheme.titleMedium)),
-            Text(
-              display,
-              style: context.emphasizedTextTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.primary,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        M3ESlider(
-          value: value.clamp(min, max).toDouble(),
-          min: min,
-          max: max,
-          divisions: divisions,
-          onChanged: (next) {
-            if (next != value) Haptics.selection();
-            onChanged(next);
-          },
-        ),
-      ],
     );
   }
 }

@@ -59,6 +59,10 @@ BoardTile statTile(
       value: span == TileSpan.third
           ? metric.format(formats, health.value(metric))
           : metric.formatWithUnit(formats, health.value(metric)),
+      number: health.value(metric),
+      format: (value) => span == TileSpan.third
+          ? metric.format(formats, value)
+          : metric.formatWithUnit(formats, value),
       icon: spec.icon,
       shape: spec.shape,
       tone: spec.tone,

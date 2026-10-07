@@ -9,6 +9,8 @@ import 'package:pulse/features/sleep/sleep_detail_page.dart';
 import 'package:pulse/features/sleep/sleep_scene.dart';
 import 'package:pulse/features/sleep/sleep_stages_chart.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
+import 'package:pulse/widgets/day_switcher.dart';
+import 'package:pulse/widgets/floating_surface.dart';
 
 import 'support/fixtures.dart';
 
@@ -214,6 +216,42 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the bar of a night leads to the night before, and its menu to '
+      'older nights and to all of them', (tester) async {
+    await pumpApp(tester);
+    await _openSleep(tester, _de);
+    await tester.tap(find.text('Letzte Nacht'));
+    await advance(tester);
+    final page = find.byType(SleepDetailPage);
+    Finder onPage(String text) => find.descendant(
+      of: page,
+      matching: find.text(text, skipOffstage: false),
+    );
+    final bar = find.descendant(of: page, matching: find.byType(DaySwitcher));
+    Finder tab(String label) =>
+        find.descendant(of: bar, matching: find.bySemanticsLabel(label));
+    expect(onPage('Nacht auf Dienstag, 6. Oktober'), findsOneWidget);
+
+    await tester.tap(tab('Gestern'));
+    await advance(tester);
+    expect(onPage('Nacht auf Montag, 5. Oktober'), findsOneWidget);
+
+    final surfaces = find.byType(FloatingSurface).evaluate().length;
+    await tester.tap(tab('Weitere'));
+    await advance(tester);
+    // Six pills of their own: five days and the way to all.
+    expect(find.byType(FloatingSurface).evaluate().length - surfaces, 6);
+    await tester.tap(find.widgetWithText(FloatingSurface, 'Fr, 2.10.'));
+    await advance(tester);
+    expect(onPage('Nacht auf Freitag, 2. Oktober'), findsOneWidget);
+    await tester.tap(tab('Fr, 2.10.'));
+    await advance(tester);
+    await tester.tap(find.widgetWithText(FloatingSurface, 'Alle Nächte'));
+    await advance(tester);
+    expect(find.byType(NightListPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the night tiles can be removed and brought back', (

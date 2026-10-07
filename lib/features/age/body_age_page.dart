@@ -8,6 +8,7 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/settings_controller.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
@@ -150,7 +151,7 @@ class BodyAgePage extends StatelessWidget {
       children: [
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
-          sections[i],
+          Entrance(order: i, child: sections[i]),
         ],
       ],
     );

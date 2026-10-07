@@ -36,3 +36,30 @@ class AnimatedCount extends StatelessWidget {
     );
   }
 }
+
+/// Like [AnimatedCount] for a number that is not whole or not written as
+/// one: kilometres, or minutes shown as hours and minutes. [format] writes
+/// every value on the way.
+class AnimatedNumber extends StatelessWidget {
+  const AnimatedNumber({
+    super.key,
+    required this.value,
+    required this.format,
+    this.style,
+  });
+
+  final double value;
+  final String Function(double value) format;
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleMotionBuilder(
+      from: 0,
+      value: value,
+      motion: AppMotion.effectsSlow,
+      builder: (context, current, _) =>
+          Text(format(current), style: style, maxLines: 1, softWrap: false),
+    );
+  }
+}

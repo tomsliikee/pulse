@@ -13,6 +13,12 @@ import '../../data/settings_controller.dart';
 import '../../data/sleep_insights.dart';
 import '../../data/workout_insights.dart' show Trend;
 import '../../theme/app_theme.dart';
+import '../../widgets/animated_count.dart';
+import '../../widgets/number_grid.dart';
+import '../../widgets/day_switcher.dart';
+import '../../widgets/entrance.dart';
+import '../../widgets/floating_tab_bar.dart';
+import '../../widgets/wavy_bar.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/line_chart.dart';
@@ -21,6 +27,7 @@ import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../detail/metric_spec.dart';
 import 'night_format.dart';
+import 'night_list_page.dart';
 import 'night_tiles.dart';
 import 'sleep_scene.dart';
 import 'sleep_schedule_chart.dart';
@@ -44,10 +51,25 @@ const List<Metric> _nightMetrics = [
 /// score and what it is made of, its stages, how it stands against the
 /// nights before, how regular the nights are, and what to do next. The
 /// nights before it are listed at the end.
-class SleepDetailPage extends StatelessWidget {
+class SleepDetailPage extends StatefulWidget {
   const SleepDetailPage({super.key, required this.date});
 
+  /// The day the page opens on; the bar at its bottom leads to others.
   final DateTime date;
+
+  @override
+  State<SleepDetailPage> createState() => _SleepDetailPageState();
+}
+
+class _SleepDetailPageState extends State<SleepDetailPage> {
+  late DateTime _date = widget.date;
+
+  DateTime get date => _date;
+
+  void _show(DateTime day) {
+    if (day == _date) return;
+    setState(() => _date = day);
+  }
 
   /// Nights before this one that are listed at the end of the page.
   static const int _nightsBelow = 3;
@@ -65,6 +87,34 @@ class SleepDetailPage extends StatelessWidget {
       builder: (context, _) => SubPage(
         title: l10n.sleepInDetail,
         glass: scope.settings.liquidGlass,
+        // The page ends above the floating bar.
+        bottomPadding:
+            16 +
+            FloatingTabBar.height +
+            24 +
+            MediaQuery.paddingOf(context).bottom,
+        overlay: health.status != HealthStatus.ready
+            ? null
+            : Positioned(
+                left: 16,
+                right: 16,
+                bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                child: Center(
+                  child: DaySwitcher(
+                    today: health.today,
+                    selected: _date,
+                    earlier: _earlier(health),
+                    allLabel: l10n.allNights,
+                    glass: scope.settings.liquidGlass,
+                    onSelected: _show,
+                    onAll: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const NightListPage(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
         child: health.status == HealthStatus.ready
             ? _content(context, health, scope.settings)
             : const SizedBox(
@@ -73,6 +123,17 @@ class SleepDetailPage extends StatelessWidget {
               ),
       ),
     );
+  }
+
+  /// The days before yesterday that the menu of the bar offers.
+  List<DateTime> _earlier(HealthController health) {
+    final before = dayKey(health.today) - 1;
+    return [
+      for (final day in [
+        for (final night in health.nights.reversed) night.date,
+      ])
+        if (dayKey(day) < before) day,
+    ].take(DaySwitcher.menuDays).toList();
   }
 
   Widget _content(
@@ -247,7 +308,8 @@ class SleepDetailPage extends StatelessWidget {
         dateLine,
         for (var i = 0; i < sections.length; i++) ...[
           if (i > 0) const SizedBox(height: 12),
-          sections[i],
+          // Keyed by the day, so they come in again when it changes.
+          Entrance(key: ValueKey((date, i)), order: i, child: sections[i]),
         ],
       ],
     );
@@ -366,15 +428,9 @@ class _ScoreCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (score.parts[part] ?? 0) / part.points,
-                    minHeight: 8,
-                    color: scheme.primary,
-                    backgroundColor: scheme.surfaceContainerHighest,
-                  ),
-                ),
+                // Nothing to draw for a part that was not judged.
+                if (score.parts[part] case final earned?)
+                  WavyBar(value: earned / part.points),
               ],
             ),
           Text(l10n.scoreNote, style: muted),
@@ -391,64 +447,35 @@ class _Measures extends StatelessWidget {
   final SleepNight night;
   final NightInsights insights;
 
-  static const double _gap = 12;
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    final values = [
-      (l10n.inBed, formats.duration(night.totalMinutes)),
-      for (final measure in const [
-        NightMeasure.efficiency,
-        NightMeasure.deep,
-        NightMeasure.rem,
-        NightMeasure.light,
-        NightMeasure.awake,
-      ])
-        if (insights.measure(measure) case final comparison?)
-          (measure.label(l10n), measure.format(formats, comparison.value)),
-    ];
-    return LayoutBuilder(
-      builder: (context, box) => Wrap(
-        spacing: _gap,
-        runSpacing: _gap,
-        children: [
-          for (final (label, value) in values)
-            SizedBox(
-              width: (box.maxWidth - _gap) / 2,
-              height: 92,
-              child: SurfaceCard(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const Spacer(),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        value,
-                        maxLines: 1,
-                        style: context.emphasizedTextTheme.titleLarge,
-                      ),
-                    ),
-                  ],
-                ),
+    return NumberGrid(
+      cells: [
+        NumberCell(
+          label: l10n.inBed,
+          value: AnimatedNumber(
+            value: night.totalMinutes.toDouble(),
+            format: (value) => formats.duration(value.round()),
+          ),
+        ),
+        for (final measure in const [
+          NightMeasure.efficiency,
+          NightMeasure.deep,
+          NightMeasure.rem,
+          NightMeasure.light,
+          NightMeasure.awake,
+        ])
+          if (insights.measure(measure) case final comparison?)
+            NumberCell(
+              label: measure.label(l10n),
+              value: AnimatedNumber(
+                value: comparison.value,
+                format: (value) => measure.format(formats, value),
               ),
             ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -535,36 +562,38 @@ class _Comparison extends StatelessWidget {
               ),
             ],
           ),
-          for (final comparison in rows)
-            Row(
-              children: [
-                Expanded(
-                  flex: 5,
-                  child: Text(
-                    comparison.measure.label(l10n),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium,
+          ...staggered([
+            for (final comparison in rows)
+              Row(
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: Text(
+                      comparison.measure.label(l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium,
+                    ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: difference(
-                    comparison,
-                    comparison.previous,
-                    comparison.againstPrevious,
+                  Expanded(
+                    flex: 4,
+                    child: difference(
+                      comparison,
+                      comparison.previous,
+                      comparison.againstPrevious,
+                    ),
                   ),
-                ),
-                Expanded(
-                  flex: 4,
-                  child: difference(
-                    comparison,
-                    comparison.average,
-                    comparison.againstAverage,
+                  Expanded(
+                    flex: 4,
+                    child: difference(
+                      comparison,
+                      comparison.average,
+                      comparison.againstAverage,
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+          ], from: 1),
         ],
       ),
     );
@@ -595,17 +624,19 @@ class _Notes extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         spacing: 12,
         children: [
-          for (final sentence in sentences)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, size: 20, color: scheme.tertiary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(sentence, style: theme.textTheme.bodyMedium),
-                ),
-              ],
-            ),
+          ...staggered([
+            for (final sentence in sentences)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 20, color: scheme.tertiary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(sentence, style: theme.textTheme.bodyMedium),
+                  ),
+                ],
+              ),
+          ], from: 1),
           Text(
             note,
             style: theme.textTheme.bodySmall?.copyWith(

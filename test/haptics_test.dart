@@ -45,6 +45,7 @@ void main() {
 
   testWidgets('pressing a tile gives a light tap', (tester) async {
     await pumpApp(tester);
+    await bringIntoView(tester, find.text('Herzfrequenz'));
     final played = _recordHaptics(tester);
 
     final gesture = await tester.startGesture(
@@ -62,6 +63,7 @@ void main() {
     await pumpApp(tester);
     await tester.tap(find.byTooltip('Kacheln anordnen'));
     await advance(tester);
+    await bringIntoView(tester, find.text('Herzfrequenz'));
     final played = _recordHaptics(tester);
 
     final gesture = await tester.startGesture(
@@ -70,7 +72,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(played, contains('HapticFeedbackType.mediumImpact'));
 
-    await gesture.moveTo(tester.getCenter(find.text('Schlaf').first));
+    await gesture.moveTo(tester.getCenter(tileTitled('Wasser')));
     await tester.pump();
     expect(played.last, 'HapticFeedbackType.selectionClick');
     await gesture.up();

@@ -9,6 +9,8 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/period.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/animated_count.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/floating_tab_bar.dart';
@@ -273,16 +275,22 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
-                          child: Text(
-                            metric.formatWithUnit(
-                              formats,
-                              bucket == null
-                                  ? view.headline ?? latest?.value
-                                  : bucket.value,
+                          child: switch (bucket == null
+                              ? view.headline ?? latest?.value
+                              : bucket.value) {
+                            // From the number shown before to the new one.
+                            final value? => AnimatedNumber(
+                              value: value,
+                              format: (current) =>
+                                  metric.formatWithUnit(formats, current),
+                              style: context.emphasizedTextTheme.headlineLarge,
                             ),
-                            maxLines: 1,
-                            style: context.emphasizedTextTheme.headlineLarge,
-                          ),
+                            null => Text(
+                              metric.formatWithUnit(formats, null),
+                              maxLines: 1,
+                              style: context.emphasizedTextTheme.headlineLarge,
+                            ),
+                          },
                         ),
                       ],
                     ),
@@ -375,17 +383,23 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
         ),
         if (kind != null && dayIndex != null) ...[
           SectionTitle(l10n.entries),
-          _Entries(
-            entries: snapshot.entriesOn(dayIndex, kind),
-            kind: kind,
-            health: health,
+          Entrance(
+            order: 1,
+            child: _Entries(
+              entries: snapshot.entriesOn(dayIndex, kind),
+              kind: kind,
+              health: health,
+            ),
           ),
         ],
         if (known.length >= 2) ...[
           SectionTitle(l10n.inPeriod),
-          M3ESegmentedColumn(
-            color: scheme.surfaceBright,
-            children: [row(l10n.highest, high), row(l10n.lowest, low)],
+          Entrance(
+            order: 2,
+            child: M3ESegmentedColumn(
+              color: scheme.surfaceBright,
+              children: [row(l10n.highest, high), row(l10n.lowest, low)],
+            ),
           ),
         ],
       ],

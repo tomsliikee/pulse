@@ -222,7 +222,7 @@ void main() {
       testWidgets('the four pages render in $label', (tester) async {
         await pumpApp(tester, size: size, locale: locale);
         expect(find.text(l10n.navToday), findsWidgets);
-        expect(find.text(formatsOf(language).integer(7432)), findsOneWidget);
+        expect(stepsTile(formatsOf(language).integer(7432)), findsOneWidget);
         await _scrollThrough(tester, ListView);
         expect(find.text(l10n.groupNutrition), findsOneWidget);
         for (final (destination, marker) in [
@@ -308,8 +308,7 @@ void main() {
             ..historyAccess = true
             ..olderDays = fixtureOlderDays(),
         );
-        await tester.tap(find.text(formatsOf(language).integer(7432)));
-        await advance(tester);
+        await tapInView(tester, stepsTile(formatsOf(language).integer(7432)));
         expect(find.byType(MetricDetailPage), findsOneWidget);
         for (final kind in PeriodKind.values) {
           await tester.tap(

@@ -10,9 +10,7 @@ import 'support/fixtures.dart';
 const _tabs = ['Heute', 'Gestern', 'Woche', 'Monat', 'Jahr', 'Gesamt'];
 
 Future<void> _openSteps(WidgetTester tester) async {
-  // The hero tile on Today is the steps tile.
-  await tester.tap(find.text('7.432'));
-  await advance(tester);
+  await tapInView(tester, stepsTile());
   expect(find.text('Schritte'), findsWidgets);
 }
 
@@ -59,10 +57,7 @@ void main() {
         size: size,
         repository: FixtureRepository(readings: const RawReadings()),
       );
-      await tester.ensureVisible(find.text('Wasser'));
-      await advance(tester);
-      await tester.tap(find.text('Wasser'));
-      await advance(tester);
+      await tapInView(tester, tileTitled('Wasser'));
       for (final tab in _tabs) {
         await _tab(tester, tab);
       }

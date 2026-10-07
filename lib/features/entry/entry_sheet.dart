@@ -1,6 +1,7 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/entrance.dart';
 import '../../app/app_scope.dart';
 import '../../app/back_gesture.dart';
 import '../../app/formatters.dart';
@@ -281,15 +282,18 @@ class _EntrySheetState extends State<EntrySheet> {
             if (kind == EntryKind.water) ...[
               Row(
                 children: [
-                  for (final ml in _quickWater) ...[
-                    if (ml != _quickWater.first) const SizedBox(width: 8),
+                  for (final (index, ml) in _quickWater.indexed) ...[
+                    if (index > 0) const SizedBox(width: 8),
                     Expanded(
-                      child: M3EFilledButton.tonal(
-                        onPressed: () {
-                          Haptics.selection();
-                          setState(() => _amount.text = ml.toString());
-                        },
-                        child: Text('$ml ml'),
+                      child: Entrance(
+                        order: index + 1,
+                        child: M3EFilledButton.tonal(
+                          onPressed: () {
+                            Haptics.selection();
+                            setState(() => _amount.text = ml.toString());
+                          },
+                          child: Text('$ml ml'),
+                        ),
                       ),
                     ),
                   ],

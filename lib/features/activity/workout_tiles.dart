@@ -6,6 +6,8 @@ import '../../app/formatters.dart';
 import '../../app/layout.dart';
 import '../../data/models.dart';
 import '../../data/workout_insights.dart';
+import '../../widgets/entrance.dart';
+import '../../widgets/animated_count.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
@@ -121,10 +123,10 @@ class LatestWorkoutCard extends StatelessWidget {
                                 padding: const EdgeInsets.only(right: 10),
                                 child: _Figure(
                                   label: comparison.measure.label(l10n),
-                                  value: comparison.measure.format(
-                                    formats,
-                                    workout.type,
-                                    comparison.value,
+                                  value: AnimatedNumber(
+                                    value: comparison.value,
+                                    format: (value) => comparison.measure
+                                        .format(formats, workout.type, value),
                                   ),
                                 ),
                               ),
@@ -156,7 +158,9 @@ class _Figure extends StatelessWidget {
   const _Figure({required this.label, required this.value});
 
   final String label;
-  final String value;
+
+  /// The number, usually one that counts up.
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
@@ -167,10 +171,10 @@ class _Figure extends StatelessWidget {
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            maxLines: 1,
+          child: DefaultTextStyle.merge(
             style: context.emphasizedTextTheme.titleMedium,
+            maxLines: 1,
+            child: value,
           ),
         ),
         Text(
@@ -222,10 +226,13 @@ class RecentWorkoutsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          for (final workout in workouts)
+          for (final (index, workout) in workouts.indexed)
             SizedBox(
               height: rowHeight,
-              child: WorkoutRow(workout: workout),
+              child: Entrance(
+                order: index + 1,
+                child: WorkoutRow(workout: workout),
+              ),
             ),
           SizedBox(
             height: rowHeight,

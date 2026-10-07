@@ -1053,5 +1053,219 @@
     }
   },
   "nightTipDeep": "Weniger Tiefschlaf als bei dir üblich. Bewegung am Tag und eine regelmäßige Schlafenszeit fördern ihn.",
-  "nightTipKeepGoing": "Deine Nächte sind im Rhythmus. Bleib dabei."
+  "nightTipKeepGoing": "Deine Nächte sind im Rhythmus. Bleib dabei.",
+  "dayTileTitle": "Der Tag",
+  "dayScore": "Tageswert",
+  "dayScoreSoFar": "Tageswert bisher",
+  "dayScoreNote": "Von Pulse aus Bewegung, Schlaf, Ruhepuls und Wasser geschätzt, keine Messung. Was sich nicht werten lässt, zählt nicht mit; der Rest wird hochgerechnet.",
+  "dayPartMovement": "Bewegung",
+  "dayTipsTitle": "Hinweise für heute",
+  "dayTipsTitlePast": "Hinweise",
+  "moreDays": "Die Tage davor",
+  "allDays": "Alle Tage",
+  "daysTotal": "{count, plural, one{{count} Tag} other{{count} Tage}}",
+  "@daysTotal": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayInDetail": "Tag im Detail",
+  "noDayData": "Für diesen Tag gibt es keine Daten.",
+  "daySoFarAhead": "{steps} Schritte mehr als gestern um diese Zeit",
+  "@daySoFarAhead": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "daySoFarBehind": "{steps} Schritte weniger als gestern um diese Zeit",
+  "@daySoFarBehind": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "daySoFarSame": "Gleichauf mit gestern um diese Zeit",
+  "dayMoreSteps": "{steps} Schritte mehr als am Tag davor",
+  "@dayMoreSteps": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "dayFewerSteps": "{steps} Schritte weniger als am Tag davor",
+  "@dayFewerSteps": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "daySameSteps": "So viele Schritte wie am Tag davor",
+  "dayNoCompare": "Noch kein Tag zum Vergleichen",
+  "compareDayBefore": "Tag davor",
+  "compareNoDay": "Sobald es einen Tag davor gibt, steht hier der Vergleich.",
+  "dayBest": "Bestwert",
+  "streakDays": "{count, plural, one{{count} Tag am Ziel} other{{count} Tage in Folge am Ziel}}",
+  "@streakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayNightTitle": "Die Nacht davor",
+  "dayWorkoutsTitle": "Aktivitäten an diesem Tag",
+  "dayStepsAndSleep": "{steps} Schritte · {sleep} Schlaf",
+  "@dayStepsAndSleep": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "sleep": {
+        "type": "String"
+      }
+    }
+  },
+  "dayStepsOnly": "{steps} Schritte",
+  "@dayStepsOnly": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "amountOfGoal": "{amount} von {goal}",
+  "@amountOfGoal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "addGlass": "Ein Glas Wasser eintragen",
+  "glassAdded": "{amount} Wasser eingetragen",
+  "@glassAdded": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "dayTipFew": "Nach drei Tagen kann Pulse vergleichen und Hinweise geben.",
+  "dayTipGoalClose": "Noch {steps} Schritte bis zum Tagesziel.",
+  "@dayTipGoalClose": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "dayTipWater": "Bisher {amount} getrunken, für diese Uhrzeit wenig.",
+  "@dayTipWater": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "dayTipBedtime": "Um {time} ins Bett, dann reicht der Schlaf bis zum Aufstehen.",
+  "@dayTipBedtime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "dayTipStreakRisk": "{count, plural, other{Die Serie von {count} Tagen endet heute ohne das Schrittziel.}}",
+  "@dayTipStreakRisk": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayTipStepsFalling": "In den letzten 7 Tagen {percent} % weniger Schritte als in der Woche davor.",
+  "@dayTipStepsFalling": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "dayTipPulse": "{count, plural, one{Ruhepuls {count} Schlag über deinem Üblichen.} other{Ruhepuls {count} Schläge über deinem Üblichen.}}",
+  "@dayTipPulse": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayTipStreak": "{count, plural, other{Schrittziel {count} Tage in Folge erreicht.}}",
+  "@dayTipStreak": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dayTipKeepGoing": "Alles im üblichen Bereich. Weiter so.",
+  "goalWorkouts": "Trainings pro Woche",
+  "goalTrainingMinutes": "Trainingszeit pro Woche",
+  "goalGroupRest": "Schlaf und Wasser",
+  "goalsNone": "Noch keine Ziele gewählt.",
+  "goalsCustomize": "Ziele anpassen",
+  "goalsCustomizeNote": "Schalte ein, was du verfolgen willst, und stelle den Zielwert ein.",
+  "goalsOpen": "Ziele ansehen und anpassen",
+  "goalThisWeek": "diese Woche",
+  "goalAtMost": "höchstens {amount}",
+  "@goalAtMost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalReachedOf": "{reached} von {counted} erreicht",
+  "@goalReachedOf": {
+    "placeholders": {
+      "reached": {
+        "type": "int"
+      },
+      "counted": {
+        "type": "int"
+      }
+    }
+  },
+  "goalStreakDays": "{count, plural, one{{count} Tag in Folge} other{{count} Tage in Folge}}",
+  "@goalStreakDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalStreakWeeks": "{count, plural, one{{count} Woche in Folge} other{{count} Wochen in Folge}}",
+  "@goalStreakWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "goalLegend": "Gefüllt: erreicht · Ring: verfehlt · Punkt: keine Daten",
+  "goalMarkReached": "erreicht",
+  "goalMarkMissed": "verfehlt",
+  "goalMarkNone": "keine Daten",
+  "goalMarkOpen": "läuft noch",
+  "dayTabMore": "Weitere",
+  "nightTabToday": "Heute"
 }

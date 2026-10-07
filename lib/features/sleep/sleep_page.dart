@@ -70,6 +70,8 @@ class _SleepPageState extends State<SleepPage> {
           child: StatTile(
             label: label,
             value: formats.duration(night?.minutesIn(stage) ?? 0),
+            number: (night?.minutesIn(stage) ?? 0).toDouble(),
+            format: (value) => formats.duration(value.round()),
             icon: icon,
             shape: shape,
             tone: tone,

@@ -120,7 +120,13 @@ void main() {
   }
 
   testWidgets('the sleep tile on Today opens the same page', (tester) async {
-    await pumpApp(tester);
+    // The tile is not on the page until the user adds it.
+    final store = MemoryJsonStore();
+    await store.write('settings', {
+      'todayTiles': ['sleep'],
+      'todayTilesVersion': 2,
+    });
+    await pumpApp(tester, store: store);
     final tile = find.descendant(
       of: find.byType(TodayPage),
       matching: find.text('Schlaf'),

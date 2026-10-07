@@ -12,6 +12,11 @@ abstract final class AppRadii {
 
 /// Shape sequences for elements that morph when tapped.
 abstract final class AppShapes {
+  /// The shape a score from 1 to 100 is shown on: the rounder, the better.
+  static Shapes ofScore(int? score) => score == null
+      ? Shapes.circle
+      : scoreCycle[((100 - score) ~/ 20).clamp(0, scoreCycle.length - 1)];
+
   static const List<Shapes> scoreCycle = [
     Shapes.c9SidedCookie,
     Shapes.l8LeafClover,

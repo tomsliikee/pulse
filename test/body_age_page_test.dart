@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/features/age/body_age_page.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
+import 'package:pulse/features/today/day_detail_page.dart';
 
 import 'support/fixtures.dart';
 
@@ -99,11 +100,13 @@ void main() {
     });
   }
 
-  testWidgets('a tap beside the age still opens the steps', (tester) async {
+  testWidgets('a tap beside the age opens the day, not the age', (
+    tester,
+  ) async {
     await pumpApp(tester, store: _storeWithBirthDate());
-    await tester.tap(find.text('7.432'));
+    await tester.tap(find.text('Tageswert bisher'));
     await advance(tester);
-    expect(find.byType(MetricDetailPage), findsOne);
+    expect(find.byType(DayDetailPage), findsOne);
     expect(find.byType(BodyAgePage), findsNothing);
   });
 

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import 'goals.dart';
 import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
@@ -9,9 +10,34 @@ import 'models.dart';
 /// The Today tile that shows the latest workout instead of a measurement.
 const String workoutTileId = 'workout';
 
-/// A tile of the Today page is named by its metric, or is the workout tile.
+/// The Today tiles about the day as a whole: its scene and score, the
+/// hints, last night, the goals and the days before.
+const String dayTileId = 'hero';
+const String tipsTileId = 'tips';
+const String nightTileId = 'lastNight';
+const String goalsTileId = 'goals';
+const String daysTileId = 'recentDays';
+
+/// The tiles that came with the reworked Today page, and where they go on a
+/// page that was arranged before: these to the top, in this order.
+const List<String> _dayTilesOnTop = [
+  dayTileId,
+  tipsTileId,
+  nightTileId,
+  goalsTileId,
+];
+
+/// Counts the changes to what a saved [SettingsController.todayTiles]
+/// means; see [SettingsController.load].
+const int _todayTilesVersion = 2;
+
+/// A tile of the Today page is named by its metric, or is one of the tiles
+/// that show no single measurement.
 bool isTodayTileId(String id) =>
-    id == workoutTileId || Metric.byName(id) != null;
+    id == workoutTileId ||
+    id == daysTileId ||
+    _dayTilesOnTop.contains(id) ||
+    Metric.byName(id) != null;
 
 /// The large form of a metric tile on another page is saved as
 /// "page/metric".
@@ -24,19 +50,19 @@ bool _isPageTileId(String id) {
 
 /// What the Today page shows until the user changes it.
 final List<String> defaultTodayTiles = List.unmodifiable([
+  ..._dayTilesOnTop,
+  workoutTileId,
   Metric.steps.name,
   Metric.heartRate.name,
-  Metric.sleep.name,
-  Metric.totalEnergy.name,
   Metric.water.name,
+  Metric.totalEnergy.name,
   Metric.weight.name,
   Metric.oxygenSaturation.name,
   Metric.energyIntake.name,
-  workoutTileId,
+  daysTileId,
 ]);
 
 final Set<String> defaultLargeTiles = Set.unmodifiable({
-  Metric.steps.name,
   Metric.energyIntake.name,
 });
 
@@ -79,6 +105,8 @@ class SettingsController extends ChangeNotifier {
   List<String> _todayTiles = defaultTodayTiles;
   Set<String> _largeTiles = defaultLargeTiles;
   Map<String, Set<String>> _hiddenTiles = {};
+  List<Goal> _goals = defaultGoals;
+  Map<Goal, double> _goalTargets = {};
 
   int get stepGoal => _stepGoal;
   double get sleepGoalHours => _sleepGoalHours;
@@ -115,6 +143,22 @@ class SettingsController extends ChangeNotifier {
   /// The tiles the user has removed from [page]. The Today page keeps its
   /// own list in [todayTiles] instead.
   Set<String> hiddenTiles(String page) => _hiddenTiles[page] ?? const {};
+
+  /// The goals the user follows, in the order of the catalog.
+  List<Goal> get goals => _goals;
+
+  bool isGoalOn(Goal goal) => _goals.contains(goal);
+
+  /// What [goal] is to reach, in the goal's own unit. Steps, active
+  /// calories, sleep and water keep the targets they always had, which the
+  /// rings, the day score and the body age read as well.
+  double goalTarget(Goal goal) => switch (goal) {
+    Goal.steps => _stepGoal.toDouble(),
+    Goal.activeEnergy => _activeEnergyGoal.toDouble(),
+    Goal.sleepDuration => _sleepGoalHours,
+    Goal.water => _waterGoalMl / 1000,
+    _ => _goalTargets[goal] ?? goal.defaultTarget,
+  };
 
   /// Whether the tile [id] is shown in its large form.
   bool isLargeTile(String id) => _largeTiles.contains(id);
@@ -169,12 +213,33 @@ class SettingsController extends ChangeNotifier {
           .where(isTodayTileId)
           .toSet()
           .toList();
+      // A list saved before the page was reworked does not know the tiles
+      // about the day; it gets them once, and keeps everything it had.
+      final version = json['todayTilesVersion'];
+      if (version is! int || version < _todayTilesVersion) {
+        _todayTiles = {..._dayTilesOnTop, ..._todayTiles, daysTileId}.toList();
+      }
     }
     if (json['largeTiles'] case final List<Object?> ids) {
       _largeTiles = ids
           .whereType<String>()
           .where((id) => isTodayTileId(id) || _isPageTileId(id))
           .toSet();
+    }
+    if (json['goals'] case final List<Object?> names) {
+      final on = {for (final name in names) ?Goal.byName(name)};
+      _goals = [
+        for (final goal in Goal.values)
+          if (on.contains(goal)) goal,
+      ];
+    }
+    if (json['goalTargets'] case final Map<String, Object?> targets) {
+      _goalTargets = {
+        for (final MapEntry(:key, :value) in targets.entries)
+          if ((Goal.byName(key), value) case (final Goal goal, final num v)
+              when v >= goal.min && v <= goal.max)
+            goal: v.toDouble(),
+      };
     }
     if (json['hiddenTiles'] case final Map<String, Object?> pages) {
       _hiddenTiles = {
@@ -194,6 +259,32 @@ class SettingsController extends ChangeNotifier {
 
   void setActiveEnergyGoal(int value) =>
       _update(() => _activeEnergyGoal = value);
+
+  void setGoalOn(Goal goal, bool on) {
+    if (on == isGoalOn(goal)) return;
+    _update(
+      () => _goals = [
+        for (final other in Goal.values)
+          if (other == goal ? on : isGoalOn(other)) other,
+      ],
+    );
+  }
+
+  void setGoalTarget(Goal goal, double value) {
+    final target = value.clamp(goal.min, goal.max).toDouble();
+    switch (goal) {
+      case Goal.steps:
+        setStepGoal(target.round());
+      case Goal.activeEnergy:
+        setActiveEnergyGoal(target.round());
+      case Goal.sleepDuration:
+        setSleepGoalHours(target);
+      case Goal.water:
+        setWaterGoalMl((target * 1000).round());
+      default:
+        _update(() => _goalTargets = {..._goalTargets, goal: target});
+    }
+  }
 
   void setBirthDate(DateTime? value) => _update(
     () => _birthDate = value == null
@@ -276,7 +367,13 @@ class SettingsController extends ChangeNotifier {
             'language': ?_language,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,
+            'todayTilesVersion': _todayTilesVersion,
             'largeTiles': _largeTiles.toList(),
+            'goals': [for (final goal in _goals) goal.name],
+            'goalTargets': {
+              for (final MapEntry(:key, :value) in _goalTargets.entries)
+                key.name: value,
+            },
             'hiddenTiles': {
               for (final MapEntry(:key, :value) in _hiddenTiles.entries)
                 key: value.toList(),

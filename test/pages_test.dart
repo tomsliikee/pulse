@@ -23,7 +23,7 @@ void main() {
     testWidgets('Today renders at $label', (tester) async {
       await pumpApp(tester, size: size);
       expect(find.text('Heute'), findsWidgets);
-      expect(find.text('7.432'), findsOneWidget);
+      expect(stepsTile(), findsOneWidget);
       await _scrollThrough(tester);
       expect(find.text('Ernährung'), findsOneWidget);
       expect(find.text('640 kcal'), findsOneWidget);
@@ -102,7 +102,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    expect(find.text('7.432'), findsOneWidget);
+    expect(stepsTile(), findsOneWidget);
 
     await tester.tap(find.bySemanticsLabel('Aktivität'));
     await advance(tester);
@@ -121,7 +121,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Heute'));
     await advance(tester);
     expect(find.text('Dienstag, 6. Oktober'), findsOneWidget);
-    expect(find.text('7.432'), findsOneWidget);
+    expect(stepsTile(), findsOneWidget);
   });
 
   testWidgets('the dark setting switches the theme and is saved', (
@@ -186,7 +186,7 @@ void main() {
     await tester.tap(find.text('Zugriff erlauben').hitTestable());
     await advance(tester);
 
-    expect(find.text('7.432'), findsOneWidget);
+    expect(stepsTile(), findsOneWidget);
   });
 
   testWidgets('a platform without a health store says so', (tester) async {

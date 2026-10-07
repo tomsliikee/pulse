@@ -2,8 +2,8 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
-import '../../app/container_route.dart';
 import '../../app/formatters.dart';
+import '../../app/haptics.dart';
 import '../../app/layout.dart';
 import '../../data/night_insights.dart';
 import '../../data/health_controller.dart';
@@ -19,21 +19,36 @@ import '../../widgets/metric_card.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/progress_ring.dart';
 import '../../widgets/shape_badge.dart';
-import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
-import '../activity/workout_style.dart';
 import '../activity/workout_tiles.dart';
-import '../age/body_age_page.dart';
+import '../sleep/night_tiles.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
+import 'day_format.dart';
+import 'day_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
+
+/// The height of a tile that is one row of a list.
+const double _rowTileHeight = 72;
+
+/// Days before today that the tile of earlier days lists.
+const int _moreDays = 5;
 
 /// Whether the tile [id] has something to show: data in the store, or a
 /// measurement the user can record here.
 bool todayTileAvailable(String id, HealthController health) {
-  if (id == workoutTileId) return health.latestWorkout != null;
+  switch (id) {
+    case dayTileId || tipsTileId || goalsTileId:
+      return true;
+    case nightTileId:
+      return health.latestNight != null;
+    case workoutTileId:
+      return health.latestWorkout != null;
+    case daysTileId:
+      return health.days.length > 1;
+  }
   final metric = Metric.byName(id);
   if (metric == null) return false;
   return metric.entryKind != null || health.snapshot.has(metric);
@@ -43,7 +58,14 @@ bool todayTileAvailable(String id, HealthController health) {
 /// a half-width tile.
 String todayTileTitle(AppLocalizations l10n, String id) =>
     switch (Metric.byName(id)) {
-      null => l10n.lastWorkout,
+      null => switch (id) {
+        dayTileId => l10n.dayTileTitle,
+        tipsTileId => l10n.dayTipsTitle,
+        nightTileId => l10n.lastNight,
+        goalsTileId => l10n.goals,
+        daysTileId => l10n.moreDays,
+        _ => l10n.lastWorkout,
+      },
       Metric.heartRate => l10n.shortHeartRate,
       Metric.totalEnergy => l10n.shortCalories,
       Metric.oxygenSaturation => l10n.shortOxygen,
@@ -68,11 +90,67 @@ BoardTile? buildTodayTile(
 
   final metric = Metric.byName(id);
   if (metric == null) {
+    final scheme = Theme.of(context).colorScheme;
+    // One row of a list, as a tile of its own.
+    Widget row(Widget child) => TileSurface(
+      color: scheme.surfaceBright,
+      radius: AppRadii.extraLarge,
+      child: child,
+    );
+    switch (id) {
+      case dayTileId:
+        return BoardTile(
+          id: id,
+          height: DayCard.height,
+          entersInPlace: true,
+          onRemove: remove,
+          child: const DayCard(),
+        );
+      case tipsTileId:
+        final tips = dayInsightsOf(health, settings, health.today).tips;
+        return BoardTile(
+          id: id,
+          height: DayTipsCard.heightFor(tips.length),
+          entersInPlace: true,
+          onRemove: remove,
+          child: DayTipsCard(tips: tips),
+        );
+      case nightTileId:
+        return BoardTile(
+          id: id,
+          height: _rowTileHeight,
+          entersInPlace: true,
+          onRemove: remove,
+          child: row(
+            NightRow(
+              night: health.latestNight!,
+              title: AppLocalizations.of(context).lastNight,
+            ),
+          ),
+        );
+      case goalsTileId:
+        return BoardTile(
+          id: id,
+          height: GoalsCard.heightFor(settings.goals.length),
+          entersInPlace: true,
+          onRemove: remove,
+          child: const GoalsCard(),
+        );
+      case daysTileId:
+        final days = health.days;
+        final earlier = days.reversed.skip(1).take(_moreDays).toList();
+        return BoardTile(
+          id: id,
+          height: DaysCard.heightFor(earlier.length),
+          onRemove: remove,
+          child: DaysCard(days: earlier, total: days.length),
+        );
+    }
     return BoardTile(
       id: id,
-      height: 132,
+      height: _rowTileHeight,
       onRemove: remove,
-      child: _WorkoutCard(workout: health.latestWorkout!),
+      child: row(WorkoutRow(workout: health.latestWorkout!)),
     );
   }
 
@@ -90,16 +168,11 @@ BoardTile? buildTodayTile(
   }
   return BoardTile(
     id: id,
-    height: switch (metric) {
-      Metric.steps => 316,
-      Metric.energyIntake => 196,
-      _ => 272,
-    },
+    height: metric == Metric.energyIntake ? 196 : 272,
     large: true,
     onRemove: remove,
     onResize: resize,
     child: switch (metric) {
-      Metric.steps => _StepsHero(health: health, settings: settings),
       Metric.energyIntake => _NutritionCard(
         snapshot: health.snapshot,
         dayIndex: health.todayIndex,
@@ -174,17 +247,19 @@ class _SmallTile extends StatelessWidget {
       shape: spec.shape,
       tone: spec.tone,
       footer: footer,
-      trailing: metric != Metric.steps
-          ? null
-          : SizedBox.square(
-              dimension: 36,
-              child: ProgressRing(
-                value: (value ?? 0) / settings.stepGoal,
-                color: colors.accent,
-                trackColor: colors.accent.withValues(alpha: 0.16),
-                strokeWidth: 6,
-              ),
-            ),
+      trailing: switch (metric) {
+        Metric.steps => SizedBox.square(
+          dimension: 36,
+          child: ProgressRing(
+            value: (value ?? 0) / settings.stepGoal,
+            color: colors.accent,
+            trackColor: colors.accent.withValues(alpha: 0.16),
+            strokeWidth: 6,
+          ),
+        ),
+        Metric.water => _GlassButton(health: health),
+        _ => null,
+      },
       onTap: (origin) => openMetric(context, metric, origin),
     );
   }
@@ -203,233 +278,6 @@ class _Caption extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.labelLarge?.copyWith(color: color),
-    );
-  }
-}
-
-/// The hero moment: steps and active calories as two rings on a cookie
-/// shape around the body age, with the day's numbers underneath. The age
-/// opens its own page; a tap anywhere else opens the steps.
-class _StepsHero extends StatelessWidget {
-  const _StepsHero({required this.health, required this.settings});
-
-  final HealthController health;
-  final SettingsController settings;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final formats = Formats.of(context);
-    final l10n = formats.l10n;
-    final today = health.todayIndex;
-    final steps = health.valueAt(Metric.steps, today);
-    final distance = health.valueAt(Metric.distance, today);
-    final energy = health.valueAt(Metric.activeEnergy, today);
-
-    return Pressable(
-      pressedScale: 0.97,
-      child: TileSurface(
-        color: scheme.primaryContainer,
-        radius: AppRadii.extraExtraLarge,
-        child: Builder(
-          builder: (context) => InkWell(
-            onTap: () {
-              final origin = globalRectOf(context);
-              if (origin != null) openMetric(context, Metric.steps, origin);
-            },
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-              child: Column(
-                children: [
-                  SizedBox.square(
-                    dimension: 212,
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        _TurningShape(
-                          color: scheme.primary.withValues(alpha: 0.12),
-                        ),
-                        SizedBox.square(
-                          dimension: 176,
-                          child: ProgressRing(
-                            value: (steps ?? 0) / settings.stepGoal,
-                            color: scheme.primary,
-                            trackColor: scheme.primary.withValues(alpha: 0.16),
-                            strokeWidth: 14,
-                          ),
-                        ),
-                        SizedBox.square(
-                          dimension: 140,
-                          child: ProgressRing(
-                            value: (energy ?? 0) / settings.activeEnergyGoal,
-                            color: scheme.tertiary,
-                            trackColor: scheme.tertiary.withValues(alpha: 0.16),
-                            strokeWidth: 12,
-                          ),
-                        ),
-                        _AgeButton(
-                          age: bodyAgeOf(health, settings)?.age,
-                          hasBirthDate: settings.birthDate != null,
-                          onTap: () {
-                            final origin = globalRectOf(context);
-                            if (origin == null) return;
-                            Navigator.of(context).push(
-                              ContainerRoute<void>(
-                                origin: origin,
-                                originColor: scheme.primaryContainer,
-                                originRadius: AppRadii.extraExtraLarge,
-                                builder: (_) => const BodyAgePage(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Row(
-                    children: [
-                      _HeroStat(
-                        value: Metric.steps.format(formats, steps),
-                        label: l10n.metricSteps,
-                        shape: Shapes.circle,
-                        color: scheme.primary,
-                      ),
-                      _HeroStat(
-                        value: Metric.activeEnergy.format(formats, energy),
-                        label: l10n.shortCalories,
-                        shape: Shapes.burst,
-                        color: scheme.tertiary,
-                      ),
-                      if (distance != null)
-                        _HeroStat(
-                          value: Metric.distance.format(formats, distance),
-                          label: l10n.kilometers,
-                          shape: Shapes.pentagon,
-                          color: scheme.onPrimaryContainer.withValues(
-                            alpha: 0.72,
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// The body age in the middle of the rings, as a button of its own.
-class _AgeButton extends StatelessWidget {
-  const _AgeButton({
-    required this.age,
-    required this.hasBirthDate,
-    required this.onTap,
-  });
-
-  final double? age;
-  final bool hasBirthDate;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onContainer = theme.colorScheme.onPrimaryContainer;
-    final formats = Formats.of(context);
-    final l10n = formats.l10n;
-    final age = this.age;
-    return Semantics(
-      container: true,
-      button: true,
-      label: age == null
-          ? l10n.bodyAgeDetailsA11y
-          : l10n.bodyAgeEstimateA11y(formats.decimal(age)),
-      onTap: onTap,
-      excludeSemantics: true,
-      child: Pressable(
-        pressedScale: 0.9,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          // The whole space inside the inner ring is the button.
-          child: SizedBox.square(
-            dimension: 112,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  age == null ? '–' : formats.decimal(age),
-                  maxLines: 1,
-                  style: context.emphasizedTextTheme.headlineLarge?.copyWith(
-                    color: onContainer,
-                  ),
-                ),
-                Text(
-                  hasBirthDate ? l10n.bodyAge : l10n.setAge,
-                  maxLines: 1,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: onContainer.withValues(alpha: 0.72),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({
-    required this.value,
-    required this.label,
-    required this.shape,
-    required this.color,
-  });
-
-  final String value;
-  final String label;
-  final Shapes shape;
-
-  /// The colour of the ring the number belongs to.
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final onContainer = theme.colorScheme.onPrimaryContainer;
-    return Expanded(
-      child: Column(
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                M3EShape(shape, width: 14, height: 14, color: color),
-                const SizedBox(width: 6),
-                Text(
-                  value,
-                  maxLines: 1,
-                  style: context.emphasizedTextTheme.titleLarge?.copyWith(
-                    color: onContainer,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: onContainer.withValues(alpha: 0.72),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -591,142 +439,77 @@ class _Bar extends StatelessWidget {
   }
 }
 
-class _WorkoutCard extends StatelessWidget {
-  const _WorkoutCard({required this.workout});
+/// Enters one glass of water without opening the sheet. What it wrote can
+/// be taken back from the message that follows.
+class _GlassButton extends StatelessWidget {
+  const _GlassButton({required this.health});
 
-  final Workout workout;
+  final HealthController health;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+  /// Millilitres in a glass.
+  static const double _glass = 250;
+
+  Future<void> _add(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    final distance = workout.distanceKm;
-    final kcal = workout.kcal;
-    return Pressable(
-      child: GestureDetector(
-        onTap: () {
-          final origin = globalRectOf(context);
-          if (origin != null) openWorkout(context, workout, origin);
-        },
-        child: _card(context, theme, scheme, formats, l10n, distance, kcal),
-      ),
+    final draft = EntryDraft(
+      kind: EntryKind.water,
+      time: health.now,
+      amount: _glass,
     );
-  }
-
-  Widget _card(
-    BuildContext context,
-    ThemeData theme,
-    ColorScheme scheme,
-    Formats formats,
-    AppLocalizations l10n,
-    double? distance,
-    int? kcal,
-  ) {
-    return SurfaceCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l10n.lastWorkout, style: theme.textTheme.titleSmall),
-          const Spacer(),
-          Row(
-            children: [
-              ShapeBadge(
-                shape: workout.type.shape,
-                icon: workout.type.icon,
-                size: 56,
-                color: scheme.primary,
-                iconColor: scheme.onPrimary,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      workout.type.label(l10n),
-                      style: context.emphasizedTextTheme.titleMedium,
-                    ),
-                    Text(
-                      [
-                        formats.shortDate(workout.start),
-                        formats.duration(workout.minutes),
-                        if (distance != null) '${formats.decimal(distance)} km',
-                      ].join(' · '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (kcal != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  '$kcal kcal',
-                  style: context.emphasizedTextTheme.labelLarge?.copyWith(
-                    color: scheme.primary,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The cookie behind the rings of the steps tile. It turns slowly, and stands
-/// still when the system asks for no animations.
-class _TurningShape extends StatefulWidget {
-  const _TurningShape({required this.color});
-
-  final Color color;
-
-  @override
-  State<_TurningShape> createState() => _TurningShapeState();
-}
-
-class _TurningShapeState extends State<_TurningShape>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _turn = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 90),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _turn.stop();
-    } else if (!_turn.isAnimating) {
-      _turn.repeat();
+    Haptics.tap();
+    try {
+      await health.addEntry(draft);
+    } on Exception {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.entrySaveFailed)));
+      return;
     }
-  }
-
-  @override
-  void dispose() {
-    _turn.dispose();
-    super.dispose();
+    Haptics.confirm();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.glassAdded('${formats.integer(_glass.round())} ml'),
+          ),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              // The entry as the store handed it back, to delete that one.
+              HealthEntry? written;
+              for (final entry in health.snapshot.entries) {
+                if (entry.isOwn &&
+                    entry.draft.kind == EntryKind.water &&
+                    entry.draft.time == draft.time) {
+                  written = entry;
+                }
+              }
+              if (written == null) return;
+              try {
+                await health.deleteEntry(written);
+              } on Exception {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l10n.deleteFailed)),
+                );
+              }
+            },
+          ),
+        ),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Its own layer, so the rings and the numbers are not painted again.
-    return RepaintBoundary(
-      child: RotationTransition(
-        turns: _turn,
-        child: M3EShape(
-          Shapes.c12SidedCookie,
-          width: 212,
-          height: 212,
-          color: widget.color,
-        ),
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox.square(
+      dimension: 40,
+      child: IconButton.filledTonal(
+        onPressed: () => _add(context),
+        tooltip: AppLocalizations.of(context).addGlass,
+        padding: EdgeInsets.zero,
+        color: scheme.onSecondaryContainer,
+        icon: const Icon(Icons.local_drink_rounded, size: 20),
       ),
     );
   }

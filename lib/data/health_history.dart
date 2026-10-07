@@ -57,6 +57,9 @@ class HealthHistory {
     return result;
   }
 
+  /// The days that have a value for [metric], as [dayKey]s, oldest first.
+  Iterable<int> daysOf(Metric metric) => _values[metric]?.keys ?? const [];
+
   /// The oldest day that has a value for [metric].
   DateTime? firstDay(Metric metric) {
     final days = _values[metric];

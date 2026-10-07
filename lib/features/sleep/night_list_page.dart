@@ -4,6 +4,7 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/models.dart';
 import '../../theme/app_shapes.dart';
+import '../../widgets/entrance.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/tile_surface.dart';
@@ -17,46 +18,56 @@ class NightListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
     final health = scope.health;
-    return ListenableBuilder(
-      listenable: Listenable.merge([health, scope.settings]),
-      builder: (context, _) {
-        final scheme = Theme.of(context).colorScheme;
-        final formats = Formats.of(context);
+    // The rows the list starts with come in; the ones scrolled to do not.
+    return EntranceGate(
+      builder: (context, opening) => ListenableBuilder(
+        listenable: Listenable.merge([health, scope.settings]),
+        builder: (context, _) {
+          final scheme = Theme.of(context).colorScheme;
+          final formats = Formats.of(context);
 
-        // A month's heading, then its nights.
-        final rows = <Object>[];
-        DateTime? month;
-        for (final night in health.nights.reversed) {
-          final start = DateTime(night.date.year, night.date.month);
-          if (start != month) rows.add(month = start);
-          rows.add(night);
-        }
+          // A month's heading, then its nights.
+          final rows = <Object>[];
+          DateTime? month;
+          for (final night in health.nights.reversed) {
+            final start = DateTime(night.date.year, night.date.month);
+            if (start != month) rows.add(month = start);
+            rows.add(night);
+          }
 
-        return SubPage(
-          title: formats.l10n.allNights,
-          glass: scope.settings.liquidGlass,
-          slivers: [
-            SliverList.builder(
-              itemCount: rows.length,
-              itemBuilder: (context, index) => switch (rows[index]) {
-                final DateTime month => SectionTitle(
-                  formats.month(month),
-                  padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+          return SubPage(
+            title: formats.l10n.allNights,
+            glass: scope.settings.liquidGlass,
+            slivers: [
+              SliverList.builder(
+                itemCount: rows.length,
+                itemBuilder: (context, index) => Entrance(
+                  order: index,
+                  animate: index < Entrance.staggered && opening(),
+                  child: switch (rows[index]) {
+                    final DateTime month => SectionTitle(
+                      formats.month(month),
+                      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+                    ),
+                    final SleepNight night => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: TileSurface(
+                        color: scheme.surfaceBright,
+                        radius: AppRadii.extraLarge,
+                        child: SizedBox(
+                          height: 72,
+                          child: NightRow(night: night),
+                        ),
+                      ),
+                    ),
+                    _ => const SizedBox.shrink(),
+                  },
                 ),
-                final SleepNight night => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: TileSurface(
-                    color: scheme.surfaceBright,
-                    radius: AppRadii.extraLarge,
-                    child: SizedBox(height: 72, child: NightRow(night: night)),
-                  ),
-                ),
-                _ => const SizedBox.shrink(),
-              },
-            ),
-          ],
-        );
-      },
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

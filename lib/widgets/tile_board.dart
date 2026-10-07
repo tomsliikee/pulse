@@ -7,6 +7,7 @@ import 'package:motor/motor.dart';
 import '../app/haptics.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_shapes.dart';
+import 'entrance.dart';
 import '../l10n/generated/app_localizations.dart';
 
 /// How much of a row a tile takes. A row has six units.
@@ -270,8 +271,14 @@ class _TileBoardState extends State<TileBoard>
     widget.onReorder(List.of(_order));
   }
 
+  /// Whether the board has been on screen for a frame.
+  bool _started = false;
+
   @override
   Widget build(BuildContext context) {
+    if (!_started) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _started = true);
+    }
     return LayoutBuilder(
       builder: (context, constraints) {
         _width = constraints.maxWidth;
@@ -300,6 +307,9 @@ class _TileBoardState extends State<TileBoard>
                   // Neighbours swing out of step, as if each were loose.
                   phase: (_order.indexOf(tile.id) * 0.37) % 1,
                   holdDelay: _holdDelay,
+                  // The tiles the board starts with wake up one after the
+                  // other; one that is added later simply comes in.
+                  enterOrder: _started ? 0 : ordered.indexOf(tile),
                   onDragStart: (position) => _startDrag(tile.id, position),
                 ),
             ],
@@ -320,10 +330,14 @@ class _Slot extends StatelessWidget {
     required this.wiggle,
     required this.phase,
     required this.holdDelay,
+    required this.enterOrder,
     required this.onDragStart,
   });
 
   final BoardTile tile;
+
+  /// The tile's place among those that enter together; see [Entrance].
+  final int enterOrder;
   final Rect rect;
   final bool lifted;
   final bool editing;
@@ -347,7 +361,10 @@ class _Slot extends StatelessWidget {
       ignoring: editing,
       child: FittedBox(
         fit: BoxFit.fill,
-        child: SizedBox.fromSize(size: rect.size, child: tile.child),
+        child: SizedBox.fromSize(
+          size: rect.size,
+          child: Entrance(order: enterOrder, child: tile.child),
+        ),
       ),
     );
     content = SingleMotionBuilder(

@@ -29,7 +29,7 @@ Every image on this page is rendered by the widget tests from **fixture data**, 
 
 | Page | Shows | Opens |
 | :--- | :--- | :--- |
-| **Heute** | Today's tiles, chosen and ordered by the user | A metric's period tabs, the body age |
+| **Heute** | The day as an animated scene with its score, hints, last night, the latest workout, goals, and the user's own tiles | One day, the list of all days, a metric's period tabs, the body age |
 | **Aktivität** | The latest workout as an animated scene, the five before it, activity metrics | One workout, the list of all workouts |
 | **Schlaf** | The latest night played back, the five before it, a bedtime for tonight | One night, the list of all nights |
 | **Herz** | Heart rate, resting heart rate, variability and the other vitals | A metric's period tabs |
@@ -46,8 +46,8 @@ flowchart TD
     subgraph UI ["Interface Layer"]
         Shell["App Shell<br/><b>Floating Navigation Bar & Add Menu</b>"]
         Boards["Tile Boards<br/><b>Heute, Aktivität, Schlaf, Herz</b>"]
-        Detail["Sub Pages<br/><b>Period Tabs, Night, Workout, Body Age</b>"]
-        Scenes["Scenes<br/><b>Workout Figure, Night Sky</b>"]
+        Detail["Sub Pages<br/><b>Period Tabs, Day, Night, Workout, Body Age</b>"]
+        Scenes["Scenes<br/><b>Day, Workout Figure, Night Sky</b>"]
         Glass["Glass Kit<br/><b>Bar, Rim, Scope</b>"]
     end
 
@@ -60,7 +60,7 @@ flowchart TD
     subgraph Data ["Data Layer (pure Dart)"]
         Builder["buildSnapshot<br/><b>Raw Readings to 30 Days</b>"]
         Period["buildPeriod<br/><b>Averages, Bars, Comparison</b>"]
-        Insights["Insights<br/><b>Body Age, Sleep Score, Hints</b>"]
+        Insights["Insights<br/><b>Day Score, Sleep Score, Body Age, Hints</b>"]
         History["HistoryArchive<br/><b>One Value per Day, 10 Years</b>"]
         Archives["Night & Workout Archives<br/><b>Every Night, Every Workout</b>"]
         Store["FileJsonStore<br/><b>Private App Directory</b>"]
@@ -91,6 +91,7 @@ flowchart TD
     Worker --> Archives
     Period --> History
     Insights --> Archives
+    Insights --> History
     History --> Store
     Archives --> Store
     SettingsCtrl --> Store
@@ -126,28 +127,77 @@ sequenceDiagram
 ## Core Capabilities
 
 - **Health Connect as the Only Source:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
-- **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement with data, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
+- **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers the tiles about the day and every measurement with data, each with a **plus**. Every measurement tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
 - **Edit Mode:** The floating **pencil** makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. Tiles on **Aktivität**, **Schlaf** and **Herz** can be removed, brought back and enlarged the same way.
 - **Period Tabs on Every Metric:** **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt** in a toolbar floating at the bottom, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
 - **Latest Value for Rare Measurements:** Weight, blood pressure and the one resting heart rate a day show the most recent reading with its day instead of a dash. Totals such as steps stay strictly on today.
 - **Ten Years of History:** One value per day and metric in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
-- **Own Entries:** **Water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button, written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps cannot, because Health Connect does not allow it.
+- **Own Entries:** **Water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button, written to Health Connect. The water tile has a button that enters one glass of **250 ml**, and the message that follows takes it back. Entries made by Pulse can be edited and deleted; entries from other apps cannot, because Health Connect does not allow it.
 - **No App Bar:** Content scrolls behind the transparent **status bar**. The **pencil** and the **profile button** float at the top right; a sub page has a round floating **back button** and, once its title has scrolled away, a **pill** with the page's name.
 - **Draggable Navigation:** The selected pill of the floating bar can be dragged to another destination; the page changes when it is let go. The period tabs work the same way.
 - **Three Languages:** **German**, **English** and **Polish**, with numbers, dates and plurals as each language writes them (**7.432** / **7,432** / **7 432**). On **Android 13** and newer the choice is the language Android keeps per app; before that it is a setting of the app. Any other system language gets English. Units stay metric.
 - **Material You:** The colour scheme follows the phone's wallpaper, or the app's own palette when switched off. Light, dark or system.
 - **Background Refresh:** A **WorkManager** task refreshes the stored data about once an hour, so no day is lost if the app stays closed for longer than Health Connect's 30-day window.
+- **Pages That Wake Up:** Every time a page is opened its tiles come in one after the other, fading in and rising into place; the sections of the sub pages, the rows inside their cards and the first screenful of every list do the same. Numbers count up on every page, rings and the **wavy** progress lines grow from nothing, and line charts draw in. With animations switched off in the system everything is simply there.
 - **Motion, Shapes and Haptics:** Page changes, tile movement and the container transform into a sub page run on **Material 3 Expressive** spring tokens, with the expressive shape set and distinct haptics for selecting, tapping, lifting and confirming. **Predictive back** shrinks the page under the finger.
 
 ![The floating period tabs on the steps metric: Heute, Woche, Jahr and Gesamt](readmestuff/detail.png)
 
-![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
+![Edit mode with a minus on every tile and the resize corners on the measurements, the page as it starts, and the dark theme](readmestuff/editing.png)
 
 ---
 
-## Steps and Body Age
+## Heute
 
-The large steps tile draws the **steps** as the outer ring and the **active calories** as the inner one, each against its goal, over a shape that turns once in **90 seconds**. In the middle is the **body age**: the real age plus or minus some years, judged over the last 30 days.
+- **The Day as a Scene:** At the top of **Heute** the day runs from the early morning to now in twelve seconds. The sun crosses a sky that follows the time of day, clearer the higher the score. Beneath it the figure sleeps until the night is over, walks as fast as the steps of each hour say, runs during a workout, and then stands at the moment the day has reached.
+- **Rings and Body Age:** **Steps** as the outer ring and **active calories** as the inner one, each against its goal, over a shape that turns once in **90 seconds**, around the **body age**.
+- **Against Yesterday at This Time:** One sentence sets today's steps against yesterday's up to the same minute, so a morning is not compared with a whole day.
+- **Hints:** Up to three, from fixed rules over the user's own numbers: the bedtime is near, a streak ends tonight, the goal is close, little water for the hour, a resting heart rate above the usual, a week with clearly fewer steps, a streak worth naming. Not medical advice.
+- **Bridges:** A row for **last night** and one for the **latest workout**, each opening its page.
+- **Goals:** The goals the user follows, each as a wavy line towards its target; see [Goals](#goals).
+- **Heute, Gestern, Weitere:** The page of a day and the page of a night have a bar at the bottom. Its third tab lets a column of **floating pills** rise above it, one for each of the five days before yesterday and one that leads to all of them, and carries the date while an older day is shown. The bar stays live under the pills: a tap on Heute or Gestern closes them and switches in one go.
+- **A Page per Day:** The **score** with what each part gave, every number with a mark for a **personal best**, each number against the day before and the average of the week before, the night and the workouts of that day, hints, and the three days before. Today's page leaves the comparison with whole days out.
+- **All Days:** The five days before today on the page, and every day the app has steps for in a list, month by month. They come from the ten-year history; nothing new is stored.
+- **Everything Is a Tile:** The scene, the hints, the rows, the goals and the days can be removed, brought back and moved like any measurement. A page arranged before gets them once, on top, and keeps its own tiles in their order.
+
+| Part of the Day Score | Points | Judged Against |
+| :--- | :--- | :--- |
+| **Movement** | up to **40** | Steps (five eighths) and active calories against their goals |
+| **Sleep** | up to **35** | The sleep score of the night that ended that day |
+| **Resting heart rate** | up to **15** | The upper end of the own usual range of the 30 days before; nothing at 10 beats above it |
+| **Water** | up to **10** | The water goal, only for somebody who enters what they drink |
+
+A part that cannot be judged is left out and the rest scaled to a hundred. For today it is the score **so far** and grows with the day. Like the sleep score it is the app's own rule, not a measurement.
+
+![Heute with the day's scene, the days before, the page about one day, and the list of all days](readmestuff/today.png)
+
+### Goals
+
+Twelve goals in four groups, each switched on and off on its own and each with its own target. Four are on at first: steps, active calories, sleep duration and water.
+
+| Group | Goals | Counted Over |
+| :--- | :--- | :--- |
+| **Movement** | Steps, active calories, active minutes, distance, floors | A day |
+| **Sleep and water** | Sleep duration, sleep score, water | A day |
+| **Training** | Workouts, training time | A week from Monday |
+| **Nutrition** | Calories eaten (a limit to stay under), protein | A day |
+
+Tapping the goals tile opens the **goals page** with tabs floating at the bottom and arrows to page back:
+
+| Tab | Shows |
+| :--- | :--- |
+| **Heute** | Each goal as a wavy line with its value, its target and a check once reached |
+| **Woche** | Each day as a mark (reached, missed, no data, still open) and how many were reached |
+| **Monat** | The same as a calendar; a weekly goal has one mark a week |
+| **Jahr** | The share reached in each month as twelve bars |
+
+A streak of two or more days (or weeks) is named on the goal's card. Below the goals, a switch and a slider per goal set what is followed and what it is to reach; the profile only links there. Steps, active calories, sleep and water keep the targets the rings, the day score and the body age read.
+
+![The goals tile, a week and a month of goals, and the switches with their targets](readmestuff/goals.png)
+
+### Body Age
+
+The **body age** is the real age plus or minus some years, judged over the last 30 days.
 
 | Factor | Read From |
 | :--- | :--- |
@@ -158,7 +208,7 @@ The large steps tile draws the **steps** as the outer ring and the **active calo
 
 Tapping the age opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
 
-![The steps tile with both rings and the body age, and the page that explains the age factor by factor](readmestuff/age.png)
+![The day's tile with both rings and the body age, and the page that explains the age factor by factor](readmestuff/age.png)
 
 ---
 
@@ -213,7 +263,7 @@ The refraction comes from **`liquid_glass_renderer`**, which needs **Impeller**.
 
 ![Liquid Glass: the Heute page, the add menu open, the pill being dragged along the bar, and the dark theme](readmestuff/glass.png)
 
-This image shows the **blurred fallback**, because the test renderer has no Impeller, and it was rendered before the pills became glass and the rim was painted by the app. On a phone the bars, their pills and the add button also bend what is behind them.
+This image shows the **blurred fallback**, because the test renderer has no Impeller. On a phone the bars, their pills and the add button also bend what is behind them.
 
 ---
 
@@ -259,12 +309,16 @@ An average counts only days **with** data; a day without a measurement is not a 
 
 ### What Has Been Verified
 
-Everything above the plugin is ***tested*** by **371** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
+Everything above the plugin is ***tested*** by **470** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
 
 | Area | Status |
 | :--- | :--- |
 | **Reading Health Connect** | ***Tested*** on a **Pixel 10 Pro**: 30 days of real data, and older data back to 2017; steps and energy agreed with the Fitbit app once it had synced |
 | **Writing, editing, deleting an entry** | ***Tested*** against the fixture store only, not on a device |
+| **Heute, the day page, day score, hints** | ***Tested*** by unit tests of the score, the streak and every rule, and by widget tests in the three languages at both sizes, with and without glass, and as rendered images. Not seen on a device or an emulator yet |
+| **Goals and the goals page** | ***Tested*** by unit tests of every kind of goal, rates and streaks, and by widget tests of every tab with all twelve goals in the three languages at both sizes, with and without glass, and as rendered images. Not seen on a device yet |
+| **Entrance motion** | ***Tested*** in so far as it runs once per opening, not on editing, and not at all with animations off. How it feels and whether it stays smooth is not judged |
+| **The glass of water** | ***Tested*** against the fixture store only |
 | **Sleep pages, score, hints** | ***Tested*** by unit and widget tests with nights of every kind; the sleep page was seen on an **Android 17** emulator with invented data |
 | **Activity pages, hints** | ***Tested*** by unit tests of every rule and widget tests of every kind of workout; seen on the emulator with invented data |
 | **Loading older nights and workouts** | ***Tested*** against the fixture store, ***built*** against Health Connect |
@@ -343,7 +397,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
 | **`nights-YYYY.json`** | Every night that ended in that calendar year: its times and the minutes in each stage, without the curve. Nothing is removed |
 | **`workouts.json`** | Every workout the app has seen, oldest first. Nothing is removed |
-| **`settings.json`** | Goals, date of birth and sex, theme, the Material You and Liquid Glass switches, the language (only before Android 13), tile order per page, the tiles on Heute and their sizes |
+| **`settings.json`** | Goals with their switches and targets, date of birth and sex, theme, the Material You and Liquid Glass switches, the language (only before Android 13), tile order per page, the tiles on Heute and their sizes |
 | **`backfill.json`**, **`nightBackfill.json`**, **`workoutBackfill.json`** | How far back each one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.
@@ -357,7 +411,9 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Nights:** the curve of the stages exists for the last 30 days only; older nights keep their times and the minutes in each stage.
 - **One-time loads:** a failed read of one stretch of older nights or workouts is not retried.
 - **Hourly bars:** only for steps, distance, active and total calories, water and intensity minutes.
-- **Body age and sleep score:** the app's own estimates. The values they are judged against follow common guidance; the years and points each part is worth are constants of this app and are not validated. Neither is a medical statement, and the body age does not use **VO2 max**, which the plugin cannot read.
+- **Same-time comparison:** Health Connect's hourly totals are kept for today and yesterday only, so today is set against yesterday at this time, not against a week. Without hours for both days the sentence compares whole days.
+- **Day scene:** only today and yesterday have hours; an older day is played from its total, spread evenly over the day. In the dark theme the day sky takes the theme's dark container colour and reads as dusk.
+- **Body age, day score and sleep score:** the app's own estimates. The values they are judged against follow common guidance; the years and points each part is worth are constants of this app and are not validated. None of them is a medical statement, and the body age does not use **VO2 max**, which the plugin cannot read.
 - **Liquid Glass:** relies on a pre-release package. Tiles do not refract, because that made scrolling stutter. The sub pages and sheets themselves stay solid; only their floating tabs, back button and title pill are glass. The status bar has no veil of its own, so its clock can stand on scrolled text. The dark theme of the current glass has not been looked at on a device.
 - **Navigation labels:** the selected destination shows its name only if the longest name fits beside the add button. In Polish at 412 pixels it misses by a few pixels, so the bar shows icons only there.
 - **Orientation:** portrait only.

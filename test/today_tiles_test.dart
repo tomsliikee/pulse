@@ -100,10 +100,13 @@ void main() {
     expect(find.byTooltip('Entfernen').hitTestable(), findsNothing);
     expect(find.byTooltip('Verkleinern').hitTestable(), findsNothing);
 
+    expect(find.byTooltip('Vergrössern').hitTestable(), findsNothing);
+
     await _edit(tester);
+    await bringIntoView(tester, find.text('Herzfrequenz'));
 
     expect(find.byTooltip('Entfernen').hitTestable(), findsWidgets);
-    expect(find.byTooltip('Verkleinern').hitTestable(), findsWidgets);
+    expect(find.byTooltip('Vergrössern').hitTestable(), findsWidgets);
   });
 
   testWidgets('the minus removes a tile for good, the plus brings it back', (
@@ -112,18 +115,18 @@ void main() {
     final app = await pumpApp(tester);
     await _edit(tester);
 
-    // The first minus belongs to the first tile, the steps.
+    // The first minus belongs to the first tile, the one about the day.
     await tester.tap(find.byTooltip('Entfernen').hitTestable().first);
     await advance(tester);
-    expect(find.text('Alter festlegen'), findsNothing);
+    expect(find.text('Tageswert bisher'), findsNothing);
 
     // A fresh start with the same store still leaves it out.
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, store: app.store);
-    expect(find.text('Alter festlegen'), findsNothing);
+    expect(find.text('Tageswert bisher'), findsNothing);
 
     await _edit(tester);
-    final offer = find.text('Schritte');
+    final offer = find.text('Der Tag');
     await tester.scrollUntilVisible(
       offer,
       200,
@@ -139,7 +142,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
     await advance(tester);
 
-    expect(find.text('Alter festlegen'), findsOneWidget);
+    expect(find.text('Tageswert bisher'), findsOneWidget);
   });
 
   testWidgets('only measurements with data are offered', (tester) async {
@@ -157,14 +160,18 @@ void main() {
   testWidgets('the resize button turns a small tile into a wide one', (
     tester,
   ) async {
-    final app = await pumpApp(tester);
+    final store = MemoryJsonStore();
+    await store.write('settings', {
+      'todayTiles': ['heartRate', 'water'],
+      'todayTilesVersion': 2,
+    });
+    final app = await pumpApp(tester, store: store);
     final title = find.text('Herzfrequenz');
     final before = tester.getSize(
       find.ancestor(of: title, matching: find.byType(Material)).first,
     );
     await _edit(tester);
 
-    // Steps are large by default, so the first tile to enlarge is the next.
     await tester.tap(find.byTooltip('Vergrössern').hitTestable().first);
     await advance(tester);
 
@@ -176,7 +183,7 @@ void main() {
     expect(find.text('55 bis 86 bpm'), findsOneWidget);
     expect(
       app.store.documents['settings'],
-      contains('"largeTiles":["steps","energyIntake","heartRate"]'),
+      contains('"largeTiles":["energyIntake","heartRate"]'),
     );
   });
 
@@ -233,7 +240,7 @@ void main() {
           find
               .ancestor(
                 of: find.byWidgetPredicate(
-                  (w) => w is M3EShape && w.width == 212,
+                  (w) => w is M3EShape && w.width == 152,
                 ),
                 matching: find.byType(RotationTransition),
               )

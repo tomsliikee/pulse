@@ -316,7 +316,9 @@ void main() {
       expect(settings.todayTiles, defaultTodayTiles);
       expect(settings.todayTiles, contains('heartRate'));
       expect(settings.todayTiles, isNot(contains('restingHeartRate')));
-      expect(settings.isLargeTile('steps'), isTrue);
+      // The tile about the day comes first; the steps have a tile besides.
+      expect(settings.todayTiles.first, dayTileId);
+      expect(settings.isLargeTile('energyIntake'), isTrue);
       expect(settings.isLargeTile('water'), isFalse);
     });
 
@@ -343,6 +345,7 @@ void main() {
       final store = MemoryJsonStore();
       await store.write(StoreKeys.settings, {
         'todayTiles': ['water', 'unicorns', 7, 'water', 'workout'],
+        'todayTilesVersion': 2,
         'largeTiles': ['water', 'unicorns'],
       });
       final settings = SettingsController(store);
@@ -353,6 +356,37 @@ void main() {
       expect(settings.isLargeTile('water'), isTrue);
       expect(settings.isLargeTile('unicorns'), isFalse);
     });
+
+    test(
+      'a list saved before the rework gets the tiles about the day',
+      () async {
+        final store = MemoryJsonStore();
+        await store.write(StoreKeys.settings, {
+          'todayTiles': ['water', 'steps'],
+        });
+        final settings = SettingsController(store);
+
+        await settings.load();
+
+        expect(settings.todayTiles, [
+          dayTileId,
+          tipsTileId,
+          nightTileId,
+          goalsTileId,
+          'water',
+          'steps',
+          daysTileId,
+        ]);
+
+        // Once saved, a tile the user removes stays away.
+        settings.removeTodayTile(tipsTileId);
+        await pumpEventQueue();
+        final again = SettingsController(store);
+        await again.load();
+        expect(again.todayTiles, isNot(contains(tipsTileId)));
+        expect(again.todayTiles, contains(dayTileId));
+      },
+    );
   });
 
   group('FileJsonStore', () {

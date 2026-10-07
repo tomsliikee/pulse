@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/widgets/entrance.dart';
 import 'package:pulse/widgets/tile_board.dart';
 
 import 'support/fixtures.dart';
@@ -81,6 +82,7 @@ void main() {
     Future<List<List<String>>> pumpBoard(
       WidgetTester tester, {
       required bool editing,
+      bool settle = true,
     }) async {
       tester.view.physicalSize = const Size(400, 800);
       tester.view.devicePixelRatio = 1;
@@ -99,8 +101,51 @@ void main() {
         ),
       );
       await tester.pump();
+      // Past the tiles coming in.
+      if (settle) {
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.pump(const Duration(seconds: 2));
+      }
       return reorders;
     }
+
+    testWidgets('the tiles come in one after the other', (tester) async {
+      await pumpBoard(tester, editing: false, settle: false);
+      double opacity(String id) => tester
+          .widget<Opacity>(
+            find
+                .ancestor(of: find.text(id), matching: find.byType(Opacity))
+                .first,
+          )
+          .opacity;
+      await tester.pump(const Duration(milliseconds: 60));
+      // The first is on its way while the last still waits.
+      expect(opacity('a'), greaterThan(0));
+      expect(opacity('d'), 0);
+      final rising = tester.getCenter(find.text('a')).dy;
+      // The last one's wait runs out, then its spring.
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(seconds: 2));
+      expect(opacity('a'), 1);
+      expect(opacity('d'), 1);
+      expect(tester.getCenter(find.text('a')).dy, lessThan(rising));
+
+      await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets('with animations off a tile is simply there', (tester) async {
+      await tester.pumpWidget(
+        themed(
+          const MediaQuery(
+            data: MediaQueryData(disableAnimations: true),
+            child: Entrance(order: 3, child: Text('a')),
+          ),
+        ),
+      );
+      expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, 1);
+      // The wait of its place still runs out.
+      await tester.pump(const Duration(seconds: 1));
+    });
 
     testWidgets('dragging a tile onto another moves it there', (tester) async {
       final reorders = await pumpBoard(tester, editing: true);

@@ -18,12 +18,25 @@ class FloatingTabBar extends StatefulWidget {
     required this.labels,
     required this.selectedIndex,
     required this.onSelected,
+    this.onReselected,
+    this.icons = const {},
     this.glass = false,
   });
 
   final List<String> labels;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+
+  /// Called for a tap on the tab that is selected already, for a tab that
+  /// opens something each time. Without it such a tap does nothing.
+  final ValueChanged<int>? onReselected;
+
+  /// A small icon after the label of a tab, by the tab's index: an arrow
+  /// on a tab that opens a menu. It takes the label's colour.
+  final Map<int, Widget> icons;
+
+  /// The room an icon takes beside its label.
+  static const double _iconWidth = 20;
 
   /// Draws the bar and its pill as liquid glass that bends the page
   /// scrolling under it. The pill turns into a lens while it is dragged.
@@ -91,13 +104,14 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
     final labelStyle = context.emphasizedTextTheme.labelLarge;
     final scaler = MediaQuery.textScalerOf(context);
     final labelWidths = [
-      for (final label in labels)
+      for (final (index, label) in labels.indexed)
         (TextPainter(
-          text: TextSpan(text: label, style: labelStyle),
-          textDirection: TextDirection.ltr,
-          textScaler: scaler,
-          maxLines: 1,
-        )..layout()).width.ceilToDouble(),
+              text: TextSpan(text: label, style: labelStyle),
+              textDirection: TextDirection.ltr,
+              textScaler: scaler,
+              maxLines: 1,
+            )..layout()).width.ceilToDouble() +
+            (widget.icons.containsKey(index) ? FloatingTabBar._iconWidth : 0),
     ];
     final labelsWidth = labelWidths.fold(0.0, (sum, width) => sum + width);
 
@@ -192,6 +206,7 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
                     height: _itemHeight,
                     child: _Tab(
                       label: labels[i],
+                      icon: widget.icons[i],
                       selected: i == selectedIndex,
                       style: labelStyle?.copyWith(
                         color: Color.lerp(
@@ -201,7 +216,10 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
                         ),
                       ),
                       onTap: () {
-                        if (i == selectedIndex) return;
+                        if (i == selectedIndex) {
+                          widget.onReselected?.call(i);
+                          return;
+                        }
                         Haptics.selection();
                         widget.onSelected(i);
                       },
@@ -257,9 +275,11 @@ class _Tab extends StatelessWidget {
     required this.selected,
     required this.style,
     required this.onTap,
+    this.icon,
   });
 
   final String label;
+  final Widget? icon;
   final bool selected;
   final TextStyle? style;
   final VoidCallback onTap;
@@ -280,7 +300,21 @@ class _Tab extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Center(
-            child: Text(label, maxLines: 1, softWrap: false, style: style),
+            child: icon == null
+                ? Text(label, maxLines: 1, softWrap: false, style: style)
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(label, maxLines: 1, softWrap: false, style: style),
+                      SizedBox(
+                        width: FloatingTabBar._iconWidth,
+                        child: IconTheme.merge(
+                          data: IconThemeData(color: style?.color, size: 18),
+                          child: icon!,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),

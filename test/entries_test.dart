@@ -91,14 +91,7 @@ void main() {
     tester,
   ) async {
     final app = await pumpApp(tester);
-    await tester.scrollUntilVisible(
-      find.text('Wasser'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await advance(tester);
-    await tester.tap(find.text('Wasser'));
-    await advance(tester);
+    await tapInView(tester, tileTitled('Wasser'));
 
     expect(find.text('Einträge'), findsOneWidget);
     expect(find.text('300 ml'), findsOneWidget);
@@ -127,14 +120,7 @@ void main() {
   testWidgets('a back swipe shrinks the sheet towards the bottom and closes '
       'only the sheet', (tester) async {
     final app = await pumpApp(tester);
-    await tester.scrollUntilVisible(
-      find.text('Wasser'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await advance(tester);
-    await tester.tap(find.text('Wasser'));
-    await advance(tester);
+    await tapInView(tester, tileTitled('Wasser'));
     await tester.tap(find.byTooltip('Bearbeiten'));
     await advance(tester);
 

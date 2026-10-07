@@ -6,6 +6,7 @@ import '../theme/app_shapes.dart';
 import '../theme/app_theme.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
+import 'animated_count.dart';
 import 'tile_surface.dart';
 
 /// A compact tile: shaped icon, a value and what it measures.
@@ -14,6 +15,8 @@ class StatTile extends StatelessWidget {
     super.key,
     required this.label,
     required this.value,
+    this.number,
+    this.format,
     required this.icon,
     required this.shape,
     this.tone = Tone.neutral,
@@ -22,6 +25,11 @@ class StatTile extends StatelessWidget {
 
   final String label;
   final String value;
+
+  /// With both given, the value counts up to [number], written by [format],
+  /// instead of showing [value] at once.
+  final double? number;
+  final String Function(double value)? format;
   final IconData icon;
   final Shapes shape;
   final Tone tone;
@@ -65,13 +73,22 @@ class StatTile extends StatelessWidget {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    maxLines: 1,
-                    style: context.emphasizedTextTheme.titleLarge?.copyWith(
-                      color: colors.onContainer,
+                  child: switch ((number, format)) {
+                    (final number?, final format?) => AnimatedNumber(
+                      value: number,
+                      format: format,
+                      style: context.emphasizedTextTheme.titleLarge?.copyWith(
+                        color: colors.onContainer,
+                      ),
                     ),
-                  ),
+                    _ => Text(
+                      value,
+                      maxLines: 1,
+                      style: context.emphasizedTextTheme.titleLarge?.copyWith(
+                        color: colors.onContainer,
+                      ),
+                    ),
+                  },
                 ),
                 Text(
                   label,
