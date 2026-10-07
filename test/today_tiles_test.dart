@@ -108,12 +108,12 @@ void main() {
     // The first minus belongs to the first tile, the steps.
     await tester.tap(find.byTooltip('Entfernen').hitTestable().first);
     await advance(tester);
-    expect(find.text('von 10.000'), findsNothing);
+    expect(find.text('Alter festlegen'), findsNothing);
 
     // A fresh start with the same store still leaves it out.
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, store: app.store);
-    expect(find.text('von 10.000'), findsNothing);
+    expect(find.text('Alter festlegen'), findsNothing);
 
     await _edit(tester);
     final offer = find.text('Schritte');
@@ -132,7 +132,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
     await advance(tester);
 
-    expect(find.text('von 10.000'), findsOneWidget);
+    expect(find.text('Alter festlegen'), findsOneWidget);
   });
 
   testWidgets('only measurements with data are offered', (tester) async {

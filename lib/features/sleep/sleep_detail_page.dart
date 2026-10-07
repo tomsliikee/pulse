@@ -14,6 +14,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_surface.dart';
 import '../detail/metric_spec.dart';
@@ -106,7 +107,7 @@ class SleepDetailPage extends StatelessWidget {
       else ...[
         _Overview(night: night),
         if (night.hasStages) ...[
-          _Section(
+          SectionCard(
             title: 'Schlafphasen',
             child: Column(
               children: [
@@ -120,12 +121,12 @@ class SleepDetailPage extends StatelessWidget {
               ],
             ),
           ),
-          _Section(
+          SectionCard(
             title: 'Phasen im Vergleich',
             child: _StageComparison(night: night, colors: stageColors),
           ),
         ] else
-          const _Section(
+          const SectionCard(
             title: 'Schlafphasen',
             child: EmptyNote(
               'Für diese Nacht wurden keine Schlafphasen aufgezeichnet.',
@@ -133,7 +134,7 @@ class SleepDetailPage extends StatelessWidget {
           ),
       ],
       if (regularity != null)
-        _Section(
+        SectionCard(
           title: 'Regelmäßigkeit',
           trailing: '${regularity.nights} Nächte',
           child: _Regularity(
@@ -143,7 +144,7 @@ class SleepDetailPage extends StatelessWidget {
           ),
         ),
       if (snapshot.nights.sublist(debtFrom, index + 1).any((n) => n != null))
-        _Section(
+        SectionCard(
           title: 'Schlafschuld',
           child: _Debt(
             snapshot: snapshot,
@@ -153,7 +154,7 @@ class SleepDetailPage extends StatelessWidget {
           ),
         ),
       if (heart.length >= 2)
-        _Section(
+        SectionCard(
           title: 'Puls in der Nacht',
           trailing: _heartSummary(heart),
           child: Column(
@@ -173,7 +174,7 @@ class SleepDetailPage extends StatelessWidget {
           ),
         ),
       if (metrics.isNotEmpty)
-        _Section(
+        SectionCard(
           title: 'Werte zur Nacht',
           padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
           child: Column(
@@ -228,60 +229,6 @@ class SleepDetailPage extends StatelessWidget {
       sum += sample.bpm;
     }
     return 'Tiefster $low · Ø ${(sum / samples.length).round()} bpm';
-  }
-}
-
-/// A titled card.
-class _Section extends StatelessWidget {
-  const _Section({
-    required this.title,
-    required this.child,
-    this.trailing,
-    this.padding,
-  });
-
-  final String title;
-  final Widget child;
-  final String? trailing;
-
-  /// For content that reaches the card's edges; the title keeps its inset.
-  final EdgeInsets? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final trailing = this.trailing;
-    final padding = this.padding;
-    return SurfaceCard(
-      padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: padding == null ? 0 : 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: context.emphasizedTextTheme.titleMedium,
-                  ),
-                ),
-                if (trailing != null)
-                  Text(
-                    trailing,
-                    style: context.emphasizedTextTheme.labelLarge?.copyWith(
-                      color: scheme.tertiary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
   }
 }
 

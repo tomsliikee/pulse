@@ -21,6 +21,7 @@ double? goalOf(Metric metric, SettingsController settings) => switch (metric) {
   Metric.steps => settings.stepGoal.toDouble(),
   Metric.water => settings.waterGoalMl / 1000,
   Metric.sleep => settings.sleepGoalHours,
+  Metric.activeEnergy => settings.activeEnergyGoal.toDouble(),
   _ => null,
 };
 

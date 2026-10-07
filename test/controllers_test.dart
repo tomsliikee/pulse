@@ -246,6 +246,48 @@ void main() {
       expect(loaded.tileOrder('sleep'), isEmpty);
     });
 
+    test('keeps the date of birth, the sex and the calorie goal', () async {
+      final store = MemoryJsonStore();
+      SettingsController(store)
+        ..setActiveEnergyGoal(650)
+        ..setBirthDate(DateTime(1992, 3, 7, 14, 30))
+        ..setSex(Sex.female);
+      await Future<void>.delayed(Duration.zero);
+
+      final loaded = SettingsController(store);
+      await loaded.load();
+      expect(loaded.activeEnergyGoal, 650);
+      expect(loaded.birthDate, DateTime(1992, 3, 7));
+      expect(loaded.sex, Sex.female);
+
+      loaded
+        ..setBirthDate(null)
+        ..setSex(null);
+      await Future<void>.delayed(Duration.zero);
+      final cleared = SettingsController(store);
+      await cleared.load();
+      expect(cleared.birthDate, isNull);
+      expect(cleared.sex, isNull);
+    });
+
+    test('ignores a date of birth, sex or goal that cannot be', () async {
+      final store = MemoryJsonStore();
+      await store.write(StoreKeys.settings, {
+        'activeEnergyGoal': 5,
+        'birthDate': '2999-01-01',
+        'sex': 'unknown',
+      });
+      final settings = SettingsController(store);
+      await settings.load();
+      expect(settings.activeEnergyGoal, 500);
+      expect(settings.birthDate, isNull);
+      expect(settings.sex, isNull);
+
+      await store.write(StoreKeys.settings, {'birthDate': 'yesterday'});
+      await settings.load();
+      expect(settings.birthDate, isNull);
+    });
+
     test('ignores values that make no sense', () async {
       final store = MemoryJsonStore();
       await store.write(StoreKeys.settings, {

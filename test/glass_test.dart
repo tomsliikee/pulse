@@ -42,6 +42,17 @@ void main() {
     final app = await pumpApp(tester);
     await tester.tap(find.bySemanticsLabel('Profil'));
     await advance(tester);
+    // The list builds its lower rows only once they come near.
+    await tester.scrollUntilVisible(
+      find.text('Liquid Glass'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     final row = find.ancestor(
       of: find.text('Liquid Glass'),
       matching: find.byType(Row),

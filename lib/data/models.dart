@@ -4,6 +4,9 @@ enum SleepStage { awake, rem, light, deep }
 
 enum WorkoutType { run, ride, walk, hike, strength, yoga, swim, other }
 
+/// Asked for in the profile; Health Connect on Android does not have it.
+enum Sex { female, male }
+
 /// What the app itself can record.
 enum EntryKind { water, weight, meal }
 

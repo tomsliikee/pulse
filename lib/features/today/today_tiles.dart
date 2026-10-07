@@ -2,6 +2,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
+import '../../app/container_route.dart';
 import '../../app/formatters.dart';
 import '../../app/layout.dart';
 import '../../data/health_controller.dart';
@@ -12,7 +13,6 @@ import '../../data/settings_controller.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
-import '../../widgets/animated_count.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/pressable.dart';
@@ -22,6 +22,7 @@ import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
 import '../activity/workout_style.dart';
+import '../age/body_age_page.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
@@ -94,7 +95,7 @@ BoardTile? buildTodayTile(
     onRemove: remove,
     onResize: resize,
     child: switch (metric) {
-      Metric.steps => _StepsHero(health: health, stepGoal: settings.stepGoal),
+      Metric.steps => _StepsHero(health: health, settings: settings),
       Metric.energyIntake => _NutritionCard(
         snapshot: health.snapshot,
         dayIndex: health.todayIndex,
@@ -198,26 +199,22 @@ class _Caption extends StatelessWidget {
   }
 }
 
-/// The hero moment: steps as a ring on a cookie shape, with the day's
-/// distance and energy underneath where the store has them.
+/// The hero moment: steps and active calories as two rings on a cookie
+/// shape around the body age, with the day's numbers underneath. The age
+/// opens its own page; a tap anywhere else opens the steps.
 class _StepsHero extends StatelessWidget {
-  const _StepsHero({required this.health, required this.stepGoal});
+  const _StepsHero({required this.health, required this.settings});
 
   final HealthController health;
-  final int stepGoal;
+  final SettingsController settings;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final emphasized = context.emphasizedTextTheme;
+    final scheme = Theme.of(context).colorScheme;
     final today = health.todayIndex;
     final steps = health.valueAt(Metric.steps, today);
     final distance = health.valueAt(Metric.distance, today);
-    final energy = health.valueAt(Metric.totalEnergy, today);
-    final valueStyle = emphasized.headlineLarge?.copyWith(
-      color: scheme.onPrimaryContainer,
-    );
+    final energy = health.valueAt(Metric.activeEnergy, today);
 
     return Pressable(
       pressedScale: 0.97,
@@ -248,31 +245,36 @@ class _StepsHero extends StatelessWidget {
                         SizedBox.square(
                           dimension: 176,
                           child: ProgressRing(
-                            value: (steps ?? 0) / stepGoal,
+                            value: (steps ?? 0) / settings.stepGoal,
                             color: scheme.primary,
                             trackColor: scheme.primary.withValues(alpha: 0.16),
                             strokeWidth: 14,
                           ),
                         ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (steps == null)
-                              Text('–', style: valueStyle)
-                            else
-                              AnimatedCount(
-                                value: steps.round(),
-                                style: valueStyle,
+                        SizedBox.square(
+                          dimension: 140,
+                          child: ProgressRing(
+                            value: (energy ?? 0) / settings.activeEnergyGoal,
+                            color: scheme.tertiary,
+                            trackColor: scheme.tertiary.withValues(alpha: 0.16),
+                            strokeWidth: 12,
+                          ),
+                        ),
+                        _AgeButton(
+                          age: bodyAgeOf(health, settings)?.age,
+                          hasBirthDate: settings.birthDate != null,
+                          onTap: () {
+                            final origin = globalRectOf(context);
+                            if (origin == null) return;
+                            Navigator.of(context).push(
+                              ContainerRoute<void>(
+                                origin: origin,
+                                originColor: scheme.primaryContainer,
+                                originRadius: AppRadii.extraExtraLarge,
+                                builder: (_) => const BodyAgePage(),
                               ),
-                            Text(
-                              'von ${formatInt(stepGoal)}',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: scheme.onPrimaryContainer.withValues(
-                                  alpha: 0.72,
-                                ),
-                              ),
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -280,17 +282,26 @@ class _StepsHero extends StatelessWidget {
                   const Spacer(),
                   Row(
                     children: [
+                      _HeroStat(
+                        value: Metric.steps.format(steps),
+                        label: 'Schritte',
+                        shape: Shapes.circle,
+                        color: scheme.primary,
+                      ),
+                      _HeroStat(
+                        value: Metric.activeEnergy.format(energy),
+                        label: 'Kalorien',
+                        shape: Shapes.burst,
+                        color: scheme.tertiary,
+                      ),
                       if (distance != null)
                         _HeroStat(
                           value: Metric.distance.format(distance),
                           label: 'Kilometer',
                           shape: Shapes.pentagon,
-                        ),
-                      if (energy != null)
-                        _HeroStat(
-                          value: Metric.totalEnergy.format(energy),
-                          label: 'Kalorien',
-                          shape: Shapes.burst,
+                          color: scheme.onPrimaryContainer.withValues(
+                            alpha: 0.72,
+                          ),
                         ),
                     ],
                   ),
@@ -304,16 +315,79 @@ class _StepsHero extends StatelessWidget {
   }
 }
 
+/// The body age in the middle of the rings, as a button of its own.
+class _AgeButton extends StatelessWidget {
+  const _AgeButton({
+    required this.age,
+    required this.hasBirthDate,
+    required this.onTap,
+  });
+
+  final double? age;
+  final bool hasBirthDate;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final onContainer = theme.colorScheme.onPrimaryContainer;
+    final age = this.age;
+    return Semantics(
+      container: true,
+      button: true,
+      label: age == null
+          ? 'Körperalter im Detail'
+          : 'Geschätztes Körperalter ${formatDecimal(age)}, im Detail',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: Pressable(
+        pressedScale: 0.9,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          // The whole space inside the inner ring is the button.
+          child: SizedBox.square(
+            dimension: 112,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  age == null ? '–' : formatDecimal(age),
+                  maxLines: 1,
+                  style: context.emphasizedTextTheme.headlineLarge?.copyWith(
+                    color: onContainer,
+                  ),
+                ),
+                Text(
+                  hasBirthDate ? 'Körperalter' : 'Alter festlegen',
+                  maxLines: 1,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: onContainer.withValues(alpha: 0.72),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HeroStat extends StatelessWidget {
   const _HeroStat({
     required this.value,
     required this.label,
     required this.shape,
+    required this.color,
   });
 
   final String value;
   final String label;
   final Shapes shape;
+
+  /// The colour of the ring the number belongs to.
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -322,23 +396,22 @@ class _HeroStat extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              M3EShape(
-                shape,
-                width: 14,
-                height: 14,
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                value,
-                style: context.emphasizedTextTheme.titleLarge?.copyWith(
-                  color: onContainer,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                M3EShape(shape, width: 14, height: 14, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  value,
+                  maxLines: 1,
+                  style: context.emphasizedTextTheme.titleLarge?.copyWith(
+                    color: onContainer,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           Text(
             label,

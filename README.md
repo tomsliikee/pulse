@@ -106,6 +106,7 @@ sequenceDiagram
 - **No Double Counting:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
 - **Four Pages of Tiles:** **Heute**, **Aktivität**, **Schlaf** and **Herz**. **Heute** always shows the current day.
 - **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement Health Connect has data for, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
+- **Steps Tile with Two Rings and a Body Age:** The large steps tile draws the steps as the outer ring and the **active calories** as the inner one, each against its goal, with steps, calories and distance underneath. In the middle is the **body age**: the real age plus or minus some years for steps, intensity minutes, sleep duration, sleep rhythm, resting heart rate, heart rate variability, body mass index or body fat, blood pressure and strength training over the last 30 days. Tapping it opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
 - **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading, on a tile and on the detail page's **Heute** tab, with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
 - **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt**, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
 - **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
@@ -171,7 +172,7 @@ An average counts only days **with** data; a day without a measurement is not a 
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **150** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **202** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -241,7 +242,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | :--- | :--- |
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
-| **`settings.json`** | Goals, theme, the Material You and Liquid Glass switches, tile order per page, the tiles on Heute and their sizes |
+| **`settings.json`** | Goals, date of birth and sex, theme, the Material You and Liquid Glass switches, tile order per page, the tiles on Heute and their sizes |
 | **`backfill.json`** | How far back the one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.
@@ -252,6 +253,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 
 - **Heart rate:** single samples are loaded for the last **8 days**. The daily average is therefore not backfilled and only builds up from use; resting heart rate is.
 - **Hourly bars:** only for steps, distance, active and total calories, water and intensity minutes.
+- **Body age:** the app's own estimate. The values it is judged against follow common guidance; the years each factor is worth are constants of this app and are not validated. It is not a medical statement, and it does not use **VO2 max**, which the plugin cannot read.
 - **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
 - **Language:** the interface is German and not yet translatable.
 - **Orientation:** portrait only.

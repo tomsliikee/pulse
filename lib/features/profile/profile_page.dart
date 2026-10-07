@@ -5,14 +5,17 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_controller.dart';
+import '../../data/models.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
+import 'birth_date_sheet.dart';
 
 /// Goals, appearance and background refresh.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
   static const _modes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
+  static const _sexes = [Sex.female, Sex.male];
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,54 @@ class ProfilePage extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: context.emphasizedTextTheme.headlineLarge,
               ),
+              const SectionTitle('Über dich'),
+              SurfaceCard(
+                padding: EdgeInsets.zero,
+                child: InkWell(
+                  onTap: () => showBirthDateSheet(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Geburtsdatum',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        Text(
+                          switch (settings.birthDate) {
+                            final date? => formatBirthDate(date),
+                            null => 'Nicht angegeben',
+                          },
+                          style: context.emphasizedTextTheme.titleMedium
+                              ?.copyWith(color: scheme.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: M3EToggleButtonGroup(
+                  type: M3EButtonGroupType.connected,
+                  style: M3EButtonStyle.tonal,
+                  size: M3EButtonSize.md,
+                  haptic: M3EHapticFeedback.light,
+                  selectedIndex: switch (settings.sex) {
+                    final sex? => _sexes.indexOf(sex),
+                    null => null,
+                  },
+                  onSelectedIndexChanged: (index) =>
+                      settings.setSex(index == null ? null : _sexes[index]),
+                  actions: const [
+                    M3EToggleButtonGroupAction(label: Text('Weiblich')),
+                    M3EToggleButtonGroupAction(label: Text('Männlich')),
+                  ],
+                ),
+              ),
               const SectionTitle('Ziele'),
               SurfaceCard(
                 child: Column(
@@ -91,6 +142,16 @@ class ProfilePage extends StatelessWidget {
                       max: 4000,
                       divisions: 15,
                       onChanged: (v) => settings.setWaterGoalMl(v.round()),
+                    ),
+                    const SizedBox(height: 20),
+                    _GoalSlider(
+                      label: 'Aktive Kalorien',
+                      display: '${formatInt(settings.activeEnergyGoal)} kcal',
+                      value: settings.activeEnergyGoal.toDouble(),
+                      min: 200,
+                      max: 1500,
+                      divisions: 26,
+                      onChanged: (v) => settings.setActiveEnergyGoal(v.round()),
                     ),
                   ],
                 ),

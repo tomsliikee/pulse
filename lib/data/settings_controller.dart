@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'json_store.dart';
 import 'metric_catalog.dart';
+import 'models.dart';
 
 /// The Today tile that shows the latest workout instead of a measurement.
 const String workoutTileId = 'workout';
@@ -39,6 +40,18 @@ final Set<String> defaultLargeTiles = Set.unmodifiable({
   Metric.energyIntake.name,
 });
 
+/// Whether [date] can be a living user's date of birth.
+bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
+  final today = now ?? DateTime.now();
+  return date.year >= 1900 && date.isBefore(today);
+}
+
+String? _isoDate(DateTime? date) => date == null
+    ? null
+    : '${date.year.toString().padLeft(4, '0')}-'
+          '${date.month.toString().padLeft(2, '0')}-'
+          '${date.day.toString().padLeft(2, '0')}';
+
 /// Goals, appearance and the order of the tiles on each page. Loaded once at
 /// start and saved after every change.
 class SettingsController extends ChangeNotifier {
@@ -50,6 +63,9 @@ class SettingsController extends ChangeNotifier {
   int _stepGoal = 10000;
   double _sleepGoalHours = 8;
   int _waterGoalMl = 2400;
+  int _activeEnergyGoal = 500;
+  DateTime? _birthDate;
+  Sex? _sex;
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
   bool _showAllData = false;
@@ -62,6 +78,14 @@ class SettingsController extends ChangeNotifier {
   int get stepGoal => _stepGoal;
   double get sleepGoalHours => _sleepGoalHours;
   int get waterGoalMl => _waterGoalMl;
+
+  /// The day's goal for active calories, in kcal.
+  int get activeEnergyGoal => _activeEnergyGoal;
+
+  /// Date of birth and sex are asked for because Health Connect has
+  /// neither; the body age is counted from them.
+  DateTime? get birthDate => _birthDate;
+  Sex? get sex => _sex;
   ThemeMode get themeMode => _themeMode;
 
   /// Whether colours follow the system palette when the system offers one.
@@ -97,6 +121,20 @@ class SettingsController extends ChangeNotifier {
     }
     if (json['waterGoalMl'] case final int v when v >= 250 && v <= 10000) {
       _waterGoalMl = v;
+    }
+    if (json['activeEnergyGoal'] case final int v when v >= 100 && v <= 3000) {
+      _activeEnergyGoal = v;
+    }
+    if (json['birthDate'] case final String v) {
+      final date = DateTime.tryParse(v);
+      if (date != null && isPlausibleBirthDate(date)) {
+        _birthDate = DateTime(date.year, date.month, date.day);
+      }
+    }
+    if (json['sex'] case final String v) {
+      for (final sex in Sex.values) {
+        if (sex.name == v) _sex = sex;
+      }
     }
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
@@ -141,6 +179,17 @@ class SettingsController extends ChangeNotifier {
       _update(() => _sleepGoalHours = value);
 
   void setWaterGoalMl(int value) => _update(() => _waterGoalMl = value);
+
+  void setActiveEnergyGoal(int value) =>
+      _update(() => _activeEnergyGoal = value);
+
+  void setBirthDate(DateTime? value) => _update(
+    () => _birthDate = value == null
+        ? null
+        : DateTime(value.year, value.month, value.day),
+  );
+
+  void setSex(Sex? value) => _update(() => _sex = value);
 
   void setThemeMode(ThemeMode value) => _update(() => _themeMode = value);
 
@@ -200,6 +249,9 @@ class SettingsController extends ChangeNotifier {
             'stepGoal': _stepGoal,
             'sleepGoalHours': _sleepGoalHours,
             'waterGoalMl': _waterGoalMl,
+            'activeEnergyGoal': _activeEnergyGoal,
+            'birthDate': ?_isoDate(_birthDate),
+            'sex': ?_sex?.name,
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,

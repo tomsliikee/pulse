@@ -129,6 +129,17 @@ void main() {
     await advance(tester);
     // The button group lays out a second, hidden copy of each label.
     final dark = find.text('Dunkel').hitTestable();
+    // The list builds its lower rows only once they come near.
+    await tester.scrollUntilVisible(
+      find.text('Darstellung'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.ensureVisible(dark);
     await advance(tester);
     await tester.tap(dark);
