@@ -1,12 +1,11 @@
 import 'dart:ui' show lerpDouble;
 
-import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
-import '../widgets/glass_scope.dart';
+import '../widgets/glass_bar.dart';
 import 'haptics.dart';
 
 @immutable
@@ -43,7 +42,7 @@ class FloatingNavBar extends StatefulWidget {
   final bool showLabel;
 
   /// Draws the bar as liquid glass that bends the page scrolling under it.
-  /// The pill turns into a glass lens while it is dragged.
+  /// The pill is glass too and turns into a lens while it is dragged.
   final bool glass;
 
   @override
@@ -154,8 +153,8 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
     final between = at - from;
     final pillLeft = lerpDouble(lefts[from], lefts[to], between)!;
     final pillWidth = lerpDouble(widths[from], widths[to], between)!;
-    // Under the lens the content is seen through glass, not on the pill.
-    final onPill = Color.lerp(scheme.onPrimary, scheme.primary, lifted)!;
+    // A glass pill has no fill for the content to stand on.
+    final onPill = glass ? scheme.primary : scheme.onPrimary;
 
     final content = GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -169,18 +168,19 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned(
-              left: pillLeft,
-              width: pillWidth,
-              top: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: scheme.primary.withValues(alpha: 1 - lifted),
-                  shape: const StadiumBorder(),
+            if (!glass)
+              Positioned(
+                left: pillLeft,
+                width: pillWidth,
+                top: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    color: scheme.primary,
+                    shape: const StadiumBorder(),
+                  ),
                 ),
               ),
-            ),
             Row(
               children: [
                 for (var i = 0; i < widget.destinations.length; i++)
@@ -228,41 +228,20 @@ class _FloatingNavBarState extends State<FloatingNavBar> {
       );
     }
 
-    // Pills are rounded rectangles: a superellipse with a radius of half
-    // its height is a squircle, not a pill.
-    // The lens is a sibling of the bar and not inside it: it has to reach
-    // past the bar's edge, and it bends the icons painted before it.
+    // The lens reaches past the bar's edge and bends the icons under it.
     final lensHeight = lerpDouble(_itemHeight, _lensHeight, lifted)!;
     final lensExtra = _lensExtraWidth * lifted;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        LiquidGlass.withOwnLayer(
-          settings: GlassScope.barSettings,
-          shape: const LiquidRoundedRectangle(borderRadius: _height / 2),
-          child: Material(
-            color: scheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            child: Padding(
-              padding: const EdgeInsets.all(_padding),
-              child: content,
-            ),
-          ),
-        ),
-        if (lifted > 0.01)
-          Positioned(
-            left: _padding + pillLeft - lensExtra / 2,
-            width: pillWidth + lensExtra,
-            top: (_height - lensHeight) / 2,
-            height: lensHeight,
-            child: IgnorePointer(
-              child: LiquidGlass.withOwnLayer(
-                settings: GlassScope.lensSettings.copyWith(visibility: lifted),
-                shape: LiquidRoundedRectangle(borderRadius: lensHeight / 2),
-                child: const SizedBox.expand(),
-              ),
-            ),
-          ),
-      ],
+    return GlassBar(
+      height: _height,
+      padding: _padding,
+      pill: Rect.fromLTWH(
+        _padding + pillLeft - lensExtra / 2,
+        (_height - lensHeight) / 2,
+        pillWidth + lensExtra,
+        lensHeight,
+      ),
+      lifted: lifted,
+      child: content,
     );
   }
 }

@@ -1,8 +1,13 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/settings_controller.dart';
+import 'package:pulse/widgets/floating_tab_bar.dart';
+import 'package:pulse/widgets/glass_bar.dart';
+import 'package:pulse/widgets/glass_rim.dart';
 import 'package:pulse/widgets/glass_scope.dart';
 
 import 'support/fixtures.dart';
@@ -69,8 +74,8 @@ void main() {
 
     await tester.pageBack();
     await advance(tester);
-    // The bar and the add button.
-    expect(find.byType(LiquidGlass), findsNWidgets(2));
+    // The bar, its pill and the add button.
+    expect(find.byType(LiquidGlass), findsNWidgets(3));
     expect(find.byType(GlassScope), findsOneWidget);
     expect(find.text('7.432'), findsOneWidget);
   });
@@ -89,8 +94,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
       await gesture.moveTo(to);
       await tester.pump(const Duration(milliseconds: 300));
-      // The page only changes when the pill is let go. Until then the pill
-      // is a third piece of glass, next to the bar and the add button.
+      // The page only changes when the pill is let go. The glass pill stays
+      // one piece of glass while it is a lens, next to the bar and the add
+      // button.
       expect(find.text('Schlafphasen'), findsNothing);
       expect(find.byType(LiquidGlass).evaluate().length, glass ? 3 : 0);
       await gesture.up();
@@ -113,6 +119,103 @@ void main() {
       expect(find.text('7.432'), findsOneWidget);
     });
   }
+
+  testWidgets('the glass pill of the navigation bar lies on the selected '
+      'destination', (tester) async {
+    await pumpApp(tester, store: await _glassStore());
+    // The bar is the first piece of glass in it, the pill the second.
+    Rect pill() => tester.getRect(
+      find
+          .descendant(
+            of: find.byType(GlassBar),
+            matching: find.byType(LiquidGlass),
+          )
+          .at(1),
+    );
+    Offset centre(String label) =>
+        tester.getCenter(find.bySemanticsLabel(label));
+
+    expect(pill().contains(centre('Heute')), isTrue);
+    expect(pill().contains(centre('Schlaf')), isFalse);
+    await tester.tap(find.bySemanticsLabel('Schlaf'));
+    await advance(tester);
+    expect(pill().contains(centre('Schlaf')), isTrue);
+    expect(pill().contains(centre('Heute')), isFalse);
+  });
+
+  testWidgets('the glass pill of the period tabs lies on the selected tab', (
+    tester,
+  ) async {
+    await pumpApp(tester, store: await _glassStore());
+    await tester.tap(find.text('7.432'));
+    await advance(tester);
+    final bar = find.byType(GlassBar).last;
+    Rect pill() => tester.getRect(
+      find.descendant(of: bar, matching: find.byType(LiquidGlass)).at(1),
+    );
+    Offset centre(String label) => tester.getCenter(
+      find.descendant(of: bar, matching: find.bySemanticsLabel(label)),
+    );
+
+    expect(pill().contains(centre('Heute')), isTrue);
+    await tester.tap(
+      find.descendant(of: bar, matching: find.bySemanticsLabel('Woche')),
+    );
+    await advance(tester);
+    expect(pill().contains(centre('Woche')), isTrue);
+    expect(pill().contains(centre('Heute')), isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final glass in [false, true]) {
+    final look = glass ? 'glass' : 'solid';
+
+    testWidgets('dragging the $look pill of the period tabs changes the tab', (
+      tester,
+    ) async {
+      await pumpApp(tester, store: glass ? await _glassStore() : null);
+      await tester.tap(find.text('7.432'));
+      await advance(tester);
+      final bar = find.byType(FloatingTabBar);
+      Finder tab(String label) =>
+          find.descendant(of: bar, matching: find.bySemanticsLabel(label));
+      bool selected(String label) =>
+          tester.getSemantics(tab(label)).flagsCollection.isSelected ==
+          Tristate.isTrue;
+
+      final gesture = await tester.startGesture(tester.getCenter(tab('Heute')));
+      await gesture.moveBy(const Offset(30, 0));
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(tab('Monat')));
+      await tester.pump(const Duration(milliseconds: 300));
+      // The tab only changes when the pill is let go.
+      expect(selected('Heute'), isTrue);
+      await gesture.up();
+      await advance(tester);
+      expect(selected('Monat'), isTrue);
+      expect(selected('Heute'), isFalse);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('an entry of the glass add button has its rim only once it is '
+      'in its place', (tester) async {
+    await pumpApp(tester, store: await _glassStore());
+    final rim = find.descendant(
+      of: find.ancestor(
+        of: find.text('Wasser'),
+        matching: find.byType(LiquidGlass),
+      ),
+      matching: find.byType(GlassRim),
+    );
+
+    await tester.tap(find.byIcon(Icons.add_rounded));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 48));
+    expect(tester.widget<GlassRim>(rim).strength, 0);
+    await advance(tester);
+    expect(tester.widget<GlassRim>(rim).strength, 1);
+  });
 
   testWidgets('the glass add button lets its entries out and takes them back', (
     tester,
