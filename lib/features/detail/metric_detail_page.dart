@@ -10,6 +10,7 @@ import '../../data/models.dart';
 import '../../data/period.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/bar_chart.dart';
+import '../../widgets/floating_tab_bar.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/shape_badge.dart';
@@ -49,7 +50,7 @@ extension PeriodKindLabel on PeriodKind {
 }
 
 /// One measurement over a day, a week, a month, a year or everything that
-/// has been collected, chosen with the tabs at the top. For what the app can
+/// has been collected, chosen with the tabs floating at the bottom. For what the app can
 /// record itself, a day also lists its single entries.
 class MetricDetailPage extends StatefulWidget {
   const MetricDetailPage({super.key, required this.metric});
@@ -87,38 +88,67 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final health = AppScope.of(context).health;
+    final media = MediaQuery.of(context);
+    final AppScope(:health, :settings) = AppScope.of(context);
     // The page lies on top of the shell, which stays built beneath it. Its own
     // messenger keeps a snackbar from appearing on both scaffolds.
     return ScaffoldMessenger(
       child: Scaffold(
         body: ListenableBuilder(
-          listenable: health,
-          builder: (context, _) => CustomScrollView(
-            slivers: [
-              SliverAppBar.large(
-                backgroundColor: theme.scaffoldBackgroundColor,
-                surfaceTintColor: theme.scaffoldBackgroundColor,
-                title: Text(
-                  widget.metric.spec.title,
-                  style: context.emphasizedTextTheme.headlineMedium,
+          listenable: Listenable.merge([health, settings]),
+          builder: (context, _) {
+            final ready =
+                health.status == HealthStatus.ready && health.history != null;
+            return Stack(
+              children: [
+                CustomScrollView(
+                  slivers: [
+                    SliverAppBar.large(
+                      backgroundColor: theme.scaffoldBackgroundColor,
+                      surfaceTintColor: theme.scaffoldBackgroundColor,
+                      title: Text(
+                        widget.metric.spec.title,
+                        style: context.emphasizedTextTheme.headlineMedium,
+                      ),
+                    ),
+                    SliverPadding(
+                      // The page ends above the floating tabs.
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        8,
+                        16,
+                        16 + FloatingTabBar.height + 24 + media.padding.bottom,
+                      ),
+                      sliver: SliverToBoxAdapter(
+                        child: ready
+                            ? _content(context, health)
+                            : const SizedBox(
+                                height: 240,
+                                child: Center(child: M3ELoadingIndicator()),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                sliver: SliverToBoxAdapter(
-                  child:
-                      health.status == HealthStatus.ready &&
-                          health.history != null
-                      ? _content(context, health)
-                      : const SizedBox(
-                          height: 240,
-                          child: Center(child: M3ELoadingIndicator()),
-                        ),
-                ),
-              ),
-            ],
-          ),
+                if (ready)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 16 + media.padding.bottom,
+                    child: Center(
+                      child: FloatingTabBar(
+                        labels: [
+                          for (final kind in PeriodKind.values) kind.tab,
+                        ],
+                        selectedIndex: _kind.index,
+                        glass: settings.liquidGlass,
+                        onSelected: (index) => _show(PeriodKind.values[index]),
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -223,23 +253,6 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        M3EToggleButtonGroup(
-          type: M3EButtonGroupType.connected,
-          style: M3EButtonStyle.tonal,
-          // Narrower than the standard sizes so all six tabs fit a phone's
-          // width; on a smaller screen the row scrolls.
-          size: M3EButtonSize.custom(height: 40, hPadding: 9),
-          haptic: M3EHapticFeedback.light,
-          selectedIndex: _kind.index,
-          onSelectedIndexChanged: (index) {
-            if (index != null) _show(PeriodKind.values[index]);
-          },
-          actions: [
-            for (final kind in PeriodKind.values)
-              M3EToggleButtonGroupAction(label: Text(kind.tab)),
-          ],
-        ),
-        const SizedBox(height: 16),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

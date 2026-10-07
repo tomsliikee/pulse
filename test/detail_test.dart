@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
+import 'package:pulse/widgets/floating_tab_bar.dart';
 
 import 'support/fixtures.dart';
 
@@ -16,10 +17,12 @@ Future<void> _openSteps(WidgetTester tester) async {
 }
 
 Future<void> _tab(WidgetTester tester, String label) async {
-  final tab = find.text(label).hitTestable();
-  await tester.ensureVisible(tab.first);
-  await tester.pump();
-  await tester.tap(tab.first);
+  await tester.tap(
+    find.descendant(
+      of: find.byType(FloatingTabBar),
+      matching: find.text(label),
+    ),
+  );
   await advance(tester);
 }
 
@@ -65,6 +68,27 @@ void main() {
       }
       expect(find.text('Keine Daten in diesem Zeitraum.'), findsOneWidget);
     });
+    testWidgets(
+      'the tabs float at the bottom, above the page\'s end at $label',
+      (tester) async {
+        await pumpApp(tester, size: size, repository: _withTwoYears());
+        await _openSteps(tester);
+        await _tab(tester, 'Woche');
+
+        final bar = tester.getRect(find.byType(FloatingTabBar));
+        expect(bar.bottom, size.height - 16);
+        expect(bar.left, greaterThanOrEqualTo(16));
+        expect(bar.right, lessThanOrEqualTo(size.width - 16));
+
+        await tester.drag(
+          find.byType(CustomScrollView),
+          const Offset(0, -2000),
+        );
+        await advance(tester);
+        final last = tester.getRect(find.text('Tiefstwert').hitTestable());
+        expect(last.bottom, lessThan(bar.top));
+      },
+    );
   }
 
   testWidgets('the tabs change the number, its label and the span', (

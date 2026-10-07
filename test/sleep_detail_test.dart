@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/sleep/sleep_detail_page.dart';
+import 'package:pulse/features/today/today_page.dart';
 
 import 'support/fixtures.dart';
 
@@ -100,6 +102,20 @@ void main() {
       await _scrollThrough(tester);
     });
   }
+
+  testWidgets('the sleep tile on Today opens the same page', (tester) async {
+    await pumpApp(tester);
+    final tile = find.descendant(
+      of: find.byType(TodayPage),
+      matching: find.text('Schlaf'),
+    );
+    await tester.ensureVisible(tile);
+    await advance(tester);
+    await tester.tap(tile);
+    await advance(tester);
+    expect(find.byType(SleepDetailPage), findsOne);
+    expect(find.byType(MetricDetailPage), findsNothing);
+  });
 
   testWidgets('the score shape still only changes its shape', (tester) async {
     await pumpApp(tester);

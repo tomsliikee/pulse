@@ -6,6 +6,7 @@ import '../../app/formatters.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../theme/app_theme.dart';
+import '../sleep/sleep_detail_page.dart';
 import 'metric_detail_page.dart';
 
 /// How a [Metric] is named and drawn.
@@ -230,13 +231,16 @@ extension MetricPresentation on Metric {
 }
 
 /// Opens the detail page for [metric], growing it out of the tile at [origin].
+/// Sleep has a page of its own.
 void openMetric(BuildContext context, Metric metric, Rect origin) {
   final scheme = Theme.of(context).colorScheme;
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,
       originColor: scheme.tone(metric.spec.tone).container,
-      builder: (_) => MetricDetailPage(metric: metric),
+      builder: (_) => metric == Metric.sleep
+          ? const SleepDetailPage()
+          : MetricDetailPage(metric: metric),
     ),
   );
 }

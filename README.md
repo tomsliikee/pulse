@@ -108,7 +108,7 @@ sequenceDiagram
 - **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement Health Connect has data for, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
 - **Steps Tile with Two Rings and a Body Age:** The large steps tile draws the steps as the outer ring and the **active calories** as the inner one, each against its goal, with steps, calories and distance underneath. In the middle is the **body age**: the real age plus or minus some years for steps, intensity minutes, sleep duration, sleep rhythm, resting heart rate, heart rate variability, body mass index or body fat, blood pressure and strength training over the last 30 days. Tapping it opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
 - **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading, on a tile and on the detail page's **Heute** tab, with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
-- **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt**, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
+- **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt** in a toolbar floating at the bottom of the page, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back. Sleep is the exception: its tile opens the detailed sleep page from everywhere.
 - **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
 - **Edit Mode:** The pencil next to a page title makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. On **Aktivität**, **Schlaf** and **Herz** a **minus** takes a tile off the page and a list below the board brings it back; the compact measurement tiles there can be enlarged to the wide form with the last seven days.
 - **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
@@ -172,7 +172,7 @@ An average counts only days **with** data; a day without a measurement is not a 
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **202** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+Everything above the plugin is ***tested*** by **212** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
 
 ---
 
@@ -257,7 +257,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
 - **Language:** the interface is German and not yet translatable.
 - **Orientation:** portrait only.
-- **Liquid Glass:** relies on a pre-release package that needs Impeller; elsewhere it falls back to a plain blur. Tiles do not refract, because that made scrolling stutter. Only the four main pages turn to glass, not the detail page or the sheets.
+- **Liquid Glass:** relies on a pre-release package that needs Impeller; elsewhere it falls back to a plain blur. Tiles do not refract, because that made scrolling stutter. Only the four main pages turn to glass, not the detail page or the sheets; the detail page's floating tabs are glass like the navigation bar.
 
 ---
 

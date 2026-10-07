@@ -236,10 +236,7 @@ class _StepsHero extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        M3EShape(
-                          Shapes.c12SidedCookie,
-                          width: 212,
-                          height: 212,
+                        _TurningShape(
                           color: scheme.primary.withValues(alpha: 0.12),
                         ),
                         SizedBox.square(
@@ -642,6 +639,57 @@ class _WorkoutCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The cookie behind the rings of the steps tile. It turns slowly, and stands
+/// still when the system asks for no animations.
+class _TurningShape extends StatefulWidget {
+  const _TurningShape({required this.color});
+
+  final Color color;
+
+  @override
+  State<_TurningShape> createState() => _TurningShapeState();
+}
+
+class _TurningShapeState extends State<_TurningShape>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _turn = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 90),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _turn.stop();
+    } else if (!_turn.isAnimating) {
+      _turn.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _turn.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Its own layer, so the rings and the numbers are not painted again.
+    return RepaintBoundary(
+      child: RotationTransition(
+        turns: _turn,
+        child: M3EShape(
+          Shapes.c12SidedCookie,
+          width: 212,
+          height: 212,
+          color: widget.color,
+        ),
       ),
     );
   }
