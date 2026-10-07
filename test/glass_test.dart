@@ -132,6 +132,32 @@ void main() {
     expect(find.bySemanticsLabel('Eintrag hinzufügen'), findsOneWidget);
   });
 
+  testWidgets('the entries of the glass add button only pull together while '
+      'they move', (tester) async {
+    await pumpApp(tester, store: await _glassStore());
+    // The entry nearest to the button is the first to be there.
+    final group = find.ancestor(
+      of: find.text('Wasser'),
+      matching: find.byType(LiquidGlassBlendGroup),
+    );
+    double blend() => group.evaluate().isEmpty
+        ? 0
+        : tester.widget<LiquidGlassBlendGroup>(group).blend;
+
+    await tester.tap(find.byIcon(Icons.add_rounded));
+    await tester.pump();
+    var strongest = 0.0;
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (blend() > strongest) strongest = blend();
+    }
+    expect(strongest, greaterThan(20));
+
+    // At rest it has to be zero itself, not merely close to it.
+    await advance(tester);
+    expect(blend(), 0);
+  });
+
   testWidgets('an entry of the glass add button opens its sheet', (
     tester,
   ) async {

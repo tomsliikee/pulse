@@ -18,11 +18,14 @@ class GlassScope extends StatelessWidget {
   /// How opaque the colour of a surface stays when it becomes glass.
   static const double tintOpacity = 0.58;
 
+  /// Without the renderer's own light: it draws that as a jagged rim, and
+  /// only while a shape rests, so it vanished when the add menu moved and
+  /// came back late.
   static const LiquidGlassSettings barSettings = LiquidGlassSettings(
     thickness: 22,
     blur: 8,
-    lightIntensity: 0.8,
-    ambientStrength: 0.2,
+    lightIntensity: 0,
+    ambientStrength: 0,
     saturation: 1.4,
   );
 

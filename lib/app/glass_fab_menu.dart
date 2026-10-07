@@ -71,7 +71,12 @@ class _GlassFabMenuState extends State<GlassFabMenu> {
   }
 
   void _settled(AnimationStatus status) {
-    if (_open || status.isAnimating || !_portal.isShowing) return;
+    if (!status.isAnimating) _handBack();
+  }
+
+  /// Gives the button back to its own layer once the menu has closed.
+  void _handBack() {
+    if (!mounted || _open || !_portal.isShowing) return;
     _portal.hide();
     setState(() {});
   }
@@ -126,6 +131,11 @@ class _GlassFabMenuState extends State<GlassFabMenu> {
       onAnimationStatusChanged: _settled,
       builder: (context, t, _) {
         final shown = t.clamp(0.0, 1.0);
+        // Not left to the end of the spring: it swings on unseen for a
+        // moment, and the button would change its look that much later.
+        if (!_open && t <= 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _handBack());
+        }
         return Stack(
           children: [
             if (_open)
@@ -139,9 +149,7 @@ class _GlassFabMenuState extends State<GlassFabMenu> {
               child: LiquidGlassLayer(
                 settings: _settings(scheme),
                 child: LiquidGlassBlendGroup(
-                  // Strongest half way. With the drops still inside the button
-                  // any pull would bulge it into a box.
-                  blend: _blend * math.sin(math.pi * shown),
+                  blend: _pull(shown),
                   child: Stack(
                     children: [
                       for (var i = 0; i < widget.items.length; i++)
@@ -163,6 +171,17 @@ class _GlassFabMenuState extends State<GlassFabMenu> {
         );
       },
     );
+  }
+
+  /// How strongly the drops pull together when the menu is [shown] from 0
+  /// to 1: strongest half way and exactly zero near both ends. The renderer
+  /// draws stripes along the edges of the group while the pull is small, and
+  /// fills the whole group as a box once it rests with a pull that is only
+  /// almost zero, as a sine at its end is.
+  static double _pull(double shown) {
+    const edge = 0.1;
+    if (shown <= edge || shown >= 1 - edge) return 0;
+    return _blend * math.sin(math.pi * (shown - edge) / (1 - 2 * edge));
   }
 
   /// How far entry [index] has left the button, 0 while it is still inside.
@@ -201,6 +220,7 @@ class _GlassFabMenuState extends State<GlassFabMenu> {
         child: Material(
           type: MaterialType.transparency,
           child: InkWell(
+            customBorder: const StadiumBorder(),
             onTap: _open ? () => _choose(item) : null,
             child: Opacity(
               opacity: shown,
@@ -250,6 +270,7 @@ class _Button extends StatelessWidget {
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
+          customBorder: const CircleBorder(),
           onTap: onTap,
           child: SizedBox.square(
             dimension: GlassFabMenu.size,
