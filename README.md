@@ -1,7 +1,7 @@
 <div align="center">
   <img src="readmestuff/app_icon_512.png" width="96" height="96" alt="Pulse logo" />
   <h1>Pulse</h1>
-  <p><strong>A health app for Android in Material 3 Expressive. It reads your data from Health Connect, keeps up to ten years of daily values on the phone, and sends nothing anywhere.</strong></p>
+  <p><strong>A health app for Android in Material 3 Expressive. It reads your data from Health Connect, keeps up to ten years of it on the phone, and sends nothing anywhere.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Platform-Android%208.0+-neutral?style=flat-square" alt="Platform" />
@@ -9,7 +9,9 @@
     <img src="https://img.shields.io/badge/Design-Material%203%20Expressive-neutral?style=flat-square" alt="Design Language" />
     <img src="https://img.shields.io/badge/Data-Health%20Connect-neutral?style=flat-square" alt="Data Source" />
     <img src="https://img.shields.io/badge/Storage-Local%20JSON-neutral?style=flat-square" alt="Storage" />
+    <img src="https://img.shields.io/badge/Languages-de%20%7C%20en%20%7C%20pl-neutral?style=flat-square" alt="Languages" />
     <img src="https://img.shields.io/badge/Telemetry-None-neutral?style=flat-square" alt="No Telemetry" />
+    <img src="https://img.shields.io/badge/License-MIT-neutral?style=flat-square" alt="License" />
   </p>
 </div>
 
@@ -17,34 +19,50 @@
 
 ![Pulse: Heute, Aktivität, Schlaf and Herz](readmestuff/hero.png)
 
-The screenshots on this page are rendered by the widget tests from **fixture data**, not from a person's health records.
+Every image on this page is rendered by the widget tests from **fixture data**, not from a person's health records. The page names are the German ones; the app also speaks English and Polish.
+
+---
+
+## What It Is
+
+**Pulse** is a **Flutter** app with one data source: **Health Connect** on the phone. Steps, sleep, heart rate, workouts and the rest arrive from the phone, a **Fitbit** or any other app that writes there, without a separate sign-in. There is no server, no account and no analytics, and a release build does not hold the **`INTERNET`** permission.
+
+| Page | Shows | Opens |
+| :--- | :--- | :--- |
+| **Heute** | Today's tiles, chosen and ordered by the user | A metric's period tabs, the body age |
+| **Aktivität** | The latest workout as an animated scene, the five before it, activity metrics | One workout, the list of all workouts |
+| **Schlaf** | The latest night played back, the five before it, a bedtime for tonight | One night, the list of all nights |
+| **Herz** | Heart rate, resting heart rate, variability and the other vitals | A metric's period tabs |
+| **Profil** | Goals, date of birth and sex, theme, Material You, Liquid Glass, language | |
 
 ---
 
 ## Architecture Overview
 
-**Pulse** is a **Flutter** app with one data source: **Health Connect** on the phone. There is no server, no account and no analytics. One file in the code base talks to the **`health`** plugin; everything above it works on plain Dart values and is tested without a device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is tested without a device.
 
 ```mermaid
 flowchart TD
     subgraph UI ["Interface Layer"]
-        Shell["App Shell<br/><b>Floating Navigation Bar & FAB Menu</b>"]
+        Shell["App Shell<br/><b>Floating Navigation Bar & Add Menu</b>"]
         Boards["Tile Boards<br/><b>Heute, Aktivität, Schlaf, Herz</b>"]
-        Detail["Detail Pages<br/><b>Period Tabs, Entries, Sleep, Body Age</b>"]
-        Sheet["Entry Sheet<br/><b>Water, Weight, Meals</b>"]
+        Detail["Sub Pages<br/><b>Period Tabs, Night, Workout, Body Age</b>"]
+        Scenes["Scenes<br/><b>Workout Figure, Night Sky</b>"]
+        Glass["Glass Kit<br/><b>Bar, Rim, Scope</b>"]
     end
 
     subgraph State ["State Layer"]
         HealthCtrl["HealthController<br/><b>Access, Refresh, Backfill, Entries</b>"]
-        SettingsCtrl["SettingsController<br/><b>Goals, Theme, Tile Order</b>"]
+        SettingsCtrl["SettingsController<br/><b>Goals, Theme, Tiles, Glass</b>"]
         Palette["System Palette<br/><b>Material You Colours</b>"]
     end
 
     subgraph Data ["Data Layer (pure Dart)"]
         Builder["buildSnapshot<br/><b>Raw Readings to 30 Days</b>"]
         Period["buildPeriod<br/><b>Averages, Bars, Comparison</b>"]
-        Age["estimateBodyAge<br/><b>Years per Factor, 30 Days</b>"]
+        Insights["Insights<br/><b>Body Age, Sleep Score, Hints</b>"]
         History["HistoryArchive<br/><b>One Value per Day, 10 Years</b>"]
+        Archives["Night & Workout Archives<br/><b>Every Night, Every Workout</b>"]
         Store["FileJsonStore<br/><b>Private App Directory</b>"]
     end
 
@@ -55,24 +73,26 @@ flowchart TD
     end
 
     Shell --> Boards
+    Shell --> Glass
     Boards --> Detail
-    Shell --> Sheet
+    Boards --> Scenes
     Boards --> HealthCtrl
     Boards --> SettingsCtrl
-    Detail --> HealthCtrl
     Detail --> Period
-    Detail --> Age
-    Sheet --> HealthCtrl
+    Detail --> Insights
     Shell --> Palette
     HealthCtrl --> Repo
     HealthCtrl --> History
+    HealthCtrl --> Archives
     Repo --> Builder
     Repo --> HC
     Worker --> Repo
     Worker --> History
+    Worker --> Archives
     Period --> History
+    Insights --> Archives
     History --> Store
-    HealthCtrl --> Store
+    Archives --> Store
     SettingsCtrl --> Store
 ```
 
@@ -85,7 +105,7 @@ sequenceDiagram
     participant HC as Health Connect
     participant Disk as FileJsonStore
 
-    App->>Disk: read saved snapshot and year files
+    App->>Disk: read saved snapshot, year files and archives
     App-->>App: show saved data at once
     App->>Repo: load(now)
     Repo->>HC: daily totals (aggregated), samples, sleep, workouts
@@ -93,10 +113,11 @@ sequenceDiagram
     Repo-->>App: snapshot of 30 days
     App->>Disk: write snapshot
     App->>Disk: merge days into history-YYYY
+    App->>Disk: merge nights and workouts into their archives
     opt first run with history access
-        App->>Repo: loadHistory in 90-day stretches, backwards
-        Repo-->>App: one value per day and metric
-        App->>Disk: merge, remember how far it got
+        App->>Repo: older days, nights and workouts in 90-day stretches, backwards
+        Repo-->>App: one stretch at a time
+        App->>Disk: merge, remember how far each load got
     end
 ```
 
@@ -104,42 +125,101 @@ sequenceDiagram
 
 ## Core Capabilities
 
-- **Health Connect as the Only Source:** Steps, distance, calories, sleep, heart rate and the rest come from **Health Connect**, so data from the phone, a **Fitbit** or any other app that writes there shows up without a separate sign-in.
-- **No Double Counting:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
-- **Four Pages of Tiles:** **Heute**, **Aktivität**, **Schlaf** and **Herz**. **Heute** always shows the current day.
-- **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement Health Connect has data for, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
-- **Steps Tile with Two Rings and a Body Age:** The large steps tile draws the steps as the outer ring and the **active calories** as the inner one, each against its goal, with steps, calories and distance underneath. In the middle is the **body age**: the real age plus or minus some years for steps, intensity minutes, sleep duration, sleep rhythm, resting heart rate, heart rate variability, body mass index or body fat, blood pressure and strength training over the last 30 days. Tapping it opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
-- **Latest Value for Rare Measurements:** Weight, blood pressure, the one resting heart rate a day and similar show the most recent reading, on a tile and on the detail page's **Heute** tab, with its day instead of a dash when there is none today. Totals such as steps stay strictly on today.
-- **Period Tabs on Every Metric:** Tapping a tile opens **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt** in a toolbar floating at the bottom of the page, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back. Sleep is the exception: its tile opens the detailed sleep page from everywhere.
-- **Detailed Sleep Page:** For the selected night: time asleep and in bed, efficiency, the stages as a hypnogram and each against a guide range, bedtime and waking of the last 30 nights, the sleep debt of seven nights, the pulse during the night, and the night's vitals against your own usual range.
-- **Ten Years of History:** One value per day and metric is kept in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
-- **Edit Mode:** The pencil floating at the top right of a page makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. On **Aktivität**, **Schlaf** and **Herz** a **minus** takes a tile off the page and a list below the board brings it back; the compact measurement tiles there can be enlarged to the wide form with the last seven days.
-- **All Measurements on Demand:** A switch that only appears in edit mode appends every metric with data to the **Heute** page, grouped by kind.
-- **Own Entries:** Add **water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button. They are written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps are shown but cannot be changed, because Health Connect does not allow it.
-- **Three Languages:** German, English and Polish, with numbers, dates and plurals written as each language does (**7.432** / **7,432** / **7 432**; "1 krok, 2 kroki, 5 kroków"). The app follows the system language and falls back to English for any other. A row in the profile opens a sheet with **System / Deutsch / English / Polski**. On **Android 13** and newer the choice is the language Android keeps per app, so the system's own *App languages* page and the profile show and set the same value; before that it is a setting of the app. Units stay metric in every language. The page names in this document are the German ones. ***Tested*** by widget tests of every page in English and Polish at both screen sizes, and on an **Android 17** emulator: the choice set in the profile was read back with `cmd locale get-app-locales`, a change made from the system side rebuilt the open app, and the system's page lists exactly the three languages. The Polish text is not reviewed by a native speaker.
-- **Material You:** The colour scheme follows the phone's wallpaper. It can be switched off in the profile, which falls back to the app's own palette. Light, dark or system.
-- **No App Bar:** No page has a fixed bar at its top; the content scrolls behind the transparent **status bar**. On the four main pages the **pencil** and, on **Heute**, the **profile button** float at the top right and stay there while the page scrolls. A page opened from another one has a round floating **back button**; once its large title has scrolled away, a **pill** with the page's name appears next to the button. ***Tested*** by widget tests with a simulated status bar and by stills of an **Android 17** emulator in both themes, with and without glass. Not looked at on a phone.
-- **Navigation:** The selected pill of the floating bar can be dragged to another destination; the page changes when it is let go. The period tabs of a metric work the same way.
-- **Liquid Glass:** A switch in the profile turns the **navigation bar**, the **period tabs**, the **floating buttons** and title pill at the top, the **add button** and its menu into clear glass that bends the page beneath it at its edge, and the tiles into translucent glass over soft colour fields. The selected pill is a second piece of glass lying on its bar, tinted in the primary colour; while it is dragged it becomes a clear lens. The entries of the add button flow out of it as drops. The light **rim** and the **shadow** of each piece are painted by the app, not by the renderer. Shapes, colours and motion stay Material 3 Expressive. Off by default. ***Tested*** by widget tests in a blurred fallback and by stills and a screen recording on a **Pixel 8** emulator under **Vulkan**, in the light theme. On a **Pixel 10 Pro** this state is ***built*** only; an earlier one was recorded there.
-- **Background Refresh:** A **WorkManager** task refreshes the stored data about once an hour, so the app opens with current values and no day is lost if it stays closed for longer than Health Connect's 30-day window.
-- **Haptics:** Distinct feedback for selecting, tapping, lifting a tile and confirming.
-- **Spring Motion and Shapes:** Page changes, tile movement and the container transform into a detail page run on **Material 3 Expressive** spring tokens; badges and the profile button use the expressive shape set. The shape behind the rings of the steps tile turns once in **90 seconds** and stands still when the system switches animations off.
+- **Health Connect as the Only Source:** Daily totals use Health Connect's own **aggregation**, which removes the overlap when a phone and a wearable both count the same steps.
+- **Your Own Heute Page:** In edit mode every tile has a **minus** to remove it, and a list below the board offers every measurement with data, each with a **plus**. Every tile comes in two sizes: **small** (half width, the value) and **large** (full width, with the last seven days as bars, or today's curve for the heart rate).
+- **Edit Mode:** The floating **pencil** makes the tiles wiggle. Hold one and drag it; the others move out of the way and the order is saved per page. Tiles on **Aktivität**, **Schlaf** and **Herz** can be removed, brought back and enlarged the same way.
+- **Period Tabs on Every Metric:** **Heute**, **Gestern**, **Woche**, **Monat**, **Jahr** and **Gesamt** in a toolbar floating at the bottom, each with its average, a bar chart, the highest and lowest value, a sentence comparing it to the span before, and arrows to page back.
+- **Latest Value for Rare Measurements:** Weight, blood pressure and the one resting heart rate a day show the most recent reading with its day instead of a dash. Totals such as steps stay strictly on today.
+- **Ten Years of History:** One value per day and metric in one **JSON** file per calendar year. Older data already in Health Connect is loaded once, in **90-day** stretches.
+- **Own Entries:** **Water**, **weight** and **meals** (calories, carbohydrates, protein, fat, fibre, sugar) from the **+** button, written to Health Connect. Entries made by Pulse can be edited and deleted; entries from other apps cannot, because Health Connect does not allow it.
+- **No App Bar:** Content scrolls behind the transparent **status bar**. The **pencil** and the **profile button** float at the top right; a sub page has a round floating **back button** and, once its title has scrolled away, a **pill** with the page's name.
+- **Draggable Navigation:** The selected pill of the floating bar can be dragged to another destination; the page changes when it is let go. The period tabs work the same way.
+- **Three Languages:** **German**, **English** and **Polish**, with numbers, dates and plurals as each language writes them (**7.432** / **7,432** / **7 432**). On **Android 13** and newer the choice is the language Android keeps per app; before that it is a setting of the app. Any other system language gets English. Units stay metric.
+- **Material You:** The colour scheme follows the phone's wallpaper, or the app's own palette when switched off. Light, dark or system.
+- **Background Refresh:** A **WorkManager** task refreshes the stored data about once an hour, so no day is lost if the app stays closed for longer than Health Connect's 30-day window.
+- **Motion, Shapes and Haptics:** Page changes, tile movement and the container transform into a sub page run on **Material 3 Expressive** spring tokens, with the expressive shape set and distinct haptics for selecting, tapping, lifting and confirming. **Predictive back** shrinks the page under the finger.
 
 ![The floating period tabs on the steps metric: Heute, Woche, Jahr and Gesamt](readmestuff/detail.png)
 
+![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
+
+---
+
+## Steps and Body Age
+
+The large steps tile draws the **steps** as the outer ring and the **active calories** as the inner one, each against its goal, over a shape that turns once in **90 seconds**. In the middle is the **body age**: the real age plus or minus some years, judged over the last 30 days.
+
+| Factor | Read From |
+| :--- | :--- |
+| **Movement** | Steps, intensity minutes, strength training |
+| **Sleep** | Duration, regularity of bedtime and waking |
+| **Heart** | Resting heart rate, heart rate variability, blood pressure |
+| **Body** | Body fat, or body mass index when there is none |
+
+Tapping the age opens a page that lists every factor with your value, the value it is judged against and the years it adds or takes. It needs the **date of birth** from the profile.
+
 ![The steps tile with both rings and the body age, and the page that explains the age factor by factor](readmestuff/age.png)
 
-![Edit mode with a lifted tile, the list of tiles to add, tiles in both sizes, and the dark theme](readmestuff/editing.png)
+---
+
+## Sleep
+
+- **The Night Played Back:** At the top of **Schlaf** the latest night runs in twelve seconds. The moon crosses a sky that follows the stages (darkest in deep sleep, dawn at the end), with more stars the better the score and clouds on a poor night. Beneath it a figure sleeps in bed: it snores in deep sleep, dreams in REM and sits up whenever the user was awake.
+- **A Page per Night:** The **score** with what each of its four parts gave, time asleep and in bed, efficiency, the stages as blocks that name the one under the finger, each stage against a guide range, bedtime and waking of the 30 days up to it, the sleep debt of seven nights, and the pulse and measurements of the night.
+- **Comparison:** Every number against the night before and the average of the week before.
+- **Observations:** How nights after a workout, or after a day above the step goal, differ. They need five nights on each side and ten minutes of difference, and are worded as what went together, not as a cause.
+- **Hints:** Up to three, from fixed rules over the user's own numbers. Not medical advice.
+- **Tonight:** A bedtime counted back from the usual time of getting up, a little earlier while the week is in debt.
+- **All Nights:** Every night the app has seen is kept in an archive of its own, one file per year, and listed.
+
+| Part of the Score | Points | Judged Against |
+| :--- | :--- | :--- |
+| **Time asleep** | up to **40** | The sleep goal |
+| **Deep and REM** | up to **25** | The lower end of what is typical for each share |
+| **Efficiency** | up to **20** | Between 70 and 90 % of the time in bed |
+| **Bedtime** | up to **15** | Within 15 to 90 minutes of the mean of the week before |
+
+A part that cannot be judged (no stages recorded, fewer than three nights before) is left out and the rest scaled to a hundred. The score is the app's own rule, not a measurement; Health Connect stores none.
+
+![The sleep page with the night played back, the score in its four parts, the stages and the hints with the nights before](readmestuff/sleep.png)
+
+---
+
+## Activities
+
+- **The Latest Workout as a Scene:** A small figure drawn by the app walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape, above the workout's numbers and one sentence on how it went against the one before.
+- **A Page per Workout:** Every number with a mark for a **personal best**, each number against the workout before and the average of the last five, a chart of the last twelve of the kind, and how often per week.
+- **Hints:** Up to three, from fixed rules: a long break, doing it less often, a jump of more than a quarter over the average, the same pace at a higher pulse, strength less than twice a week. Not medical advice.
+- **All Workouts:** Month by month, with a filter for the kind. Health Connect only hands out a recent window, so every workout the app sees is kept in an archive of its own, with the average and highest heart rate of the session worked out while the app still has that day's curve.
+
+![The latest activity with its animation, the page about one workout, and the list of all of them](readmestuff/activities.png)
+
+---
+
+## Liquid Glass
+
+A switch in the profile, **off by default**. Shapes, colours and motion stay Material 3 Expressive; only the material changes.
+
+| Piece | As Glass |
+| :--- | :--- |
+| **Navigation bar**, **period tabs** | Clear glass that bends the page beneath it at its edge |
+| **Selected pill** | A second piece of glass lying on its bar, tinted in the primary colour; a clear lens while it is dragged |
+| **Add button and its menu** | Glass drops in one blend group: the entries flow out of the button and merge back into it |
+| **Floating buttons**, **title pill** | Glass like the navigation bar |
+| **Tiles** | Translucent glass over soft colour fields, without refraction |
+| **Rim and shadow** | Painted by the app for each piece, not by the renderer |
+
+The refraction comes from **`liquid_glass_renderer`**, which needs **Impeller**. Without it the app falls back to a plain blur.
 
 ![Liquid Glass: the Heute page, the add menu open, the pill being dragged along the bar, and the dark theme](readmestuff/glass.png)
 
-The Liquid Glass images show the blurred fallback, because the test renderer has no Impeller, and were rendered before the pills became glass and the rim was painted by the app. On a phone the bars, their pills and the add button also bend what is behind them.
+This image shows the **blurred fallback**, because the test renderer has no Impeller, and it was rendered before the pills became glass and the rim was painted by the app. On a phone the bars, their pills and the add button also bend what is behind them.
 
 ---
 
 ## Measurements
 
-**33** metrics in five groups. A day's value follows one rule per metric: the **sum** of the day, the **average** of its readings, or the **last** reading.
+**32** metrics in five groups. A day's value follows one rule per metric: the **sum** of the day, the **average** of its readings, or the **last** reading.
 
 | Group | Metrics | Day Rule |
 | :--- | :--- | :--- |
@@ -151,13 +231,11 @@ The Liquid Glass images show the blurred fallback, because the test renderer has
 | **Sleep** | Sleep duration, with stages where the source records them | **Sum** |
 | **Nutrition** | Water, calories eaten, carbohydrates, protein, fat, fibre, sugar | **Sum** |
 
-Workouts are read as sessions with type, duration, distance and calories.
+**Workouts** are read as sessions with type, duration, distance, calories and steps.
 
 **Not included:** elevation gained, power, **VO2 max**, bone mass and mindfulness sessions, because the **`health`** plugin cannot read them on Android. Cycle tracking and medical records are deliberately not requested.
 
----
-
-## Period Tabs
+### Period Tabs
 
 | Tab | Bars | Headline |
 | :--- | :--- | :--- |
@@ -175,11 +253,25 @@ An average counts only days **with** data; a day without a measurement is not a 
 
 | Platform | Runner | Status |
 | :--- | :--- | :--- |
-| **Android 8.0+** (API 26) | **`android/`** | ***Tested*** in part: on a **Pixel 10 Pro** the app read 30 days of real data and loaded older data back to 2017; steps and energy agreed with the Fitbit app once it had synced to Health Connect. Writing, editing and deleting an entry have ***not*** been tested on a device yet |
+| **Android 8.0+** (API 26) | **`android/`** | ***Tested*** in part, see below |
 | **Linux** | **GTK3** (`linux/`) | ***Built.*** For development only; it has no health data source and shows a notice |
 | **iOS, macOS, Windows, Web** | none | Not supported. Health Connect exists only on Android |
 
-Everything above the plugin is ***tested*** by **286** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**.
+### What Has Been Verified
+
+Everything above the plugin is ***tested*** by **371** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
+
+| Area | Status |
+| :--- | :--- |
+| **Reading Health Connect** | ***Tested*** on a **Pixel 10 Pro**: 30 days of real data, and older data back to 2017; steps and energy agreed with the Fitbit app once it had synced |
+| **Writing, editing, deleting an entry** | ***Tested*** against the fixture store only, not on a device |
+| **Sleep pages, score, hints** | ***Tested*** by unit and widget tests with nights of every kind; the sleep page was seen on an **Android 17** emulator with invented data |
+| **Activity pages, hints** | ***Tested*** by unit tests of every rule and widget tests of every kind of workout; seen on the emulator with invented data |
+| **Loading older nights and workouts** | ***Tested*** against the fixture store, ***built*** against Health Connect |
+| **Language choice** | ***Tested*** on the emulator: set in the profile and read back with `cmd locale get-app-locales`, and set from the system side while the app was open |
+| **Floating buttons and title pill** | ***Tested*** by widget tests with a simulated status bar and by emulator stills in both themes |
+| **Liquid Glass** | ***Tested*** by widget tests in the blurred fallback, and by stills and a recording on a **Pixel 8** emulator under **Vulkan** in the light theme. On the **Pixel 10 Pro** the current state is ***built*** only |
+| **Polish text** | Not reviewed by a native speaker |
 
 ---
 
@@ -249,8 +341,10 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | :--- | :--- |
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
+| **`nights-YYYY.json`** | Every night that ended in that calendar year: its times and the minutes in each stage, without the curve. Nothing is removed |
+| **`workouts.json`** | Every workout the app has seen, oldest first. Nothing is removed |
 | **`settings.json`** | Goals, date of birth and sex, theme, the Material You and Liquid Glass switches, the language (only before Android 13), tile order per page, the tiles on Heute and their sizes |
-| **`backfill.json`** | How far back the one-time load of older data has reached |
+| **`backfill.json`**, **`nightBackfill.json`**, **`workoutBackfill.json`** | How far back each one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.
 
@@ -259,12 +353,14 @@ Every value read from disk or from Health Connect is checked against the bounds 
 ## Known Limits
 
 - **Heart rate:** single samples are loaded for the last **8 days**. The daily average is therefore not backfilled and only builds up from use; resting heart rate is.
+- **Workouts:** the heart rate of a workout is only known if the app read it within those **8 days**; older workouts loaded later have none. There are no routes or maps.
+- **Nights:** the curve of the stages exists for the last 30 days only; older nights keep their times and the minutes in each stage.
+- **One-time loads:** a failed read of one stretch of older nights or workouts is not retried.
 - **Hourly bars:** only for steps, distance, active and total calories, water and intensity minutes.
-- **Body age:** the app's own estimate. The values it is judged against follow common guidance; the years each factor is worth are constants of this app and are not validated. It is not a medical statement, and it does not use **VO2 max**, which the plugin cannot read.
-- **Sleep score:** the app's own estimate from duration and stages. Health Connect stores none.
+- **Body age and sleep score:** the app's own estimates. The values they are judged against follow common guidance; the years and points each part is worth are constants of this app and are not validated. Neither is a medical statement, and the body age does not use **VO2 max**, which the plugin cannot read.
+- **Liquid Glass:** relies on a pre-release package. Tiles do not refract, because that made scrolling stutter. The sub pages and sheets themselves stay solid; only their floating tabs, back button and title pill are glass. The status bar has no veil of its own, so its clock can stand on scrolled text. The dark theme of the current glass has not been looked at on a device.
 - **Navigation labels:** the selected destination shows its name only if the longest name fits beside the add button. In Polish at 412 pixels it misses by a few pixels, so the bar shows icons only there.
 - **Orientation:** portrait only.
-- **Liquid Glass:** relies on a pre-release package that needs Impeller; elsewhere it falls back to a plain blur. Tiles do not refract, because that made scrolling stutter. Only the four main pages turn to glass, not the detail page or the sheets; the detail page's floating tabs, back button and title pill are glass like the navigation bar. The status bar has no veil of its own, so its clock can stand on scrolled text. The dark theme of the current glass has not been looked at on a device.
 
 ---
 
@@ -280,7 +376,7 @@ Every value read from disk or from Health Connect is checked against the bounds 
 | **`dynamic_color`** | The system colour palette |
 | **`liquid_glass_renderer`** | The refracting glass of the Liquid Glass switch; Flutter itself can only blur |
 | **`path_provider`** | The private directory |
-| **`flutter_localizations`**, **`intl`** | The translations generated from **`lib/l10n/app_*.arb`**, and numbers and dates per language. Both ship with `material_ui` already |
+| **`flutter_localizations`**, **`intl`** | The translations generated from **`lib/l10n/app_*.arb`**, and numbers and dates per language |
 
 The bundled typeface is **Google Sans Flex**, under the **SIL Open Font License** (see [`assets/fonts/OFL.txt`](assets/fonts/OFL.txt)).
 
