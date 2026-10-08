@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse/background/sync_task.dart';
+import 'package:pulse/data/health_connect_repository.dart';
 import 'package:pulse/data/health_controller.dart';
 import 'package:pulse/data/backup.dart';
 import 'package:pulse/data/health_history.dart';
@@ -188,6 +189,7 @@ void main() {
         ..historyAccess = true
         ..olderDays = fixtureOlderDays();
       await store.write(StoreKeys.workoutBackfill, {
+        'version': 2,
         'done': false,
         'reached': DateTime(2025, 3, 1).toIso8601String(),
       });
@@ -196,10 +198,103 @@ void main() {
       expect(repository.workoutRequests.first.$2, DateTime(2025, 3, 1));
     });
 
+    test('a fetch from before the totals were corrected runs once more and '
+        'replaces the numbers, not the pulse', () async {
+      final store = MemoryJsonStore();
+      final start = DateTime(2026, 6, 1, 7);
+      await WorkoutArchive(store)
+          .mergeIntoStore([_run(start, km: 10, avgBpm: 150)]);
+      await store.write(StoreKeys.workoutBackfill, {'done': true});
+      final repository = FixtureRepository()
+        ..historyAccess = true
+        ..olderDays = fixtureOlderDays()
+        ..olderWorkouts = [_run(start)];
+      final health = _controller(repository, store);
+      await health.start();
+
+      expect(repository.workoutRequests, isNotEmpty);
+      expect(health.workouts.first.distanceKm, 5);
+      expect(health.workouts.first.avgBpm, 150);
+
+      final requests = repository.workoutRequests.length;
+      await _controller(repository, store).start();
+      expect(repository.workoutRequests.length, requests);
+    });
+
     test('the background task archives workouts too', () async {
       final store = MemoryJsonStore();
       await syncOnce(FixtureRepository(), store, fixtureNow);
       expect(await WorkoutArchive(store).load(), hasLength(6));
+    });
+  });
+
+  group('correctWorkouts', () {
+    final start = DateTime(2026, 10, 7, 18, 6);
+    final end = DateTime(2026, 10, 7, 18, 44);
+    final doubled = Workout(
+      type: WorkoutType.walk,
+      start: start,
+      minutes: 38,
+      kcal: 324,
+      distanceKm: 4.926,
+      steps: 6534,
+    );
+
+    test('takes the store\'s totals of the time instead of the sum of every '
+        'source', () async {
+      final asked = <(DateTime, DateTime)>[];
+      final corrected = await HealthConnectRepository.correctWorkouts(
+        [(doubled, end)],
+        totals: (start, end) async {
+          asked.add((start, end));
+          return {
+            Metric.steps: 3203,
+            Metric.distance: 2.681,
+            Metric.totalEnergy: 288.7,
+          };
+        },
+      );
+      expect(asked, [(start, end)]);
+      expect(corrected.single.steps, 3203);
+      expect(corrected.single.distanceKm, 2.681);
+      expect(corrected.single.kcal, 289);
+      expect(corrected.single.key, doubled.key);
+    });
+
+    test('keeps the read numbers where the store gives no total', () async {
+      final corrected = await HealthConnectRepository.correctWorkouts([
+        (doubled, end),
+      ], totals: (_, _) async => {Metric.steps: 3203});
+      expect(corrected.single.steps, 3203);
+      expect(corrected.single.distanceKm, 4.926);
+      expect(corrected.single.kcal, 324);
+    });
+
+    test('a workout already known with that length is not asked for '
+        'again', () async {
+      var asked = 0;
+      final known = doubled.withHeart(avgBpm: null, maxBpm: null);
+      final longer = Workout(type: WorkoutType.walk, start: start, minutes: 40);
+      Future<Map<Metric, double>> totals(DateTime _, DateTime _) async {
+        asked++;
+        return {Metric.steps: 100};
+      }
+
+      final same = await HealthConnectRepository.correctWorkouts(
+        [(doubled, end)],
+        known: [known],
+        totals: totals,
+      );
+      expect(asked, 0);
+      expect(identical(same.single, known), isTrue);
+
+      final grown = await HealthConnectRepository.correctWorkouts(
+        [(longer, end)],
+        known: [known],
+        totals: totals,
+      );
+      expect(asked, 1);
+      expect(grown.single.steps, 100);
     });
   });
 

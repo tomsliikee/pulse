@@ -273,7 +273,7 @@ For today it is the score **so far** and grows with the day, which is why Today 
 | **Sleep** | Sleep duration, with stages where the source records them | **Sum** |
 | **Nutrition** | Water, calories eaten, carbohydrates, protein, fat, fibre, sugar | **Sum** |
 
-**Workouts** are read as sessions with type, duration, distance, calories and steps.
+**Workouts** are read as sessions with type and duration. Their steps, distance and calories are **Health Connect's own totals** of that time: the **`health`** plugin adds up the records of every source, so a walk that phone and watch both counted would come out double.
 
 **Not included:** elevation gained, power, **VO2 max**, bone mass and mindfulness sessions, because the **`health`** plugin cannot read them on Android. Cycle tracking and medical records are deliberately not requested.
 
@@ -389,7 +389,7 @@ sequenceDiagram
 
 ### What Has Been Verified
 
-Everything above the plugin is ***tested*** by **579** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
+Everything above the plugin is ***tested*** by **583** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
 
 | Area | Status |
 | :--- | :--- |
@@ -402,6 +402,7 @@ Everything above the plugin is ***tested*** by **579** unit and widget tests aga
 | **Recovery** | ***Tested*** by unit tests of every part and by widget tests of the one shape by day and the two in the evening; looked at as rendered images from fixture data. With real readings it is ***built*** only: whether the watch writes heart rate variability and respiratory rate to Health Connect is not known |
 | **Motion** | ***Tested*** as values: entrances run once per opening, rings and bars fill again on return, the wave on a full ring travels, and all of it stands still with animations off. How it feels and whether it stays smooth is not measured |
 | **Removing workouts** | ***Tested*** by unit and widget tests, and on a **Pixel 10 Pro** with real data: two workouts deleted in the app that recorded them left the archive at the next read; the bin took a walk and its steps, distance and calories out of its day, its hour and the history, and the undo brought all of it back. A removal of a workout older than 30 days, and one that survives a background run, are tested against the fixture store only |
+| **Workout totals** | ***Tested*** by unit tests, and on a **Pixel 10 Pro**: a walk counted by phone and watch went from 6,534 steps and 4.93 km to 3,257 and 2.73, and the 441 archived workouts were loaded once more with their heart rates kept |
 | **Loading older nights and workouts** | ***Tested*** against the fixture store, ***built*** against Health Connect |
 | **Language choice** | ***Tested*** on an **Android 17** emulator: set in the profile and read back with `cmd locale get-app-locales` |
 | **Liquid Glass** | ***Tested*** by widget tests in the blurred fallback, and by stills on a **Pixel 8** emulator under **Vulkan** before the pages were reworked. The current pages with glass are ***built*** only |
@@ -490,6 +491,8 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Heart rate:** Single samples are loaded for the last **8 days**. The daily average is therefore not backfilled and only builds up from use; resting heart rate is.
 
 - **Workouts:** The heart rate of a workout is only known if the app read it within those **8 days**. There are no routes or maps.
+
+- **Steps from several sources:** The day's steps are Health Connect's total. It takes the source set first there and fills its gaps from the others, such as the phone's own counter. That can differ from what the watch's app shows, and ran **3 to 7 %** above the larger source on the two days it was compared.
 
 - **Removed workouts:** The amounts are measured once, when the workout is removed, and stay taken out of its days. The total calories lose the basal part of that time as well. After the snackbar has gone there is no way to bring a removed workout back.
 

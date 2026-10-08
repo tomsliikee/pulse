@@ -46,6 +46,11 @@ class HealthController extends ChangeNotifier {
 
   static const int weekLength = 7;
 
+  /// 2: workouts carry the store's own totals of their time, so the ones
+  /// loaded before, with the numbers of every source added up, are loaded
+  /// once more.
+  static const int _workoutBackfillVersion = 2;
+
   HealthStatus _status = HealthStatus.loading;
   HealthSnapshot? _snapshot;
   int _selectedIndex = 0;
@@ -451,16 +456,20 @@ class HealthController extends ChangeNotifier {
     if (_backfillingWorkouts || _disposed || history == null) return;
     final state = await _store.read(StoreKeys.workoutBackfill);
     if (_disposed) return;
-    if (state case {'done': true}) return;
     DateTime? reached;
-    if (state case {'reached': final String value}) {
-      reached = DateTime.tryParse(value);
+    if (state case {'version': _workoutBackfillVersion}) {
+      if (state case {'done': true}) return;
+      if (state case {'reached': final String value}) {
+        reached = DateTime.tryParse(value);
+      }
     }
 
-    Future<void> save({bool done = false}) => _store.write(
-      StoreKeys.workoutBackfill,
-      {'done': done, 'reached': reached?.toIso8601String()},
-    );
+    Future<void> save({bool done = false}) =>
+        _store.write(StoreKeys.workoutBackfill, {
+          'version': _workoutBackfillVersion,
+          'done': done,
+          'reached': reached?.toIso8601String(),
+        });
 
     _backfillingWorkouts = true;
     try {

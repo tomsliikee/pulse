@@ -215,10 +215,7 @@ class HealthConnectRepository implements HealthRepository {
     await _configure();
     final start = DateTime(from.year, from.month, from.day);
     final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
-    return [
-      for (final point in await _read(HealthDataType.WORKOUT, start, end))
-        ?_workout(point),
-    ];
+    return _workouts(await _read(HealthDataType.WORKOUT, start, end));
   }
 
   @override
@@ -232,20 +229,10 @@ class HealthConnectRepository implements HealthRepository {
       days[day] = (days[day] ?? 0) + amount;
     }
 
-    // Asked for day by day, so a workout across midnight is taken out of
-    // both of its days.
-    for (final (from, to) in daySlices(start, end)) {
-      for (final MapEntry(key: metric, value: type) in _totals.entries) {
-        final totals = await _totalsBy(
-          type,
-          metric,
-          from,
-          to,
-          Duration.secondsPerDay,
-        );
-        for (final total in totals.values) {
-          add(metric, from, total);
-        }
+    final totals = await _totalsDuring(start, end, _totals.keys);
+    for (final MapEntry(key: metric, value: days) in totals.entries) {
+      for (final MapEntry(key: day, value: total) in days.entries) {
+        add(metric, day, total);
       }
     }
     final active = minutesByHour([
@@ -264,6 +251,98 @@ class HealthConnectRepository implements HealthRepository {
       add(Metric.floors, point.dateFrom, _numeric(point) ?? 0);
     }
     return values;
+  }
+
+  /// The store's own totals of [metrics] from [start] to [end], by the day
+  /// they fell on. Asked for day by day, so a stretch across midnight is
+  /// counted to both of its days.
+  Future<DailyValues> _totalsDuring(
+    DateTime start,
+    DateTime end,
+    Iterable<Metric> metrics,
+  ) async {
+    final values = <Metric, Map<DateTime, double>>{};
+    for (final (from, to) in daySlices(start, end)) {
+      final day = DateTime(from.year, from.month, from.day);
+      for (final metric in metrics) {
+        final totals = await _totalsBy(
+          _totals[metric]!,
+          metric,
+          from,
+          to,
+          Duration.secondsPerDay,
+        );
+        for (final total in totals.values) {
+          final days = values.putIfAbsent(metric, () => {});
+          days[day] = (days[day] ?? 0) + total;
+        }
+      }
+    }
+    return values;
+  }
+
+  /// The workouts of [points] with the store's own totals of their time.
+  Future<List<Workout>> _workouts(
+    List<HealthDataPoint> points, {
+    List<Workout> known = const [],
+  }) => correctWorkouts(
+    [
+      for (final point in points)
+        if (_workout(point) case final workout?) (workout, point.dateTo),
+    ],
+    known: known,
+    totals: (start, end) async {
+      final days = await _totalsDuring(start, end, const [
+        Metric.steps,
+        Metric.distance,
+        Metric.totalEnergy,
+      ]);
+      return {
+        for (final MapEntry(key: metric, value: byDay) in days.entries)
+          metric: byDay.values.fold<double>(0, (sum, value) => sum + value),
+      };
+    },
+  );
+
+  /// The plugin adds up the steps, the distance and the energy of every
+  /// source for a workout, so one that phone and watch both counted comes
+  /// out double. [totals] gives what the store itself counts from a
+  /// workout's start to its end, with the overlap between sources removed,
+  /// and that replaces the plugin's numbers. A workout that is in [known]
+  /// with the same length is taken from there and not asked for again.
+  @visibleForTesting
+  static Future<List<Workout>> correctWorkouts(
+    List<(Workout, DateTime)> read, {
+    List<Workout> known = const [],
+    required Future<Map<Metric, double>> Function(DateTime start, DateTime end)
+    totals,
+  }) async {
+    final byKey = {for (final workout in known) workout.key: workout};
+    final result = <Workout>[];
+    for (final (workout, end) in read) {
+      final old = byKey[workout.key];
+      if (old != null && old.minutes == workout.minutes) {
+        result.add(old);
+        continue;
+      }
+      final counted = await totals(workout.start, end);
+      // Without a total, from a failed read, the plugin's number stays.
+      double? positive(Metric metric) => switch (counted[metric]) {
+        final double value when value > 0 => value,
+        _ => null,
+      };
+      result.add(
+        Workout(
+          type: workout.type,
+          start: workout.start,
+          minutes: workout.minutes,
+          kcal: positive(Metric.totalEnergy)?.round() ?? workout.kcal,
+          distanceKm: positive(Metric.distance) ?? workout.distanceKm,
+          steps: positive(Metric.steps)?.round() ?? workout.steps,
+        ),
+      );
+    }
+    return result;
   }
 
   static Future<List<SleepNight>> _loadNightsInWorker(
@@ -352,6 +431,7 @@ class HealthConnectRepository implements HealthRepository {
         now,
         heartFrom: heartFrom,
         withEntries: true,
+        knownWorkouts: previous?.workouts ?? const [],
         hourly: hourly,
       ),
     );
@@ -404,6 +484,7 @@ class HealthConnectRepository implements HealthRepository {
     DateTime end, {
     DateTime? heartFrom,
     bool withEntries = false,
+    List<Workout> knownWorkouts = const [],
     Map<Metric, Map<DateTime, double>> hourly = const {},
   }) async {
     final skin = await _health.isSkinTemperatureAvailable();
@@ -497,14 +578,10 @@ class HealthConnectRepository implements HealthRepository {
       sleepSessions: sessions,
       sleepStages: stages,
       workouts: withEntries
-          ? [
-              for (final point in await _read(
-                HealthDataType.WORKOUT,
-                start,
-                end,
-              ))
-                ?_workout(point),
-            ]
+          ? await _workouts(
+              await _read(HealthDataType.WORKOUT, start, end),
+              known: knownWorkouts,
+            )
           : const [],
       entries: entries,
       hourlyTotals: {
