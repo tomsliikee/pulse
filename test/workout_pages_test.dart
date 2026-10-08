@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/widgets/chip_carousel.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
@@ -44,7 +45,13 @@ void main() {
     await pumpApp(tester);
     await _openActivity(tester, lookupAppLocalizations(const Locale('de')));
 
-    expect(find.byType(WorkoutScene), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(LatestWorkoutCard),
+        matching: find.byType(WorkoutScene),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Letzte Aktivität'), findsOneWidget);
     expect(find.text('18 s schneller als letztes Mal'), findsOneWidget);
     final latest = tester.getRect(find.byType(LatestWorkoutCard));
@@ -53,7 +60,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(RecentWorkoutsCard),
-        matching: find.byType(WorkoutRow),
+        matching: find.byType(CarouselChip, skipOffstage: false),
       ),
       findsNWidgets(5),
     );
@@ -235,10 +242,7 @@ void main() {
           repository: _everyKind(),
         );
         await _openActivity(tester, l10n);
-        await tester.drag(find.byType(ListView).first, const Offset(0, -6000));
-        await advance(tester);
-        await tester.tap(find.text(l10n.allActivities));
-        await advance(tester);
+        await tapInView(tester, find.text(l10n.allActivities));
         expect(tester.takeException(), isNull);
 
         await tester.drag(

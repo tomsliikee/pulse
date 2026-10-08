@@ -86,4 +86,32 @@ void main() {
       }
     });
   }
+
+  testWidgets('the selected tab is wider than at rest, the others give way '
+      'and the bar keeps its width', (tester) async {
+    const labels = ['Tag', 'Tag', 'Tag'];
+    Widget bar(int selected) => themed(
+      Center(
+        child: FloatingTabBar(
+          labels: labels,
+          selectedIndex: selected,
+          onSelected: (_) {},
+        ),
+      ),
+    );
+    double widthOf(int index) =>
+        tester.getSize(find.bySemanticsLabel('Tag').at(index)).width;
+
+    await tester.pumpWidget(bar(0));
+    await advance(tester);
+    final whole = tester.getSize(find.byType(FloatingTabBar)).width;
+    expect(widthOf(0), greaterThan(widthOf(1) + 8));
+    expect(widthOf(1), closeTo(widthOf(2), 0.01));
+
+    await tester.pumpWidget(bar(2));
+    await advance(tester);
+    expect(widthOf(2), greaterThan(widthOf(1) + 8));
+    expect(widthOf(0), closeTo(widthOf(1), 0.01));
+    expect(tester.getSize(find.byType(FloatingTabBar)).width, whole);
+  });
 }

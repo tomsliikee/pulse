@@ -21,6 +21,8 @@ class DayScene extends StatelessWidget {
     this.wakeMinute,
     this.workouts = const [],
     this.height = 150,
+    this.stage,
+    this.figure = true,
   });
 
   /// Minute of the day the scene runs to: now for today, the evening for a
@@ -42,6 +44,13 @@ class DayScene extends StatelessWidget {
   /// The workouts that started on the day.
   final List<Workout> workouts;
   final double height;
+
+  /// The height the scene is drawn for, at the bottom of [height]; above it
+  /// there is only more sky. The whole height when null.
+  final double? stage;
+
+  /// False for a small picture of the day's sky without the walker.
+  final bool figure;
 
   @override
   Widget build(BuildContext context) => SceneClock(
@@ -147,6 +156,9 @@ class _DayPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final time = seconds.value;
+    final full = size;
+    final stage = math.min(scene.stage ?? full.height, full.height);
+    size = Size(full.width, stage);
     final u = size.height / 100;
     final loop = still ? 1.0 : time / _loop % 1;
     final played = Curves.easeInOut.transform((loop / _play).clamp(0.0, 1.0));
@@ -155,7 +167,9 @@ class _DayPainter extends CustomPainter {
     final light = _daylight(minute);
 
     final sky = _sky(minute, light);
-    canvas.drawRect(Offset.zero & size, Paint()..color = sky);
+    canvas
+      ..drawRect(Offset.zero & full, Paint()..color = sky)
+      ..translate(0, full.height - stage);
     _stars(canvas, size, u, time, 1 - light);
     _sunOrMoon(canvas, size, u, minute, light, sky);
     _clouds(canvas, size, u, time, light);
@@ -166,6 +180,7 @@ class _DayPainter extends CustomPainter {
     _hills(canvas, size, ground, travelled * 0.18, 24 * u, 0.9, 0.5, light);
     _hills(canvas, size, ground, travelled * 0.45, 14 * u, 1.7, 0.85, light);
     _ground(canvas, size, u, ground, travelled, light);
+    if (!scene.figure) return;
 
     final pen = FigurePen(
       canvas,

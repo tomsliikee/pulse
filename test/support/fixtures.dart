@@ -209,6 +209,11 @@ RawReadings fixtureReadings() {
     for (var hour = 7; hour <= 14; hour++) _day(0, hour): 929,
     for (var hour = 8; hour <= 20; hour++) _day(1, hour): 400,
   };
+  final activeByHour = <DateTime, double>{
+    for (final (hour, kcal) in const [(7, 40.0), (8, 25.0), (12, 150.0)])
+      _day(0, hour): kcal,
+    _day(0, 13): 95,
+  };
 
   for (var ago = 29; ago >= 0; ago--) {
     final day = _day(ago);
@@ -279,7 +284,10 @@ RawReadings fixtureReadings() {
       Metric.intensityMinutes: intensity,
       Metric.water: water,
     },
-    hourlyTotals: {Metric.steps: stepsByHour},
+    hourlyTotals: {
+      Metric.steps: stepsByHour,
+      Metric.activeEnergy: activeByHour,
+    },
     sleepSessions: sessions,
     sleepStages: stages,
     workouts: [

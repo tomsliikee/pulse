@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/models.dart';
@@ -270,11 +271,12 @@ void main() {
 
     final days = find.byType(DaysCard, skipOffstage: false);
     await bringIntoView(tester, days);
-    final rows = find.descendant(
+    // Each day of the carousel carries its score on a shape.
+    final scores = find.descendant(
       of: days,
-      matching: find.byType(DayRow, skipOffstage: false),
+      matching: find.byType(M3EContainer, skipOffstage: false),
     );
-    expect(rows, findsNWidgets(5));
+    expect(scores, findsNWidgets(5));
     expect(find.text('Mo, 5.10.', skipOffstage: false), findsOneWidget);
 
     await tapInView(tester, find.text('Mo, 5.10.'));
@@ -294,7 +296,7 @@ void main() {
     expect(
       find.descendant(
         of: onPage(find.byType(DaysCard, skipOffstage: false)),
-        matching: find.byType(DayRow, skipOffstage: false),
+        matching: find.byType(M3EContainer, skipOffstage: false),
       ),
       findsNWidgets(3),
     );
@@ -490,10 +492,10 @@ void main() {
             tester,
             find.descendant(of: page, matching: find.byType(CustomScrollView)),
           );
-          await tester.tap(
+          await tapInView(
+            tester,
             find.descendant(of: page, matching: find.text(l10n.allDays)),
           );
-          await advance(tester);
           expect(find.byType(DayListPage), findsOneWidget);
           expect(tester.takeException(), isNull);
         });

@@ -8,6 +8,9 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/line_chart.dart';
@@ -17,6 +20,7 @@ import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
 import '../detail/metric_spec.dart';
 import '../detail/page_tiles.dart';
+import 'heart_scene.dart';
 
 /// Heart rate over the selected day, vitals and time in zones.
 class HeartPage extends StatelessWidget {
@@ -27,148 +31,37 @@ class HeartPage extends StatelessWidget {
     final scope = AppScope.of(context);
     final health = scope.health;
     final settings = scope.settings;
-    return ListenableBuilder(
-      listenable: Listenable.merge([health, settings]),
-      builder: (context, _) {
-        final theme = Theme.of(context);
-        final scheme = theme.colorScheme;
-        final formats = Formats.of(context);
-        final l10n = formats.l10n;
-        final snapshot = health.snapshot;
-        final samples = health.heartSamples;
-        final current = samples.isEmpty ? null : samples.last;
-        var low = current?.bpm ?? 0;
-        var high = low;
-        for (final sample in samples) {
-          if (sample.bpm < low) low = sample.bpm;
-          if (sample.bpm > high) high = sample.bpm;
-        }
-        final labelStyle = theme.textTheme.labelMedium?.copyWith(
-          color: scheme.onSurfaceVariant,
-        );
-        final bpmStyle = context.emphasizedTextTheme.displayMedium?.copyWith(
-          color: scheme.onTertiaryContainer,
-          height: 1,
-        );
-        final systolic = health.value(Metric.systolic);
-        final diastolic = health.value(Metric.diastolic);
+    return PageAccent.heart(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([health, settings]),
+        builder: (context, _) {
+          final formats = Formats.of(context);
+          final l10n = formats.l10n;
+          final snapshot = health.snapshot;
+          final samples = health.heartSamples;
+          final current = samples.isEmpty ? null : samples.last;
+          var low = current?.bpm ?? 0;
+          var high = low;
+          for (final sample in samples) {
+            if (sample.bpm < low) low = sample.bpm;
+            if (sample.bpm > high) high = sample.bpm;
+          }
+          final systolic = health.value(Metric.systolic);
+          final diastolic = health.value(Metric.diastolic);
 
-        return BoardPage(
-          pageId: 'heart',
-          title: l10n.navHeart,
-          subtitle: formats.longDate(health.selectedDate),
-          removable: true,
-          tiles: [
+          final tiles = [
             BoardTile(
               id: 'hero',
               title: l10n.shortHeartRate,
-              height: 152,
-              child: TileSurface(
-                color: scheme.tertiaryContainer,
-                radius: AppRadii.extraExtraLarge,
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    _BeatingHeart(bpm: current?.bpm, color: scheme.tertiary),
-                    const SizedBox(width: 20),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              if (current == null)
-                                Text('–', style: bpmStyle)
-                              else
-                                AnimatedCount(
-                                  value: current.bpm,
-                                  style: bpmStyle,
-                                ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'bpm',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: scheme.onTertiaryContainer,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            current == null
-                                ? l10n.noPulseThatDay
-                                : l10n.lastAtTime(
-                                    formatClock(current.minuteOfDay),
-                                  ),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.onTertiaryContainer.withValues(
-                                alpha: 0.72,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              height: _Hero.height,
+              child: _Hero(samples: samples, low: low, high: high),
             ),
             BoardTile(
               id: 'day',
               title: l10n.dayCurve,
-              height: 300,
-              child: SurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.dayCurve,
-                            style: context.emphasizedTextTheme.titleMedium,
-                          ),
-                        ),
-                        if (samples.length >= 2)
-                          Text(
-                            l10n.bpmRange(low, high),
-                            style: context.emphasizedTextTheme.labelLarge
-                                ?.copyWith(color: scheme.tertiary),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Expanded(
-                      child: samples.length < 2
-                          ? EmptyNote(l10n.noHeartCurve)
-                          : LineChart(
-                              // Draw the line again for every day.
-                              key: ValueKey(health.selectedDate),
-                              values: [
-                                for (final s in samples) s.bpm.toDouble(),
-                              ],
-                              color: scheme.tertiary,
-                              height: null,
-                            ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (samples.length >= 2)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          for (final minute in [
-                            samples.first.minuteOfDay,
-                            samples.last.minuteOfDay,
-                          ])
-                            Text(formatClock(minute), style: labelStyle),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+              height: _DayCurve.height,
+              entersInPlace: true,
+              child: _DayCurve(samples: samples, day: health.selectedDate),
             ),
             if (snapshot.has(Metric.restingHeartRate))
               statTile(
@@ -232,12 +125,200 @@ class HeartPage extends StatelessWidget {
               BoardTile(
                 id: 'zones',
                 title: l10n.heartRateZones,
-                height: 304,
-                child: SurfaceCard(child: _Zones(samples: samples)),
+                height: _Zones.height,
+                child: _Zones(samples: samples),
               ),
+          ];
+          final bleeds = BoardBackdrop.wanted(
+            context,
+            pageId: 'heart',
+            heroId: 'hero',
+            shown: [for (final tile in tiles) tile.id],
+            inPlace: {
+              for (final tile in tiles)
+                if (tile.entersInPlace) tile.id,
+            },
+          );
+          return BoardPage(
+            pageId: 'heart',
+            backdrop: !bleeds
+                ? null
+                : (context, boardTop) => FadingBackdrop(
+                    child: HeartScene(
+                      bpm: current?.bpm,
+                      height: boardTop + _Hero.sceneHeight,
+                      stage: _Hero.sceneHeight + 24,
+                    ),
+                  ),
+            title: l10n.navHeart,
+            subtitle: formats.longDate(health.selectedDate),
+            removable: true,
+            tiles: tiles,
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The figure with its heart beating at the last measured rate is the one
+/// container of the page; the rate itself sits on a heart that hangs over
+/// the scene's edge, and beside it, free, how far the day ranged and when
+/// the last measurement was.
+class _Hero extends StatelessWidget {
+  const _Hero({required this.samples, required this.low, required this.high});
+
+  final List<HeartSample> samples;
+  final int low;
+  final int high;
+
+  static const double sceneHeight = 132;
+  static const double _shape = 104;
+  static const double _overlap = 48;
+
+  static const double height = sceneHeight + _shape - _overlap + 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = Formats.of(context).l10n;
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
+    final current = samples.isEmpty ? null : samples.last;
+    final bpmStyle = type.hero(
+      context.emphasizedTextTheme.headlineMedium?.copyWith(
+        color: accent.onAccent,
+        height: 1,
+      ),
+    );
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The page draws the scene itself, behind the title.
+            if (BoardBackdrop.isShown(context))
+              const SizedBox(height: sceneHeight)
+            else
+              TileSurface(
+                color: scheme.surfaceBright,
+                radius: AppRadii.extraLargeIncreased,
+                child: HeartScene(bpm: current?.bpm, height: sceneHeight),
+              ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: _shape + 28, right: 4),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      samples.length < 2 ? 'bpm' : l10n.bpmRange(low, high),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: type.figure(
+                        context.emphasizedTextTheme.titleLarge,
+                      ),
+                    ),
+                    Text(
+                      current == null
+                          ? l10n.noPulseThatDay
+                          : l10n.lastAtTime(formatClock(current.minuteOfDay)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: type.label(
+                        theme.textTheme.bodyMedium?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
-        );
-      },
+        ),
+        Positioned(
+          left: 16,
+          top: sceneHeight - _overlap,
+          child: SizedBox.square(
+            dimension: _shape,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                _BeatingHeart(
+                  bpm: current?.bpm,
+                  color: accent.accent,
+                  size: _shape,
+                ),
+                // A little above the middle, where the heart is widest.
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: current == null
+                      ? Text('–', style: bpmStyle)
+                      : AnimatedCount(value: current.bpm, style: bpmStyle),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// The heart rate over the day, alone on its surface under a free title.
+class _DayCurve extends StatelessWidget {
+  const _DayCurve({required this.samples, required this.day});
+
+  final List<HeartSample> samples;
+  final DateTime day;
+
+  static const double height = TitledTile.titleHeight + 196;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = Formats.of(context).l10n;
+    final labelStyle = AppType.of(context).label(
+      theme.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
+    );
+    return TitledTile(
+      title: l10n.dayCurve,
+      child: TileSurface(
+        color: scheme.surfaceBright,
+        radius: AppRadii.extraLargeIncreased,
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        child: samples.length < 2
+            ? EmptyNote(l10n.noHeartCurve)
+            : Column(
+                children: [
+                  Expanded(
+                    child: LineChart(
+                      // Draw the line again for every day.
+                      key: ValueKey(day),
+                      values: [for (final s in samples) s.bpm.toDouble()],
+                      color: PageAccent.colorsOf(context).accent,
+                      height: null,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final minute in [
+                        samples.first.minuteOfDay,
+                        samples.last.minuteOfDay,
+                      ])
+                        Text(formatClock(minute), style: labelStyle),
+                    ],
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }
@@ -246,10 +327,15 @@ class HeartPage extends StatelessWidget {
 /// that moves at rest, because the movement is the measurement. Without a
 /// measurement it stands still.
 class _BeatingHeart extends StatefulWidget {
-  const _BeatingHeart({required this.bpm, required this.color});
+  const _BeatingHeart({
+    required this.bpm,
+    required this.color,
+    required this.size,
+  });
 
   final int? bpm;
   final Color color;
+  final double size;
 
   @override
   State<_BeatingHeart> createState() => _BeatingHeartState();
@@ -304,8 +390,8 @@ class _BeatingHeartState extends State<_BeatingHeart>
       scale: scale,
       child: M3EShape(
         Shapes.heart,
-        width: 104,
-        height: 104,
+        width: widget.size,
+        height: widget.size,
         color: widget.color,
       ),
     );
@@ -318,6 +404,10 @@ class _Zones extends StatelessWidget {
   final List<HeartSample> samples;
 
   static const _minutesPerSample = 10;
+
+  static const double _row = 68;
+  static const double height =
+      TitledTile.titleHeight + 4 * _row + 3 * SegmentGroup.gap;
 
   @override
   Widget build(BuildContext context) {
@@ -341,34 +431,48 @@ class _Zones extends StatelessWidget {
       if (value > longest) longest = value;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.timeInZones, style: context.emphasizedTextTheme.titleMedium),
-        const Spacer(),
-        for (var i = 0; i < zones.length; i++) ...[
-          if (i > 0) const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Text(zones[i].label, style: theme.textTheme.titleSmall),
+    final type = AppType.of(context);
+    // The zone most of the day was spent in is the loud one.
+    final most = minutes.indexOf(longest);
+    return TitledTile(
+      title: l10n.timeInZones,
+      child: SegmentGroup(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        loud: most < 0 ? null : most,
+        children: [
+          for (var i = 0; i < zones.length; i++)
+            SizedBox(
+              height: _row,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          zones[i].label,
+                          style: type.strong(theme.textTheme.titleSmall),
+                        ),
+                      ),
+                      Text(
+                        formats.duration(minutes[i]),
+                        style: type.figure(
+                          context.emphasizedTextTheme.labelLarge,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _ZoneBar(
+                    fraction: minutes[i] / longest,
+                    color: zones[i].color,
+                    trackColor: scheme.onSurface.withValues(alpha: 0.08),
+                  ),
+                ],
               ),
-              Text(
-                formats.duration(minutes[i]),
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _ZoneBar(
-            fraction: minutes[i] / longest,
-            color: zones[i].color,
-            trackColor: scheme.surfaceContainerHighest,
-          ),
+            ),
         ],
-      ],
+      ),
     );
   }
 }

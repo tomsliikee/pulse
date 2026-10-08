@@ -382,6 +382,8 @@
   "dayStepsAndSleep": "{steps} kroków · {sleep} snu",
   "dayStepsOnly": "{steps} kroków",
   "amountOfGoal": "{amount} z {goal}",
+  "stepsOfGoal": "z {goal} kroków",
+  "ofGoal": "z {goal} {unit}",
   "addGlass": "Dodaj szklankę wody",
   "glassAdded": "Dodano {amount} wody",
   "dayTipFew": "Po trzech dniach Pulse może porównywać i dawać wskazówki.",
@@ -411,5 +413,12 @@
   "goalMarkNone": "brak danych",
   "goalMarkOpen": "jeszcze trwa",
   "dayTabMore": "Więcej",
-  "nightTabToday": "Dziś"
+  "nightTabToday": "Dziś",
+  "edgeHero": "Scena bez ramki",
+  "flexFont": "Czcionka Flex",
+  "dayScoreParts": "Z czego się składa",
+  "dayNumbers": "Dzień w liczbach",
+  "nightNumbers": "Noc w liczbach",
+  "workoutNumbers": "Aktywność w liczbach",
+  "ageFactorsTitle": "Co się na to składa"
 }

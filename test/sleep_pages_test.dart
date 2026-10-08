@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/widgets/chip_carousel.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
@@ -31,7 +32,13 @@ void main() {
     await pumpApp(tester);
     await _openSleep(tester, _de);
 
-    expect(find.byType(SleepScene), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(LatestNightCard),
+        matching: find.byType(SleepScene),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Letzte Nacht'), findsOneWidget);
     expect(find.text('Nacht auf Dienstag, 6. Oktober'), findsOneWidget);
     final latest = tester.getRect(find.byType(LatestNightCard));
@@ -40,7 +47,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(NightsCard),
-        matching: find.byType(NightRow, skipOffstage: false),
+        matching: find.byType(CarouselChip, skipOffstage: false),
       ),
       findsNWidgets(5),
     );
@@ -95,7 +102,10 @@ void main() {
       const Offset(0, -9000),
     );
     await advance(tester);
-    final below = find.descendant(of: page, matching: find.byType(NightRow));
+    final below = find.descendant(
+      of: page,
+      matching: find.byType(CarouselChip, skipOffstage: false),
+    );
     expect(below, findsNWidgets(3));
     expect(
       find.descendant(of: page, matching: find.text('Sa, 3.10.')),
@@ -120,8 +130,8 @@ void main() {
       const Offset(0, -9000),
     );
     await advance(tester);
-    await tester.tap(find.text('Alle Nächte').last);
-    await advance(tester);
+    // The way to all of them is the last card of the carousel.
+    await tapInView(tester, find.text('Alle Nächte').last);
     expect(find.byType(NightListPage), findsOneWidget);
     expect(
       find.descendant(

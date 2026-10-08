@@ -1151,6 +1151,25 @@
       }
     }
   },
+  "stepsOfGoal": "von {goal} Schritten",
+  "@stepsOfGoal": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "ofGoal": "von {goal} {unit}",
+  "@ofGoal": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
   "addGlass": "Ein Glas Wasser eintragen",
   "glassAdded": "{amount} Wasser eingetragen",
   "@glassAdded": {
@@ -1267,5 +1286,12 @@
   "goalMarkNone": "keine Daten",
   "goalMarkOpen": "läuft noch",
   "dayTabMore": "Weitere",
-  "nightTabToday": "Heute"
+  "nightTabToday": "Heute",
+  "edgeHero": "Szene randlos",
+  "flexFont": "Flex-Schrift",
+  "dayScoreParts": "So setzt er sich zusammen",
+  "dayNumbers": "Der Tag in Zahlen",
+  "nightNumbers": "Die Nacht in Zahlen",
+  "workoutNumbers": "Die Aktivität in Zahlen",
+  "ageFactorsTitle": "Das fließt ein"
 }

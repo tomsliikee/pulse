@@ -1,9 +1,12 @@
-import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../theme/app_type.dart';
+import '../theme/page_accent.dart';
+import 'page_header.dart';
 import 'stat_tile.dart';
 
-/// A titled card.
+/// A section whose content is one thing, such as a chart: its title free
+/// above, the content alone on a surface.
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
@@ -15,45 +18,38 @@ class SectionCard extends StatelessWidget {
 
   final String title;
   final Widget child;
+
+  /// A short figure at the end of the title's line.
   final String? trailing;
 
-  /// For content that reaches the card's edges; the title keeps its inset.
+  /// For content that reaches the surface's edges.
   final EdgeInsets? padding;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final trailing = this.trailing;
-    final padding = this.padding;
-    return SurfaceCard(
-      padding: padding,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: padding == null ? 0 : 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: context.emphasizedTextTheme.titleMedium,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(child: SectionTitle(title)),
+            if (trailing != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 0, 4, 14),
+                child: Text(
+                  trailing,
+                  style: AppType.of(context).figure(
+                    Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(color: PageAccent.colorsOf(context).accent),
                   ),
                 ),
-                if (trailing != null)
-                  Text(
-                    trailing,
-                    style: context.emphasizedTextTheme.labelLarge?.copyWith(
-                      color: scheme.tertiary,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
+              ),
+          ],
+        ),
+        SurfaceCard(padding: padding, child: child),
+      ],
     );
   }
 }

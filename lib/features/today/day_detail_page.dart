@@ -12,7 +12,12 @@ import '../../data/workout_insights.dart' show Trend;
 import '../../widgets/animated_count.dart';
 import '../../widgets/number_grid.dart';
 import '../../widgets/page_header.dart';
-import '../../widgets/section_card.dart';
+import '../../theme/app_shapes.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/morphing_shape.dart';
+import '../../widgets/segment_group.dart';
+import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/day_switcher.dart';
 import '../../widgets/entrance.dart';
@@ -61,43 +66,45 @@ class _DayDetailPageState extends State<DayDetailPage> {
     final l10n = AppLocalizations.of(context);
     return ListenableBuilder(
       listenable: Listenable.merge([health, scope.settings]),
-      builder: (context, _) => SubPage(
-        title: l10n.dayInDetail,
-        glass: scope.settings.liquidGlass,
-        // The page ends above the floating bar.
-        bottomPadding:
-            16 +
-            FloatingTabBar.height +
-            24 +
-            MediaQuery.paddingOf(context).bottom,
-        overlay: health.status != HealthStatus.ready
-            ? null
-            : Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16 + MediaQuery.paddingOf(context).bottom,
-                child: Center(
-                  child: DaySwitcher(
-                    today: health.today,
-                    selected: _date,
-                    earlier: _earlier(health),
-                    allLabel: l10n.allDays,
-                    glass: scope.settings.liquidGlass,
-                    onSelected: _show,
-                    onAll: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const DayListPage(),
+      builder: (context, _) => PageAccent.day(
+        child: SubPage(
+          title: l10n.dayInDetail,
+          glass: scope.settings.liquidGlass,
+          // The page ends above the floating bar.
+          bottomPadding:
+              16 +
+              FloatingTabBar.height +
+              24 +
+              MediaQuery.paddingOf(context).bottom,
+          overlay: health.status != HealthStatus.ready
+              ? null
+              : Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                  child: Center(
+                    child: DaySwitcher(
+                      today: health.today,
+                      selected: _date,
+                      earlier: _earlier(health),
+                      allLabel: l10n.allDays,
+                      glass: scope.settings.liquidGlass,
+                      onSelected: _show,
+                      onAll: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const DayListPage(),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-        child: health.status == HealthStatus.ready
-            ? _content(context, health, scope.settings)
-            : const SizedBox(
-                height: 240,
-                child: Center(child: M3ELoadingIndicator()),
-              ),
+          child: health.status == HealthStatus.ready
+              ? _content(context, health, scope.settings)
+              : const SizedBox(
+                  height: 240,
+                  child: Center(child: M3ELoadingIndicator()),
+                ),
+        ),
       ),
     );
   }
@@ -126,8 +133,8 @@ class _DayDetailPageState extends State<DayDetailPage> {
       padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
       child: Text(
         formats.longDate(date),
-        style: theme.textTheme.titleMedium?.copyWith(
-          color: scheme.onSurfaceVariant,
+        style: AppType.of(context).aside(
+          theme.textTheme.titleMedium?.copyWith(color: scheme.onSurfaceVariant),
         ),
       ),
     );
@@ -152,26 +159,31 @@ class _DayDetailPageState extends State<DayDetailPage> {
     final sections = <Widget>[
       _Summary(
         insights: insights,
+        today: today,
         soFar: today ? stepsSoFar(health.snapshot, health.now) : null,
       ),
-      _ScoreCard(score: insights.score, soFar: today),
+      _ScoreParts(score: insights.score),
       _Measures(insights: insights),
       // A day that is still running is not set against whole days.
       if (!today) _Comparison(insights: insights),
       if (night != null)
-        SectionCard(
+        TitledSection(
           title: l10n.dayNightTitle,
-          padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
-          child: SizedBox(
-            height: NightsCard.rowHeight,
-            child: NightRow(night: night),
+          child: SegmentGroup(
+            padding: EdgeInsets.zero,
+            children: [
+              SizedBox(
+                height: NightsCard.rowHeight,
+                child: NightRow(night: night),
+              ),
+            ],
           ),
         ),
       if (insights.workouts.isNotEmpty)
-        SectionCard(
+        TitledSection(
           title: l10n.dayWorkoutsTitle,
-          padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
-          child: Column(
+          child: SegmentGroup(
+            padding: EdgeInsets.zero,
             children: [
               for (final workout in insights.workouts)
                 SizedBox(
@@ -183,7 +195,16 @@ class _DayDetailPageState extends State<DayDetailPage> {
         ),
       _Tips(insights: insights, today: today),
       if (before.isNotEmpty)
-        DaysCard(days: before.take(_daysBelow).toList(), total: all.length),
+        Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: SizedBox(
+            height: DaysCard.height,
+            child: DaysCard(
+              days: before.take(_daysBelow).toList(),
+              total: all.length,
+            ),
+          ),
+        ),
     ];
 
     return Column(
@@ -191,7 +212,6 @@ class _DayDetailPageState extends State<DayDetailPage> {
       children: [
         dateLine,
         for (var i = 0; i < sections.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
           // Keyed by the day, so they come in again when it changes.
           Entrance(key: ValueKey((date, i)), order: i, child: sections[i]),
         ],
@@ -200,12 +220,23 @@ class _DayDetailPageState extends State<DayDetailPage> {
   }
 }
 
-/// The day played back, with its steps and how it went.
+/// The day played back in the one container of the page, the score on a
+/// shape that hangs over its edge, and below it, free, the steps and how
+/// the day went.
 class _Summary extends StatelessWidget {
-  const _Summary({required this.insights, required this.soFar});
+  const _Summary({
+    required this.insights,
+    required this.today,
+    required this.soFar,
+  });
 
   final DayInsights insights;
+  final bool today;
   final StepsSoFar? soFar;
+
+  static const double _scene = 160;
+  static const double _shape = 116;
+  static const double _overlap = 54;
 
   @override
   Widget build(BuildContext context) {
@@ -213,71 +244,121 @@ class _Summary extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
     final steps = insights.measure(DayMeasure.steps);
-    return SurfaceCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          daySceneOf(AppScope.of(context).health, insights, height: 140),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.dayStepsOnly(Metric.steps.format(formats, steps?.value)),
-                  style: context.emphasizedTextTheme.headlineMedium,
-                ),
-                if (insights.streak > 1)
-                  Text(
-                    l10n.streakDays(insights.streak),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+    final score = insights.score.total;
+    final scoreStyle = type.hero(
+      context.emphasizedTextTheme.displaySmall?.copyWith(
+        color: accent.onAccent,
+        height: 1,
+      ),
+    );
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: daySceneOf(
+                AppScope.of(context).health,
+                insights,
+                height: _scene,
+              ),
+            ),
+            SizedBox(
+              height: _shape - _overlap,
+              child: Padding(
+                padding: const EdgeInsets.only(left: _shape + 28, right: 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    today ? l10n.dayScoreSoFar : l10n.dayScore,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: type.label(
+                      theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                const SizedBox(height: 8),
-                Text(
-                  dayHeadline(formats, insights, soFar: soFar),
-                  style: context.emphasizedTextTheme.titleMedium?.copyWith(
-                    color: scheme.primary,
-                  ),
                 ),
-              ],
+              ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.dayStepsOnly(
+                      Metric.steps.format(formats, steps?.value),
+                    ),
+                    style: type.hero(context.emphasizedTextTheme.displaySmall),
+                  ),
+                  if (insights.streak > 1)
+                    Text(
+                      l10n.streakDays(insights.streak),
+                      style: type.label(
+                        theme.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    dayHeadline(formats, insights, soFar: soFar),
+                    style: type.strong(
+                      context.emphasizedTextTheme.titleMedium?.copyWith(
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Positioned(
+          left: 16,
+          top: _scene - _overlap,
+          child: MorphingShape(
+            shape: AppShapes.of(PageAccent.of(context).family, score),
+            color: accent.accent,
+            size: _shape,
+            child: score == null
+                ? Text('–', style: scoreStyle)
+                : AnimatedCount(value: score, style: scoreStyle),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// The score with what each of its parts gave.
-class _ScoreCard extends StatelessWidget {
-  const _ScoreCard({required this.score, required this.soFar});
+/// What each part of the score gave, a segment for each.
+class _ScoreParts extends StatelessWidget {
+  const _ScoreParts({required this.score});
 
   final DayScore score;
-
-  /// Whether the day is still running.
-  final bool soFar;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    final total = score.total;
-    return SectionCard(
-      title: soFar ? l10n.dayScoreSoFar : l10n.dayScore,
-      trailing: total == null ? null : '$total',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 14,
+    final type = AppType.of(context);
+    return TitledSection(
+      title: l10n.dayScoreParts,
+      note: l10n.dayScoreNote,
+      child: SegmentGroup(
         children: [
           for (final part in DayScorePart.values)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 6,
+              spacing: 8,
               children: [
                 Row(
                   children: [
@@ -286,21 +367,27 @@ class _ScoreCard extends StatelessWidget {
                         part.label(l10n),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
+                        style: type.strong(theme.textTheme.titleSmall),
                       ),
                     ),
-                    Text(
-                      switch (score.parts[part]) {
-                        final earned? => l10n.scorePoints(
-                          earned.round(),
-                          part.points,
+                    switch (score.parts[part]) {
+                      final earned? => Text(
+                        l10n.scorePoints(earned.round(), part.points),
+                        style: type.label(
+                          theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                        null => l10n.scoreNotJudged,
-                      },
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
                       ),
-                    ),
+                      null => Text(
+                        l10n.scoreNotJudged,
+                        style: type.aside(
+                          theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    },
                   ],
                 ),
                 // Nothing to draw for a part that was not judged.
@@ -308,19 +395,13 @@ class _ScoreCard extends StatelessWidget {
                   WavyBar(value: earned / part.points),
               ],
             ),
-          Text(
-            l10n.dayScoreNote,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
         ],
       ),
     );
   }
 }
 
-/// Every number of the day, two to a row; a best is marked.
+/// Every number of the day; a best is marked.
 class _Measures extends StatelessWidget {
   const _Measures({required this.insights});
 
@@ -331,32 +412,36 @@ class _Measures extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return NumberGrid(
-      cells: [
-        for (final comparison in insights.measures)
-          if (comparison.measure != DayMeasure.score)
-            NumberCell(
-              label: comparison.measure.label(l10n),
-              value: AnimatedNumber(
-                value: comparison.value,
-                format: (value) =>
-                    comparison.measure.formatAlone(formats, value),
+    return TitledSection(
+      title: l10n.dayNumbers,
+      child: NumberGrid(
+        cells: [
+          for (final comparison in insights.measures)
+            if (comparison.measure != DayMeasure.score)
+              NumberCell(
+                label: comparison.measure.label(l10n),
+                value: AnimatedNumber(
+                  value: comparison.value,
+                  format: (value) =>
+                      comparison.measure.formatAlone(formats, value),
+                ),
+                trailing: !comparison.isBest
+                    ? null
+                    : Icon(
+                        Icons.emoji_events_rounded,
+                        size: 18,
+                        color: scheme.tertiary,
+                        semanticLabel: l10n.dayBest,
+                      ),
               ),
-              trailing: !comparison.isBest
-                  ? null
-                  : Icon(
-                      Icons.emoji_events_rounded,
-                      size: 18,
-                      color: scheme.tertiary,
-                      semanticLabel: l10n.dayBest,
-                    ),
-            ),
-      ],
+        ],
+      ),
     );
   }
 }
 
-/// Each number against the day before and against the week before.
+/// Each number against the day before and against the week before, a
+/// segment for each.
 class _Comparison extends StatelessWidget {
   const _Comparison({required this.insights});
 
@@ -368,24 +453,29 @@ class _Comparison extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
+    final type = AppType.of(context);
     final rows = [
       for (final comparison in insights.measures)
         if (comparison.previous != null || comparison.average != null)
           comparison,
     ];
     if (rows.isEmpty) {
-      return SectionCard(
+      return TitledSection(
         title: l10n.compareTitle,
-        child: Text(
-          l10n.compareNoDay,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+        child: SegmentGroup(
+          children: [
+            Text(
+              l10n.compareNoDay,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       );
     }
-    final head = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
+    final head = type.label(
+      theme.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
     );
 
     Widget difference(DayComparison comparison, double? other, Trend trend) {
@@ -397,22 +487,25 @@ class _Comparison extends StatelessWidget {
         textAlign: TextAlign.end,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: context.emphasizedTextTheme.labelLarge?.copyWith(
-          color: switch (trend) {
-            Trend.better => scheme.primary,
-            Trend.worse => scheme.error,
-            Trend.same || Trend.neutral => scheme.onSurfaceVariant,
-          },
+        style: type.figure(
+          context.emphasizedTextTheme.labelLarge?.copyWith(
+            color: switch (trend) {
+              Trend.better => scheme.primary,
+              Trend.worse => scheme.error,
+              Trend.same || Trend.neutral => scheme.onSurfaceVariant,
+            },
+          ),
         ),
       );
     }
 
-    return SectionCard(
-      title: l10n.compareTitle,
-      child: Column(
-        spacing: 12,
-        children: [
-          Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionTitle(l10n.compareTitle),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Row(
             children: [
               const Expanded(flex: 5, child: SizedBox.shrink()),
               for (final label in [l10n.compareDayBefore, l10n.compareWeek])
@@ -428,7 +521,11 @@ class _Comparison extends StatelessWidget {
                 ),
             ],
           ),
-          ...staggered([
+        ),
+        SegmentGroup(
+          from: 1,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          children: [
             for (final comparison in rows)
               Row(
                 children: [
@@ -459,9 +556,9 @@ class _Comparison extends StatelessWidget {
                   ),
                 ],
               ),
-          ], from: 1),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -478,38 +575,32 @@ class _Tips extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return SectionCard(
+    return TitledSection(
       title: today ? l10n.dayTipsTitle : l10n.dayTipsTitlePast,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 12,
+      note: l10n.tipsNote,
+      child: SegmentGroup(
+        from: 1,
+        padding: const EdgeInsets.all(16),
         children: [
-          ...staggered([
-            for (final tip in insights.tips)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.lightbulb_outline_rounded,
-                    size: 20,
-                    color: scheme.tertiary,
+          for (final tip in insights.tips)
+            Row(
+              children: [
+                ShapeBadge(
+                  shape: Shapes.softBurst,
+                  icon: Icons.lightbulb_outline_rounded,
+                  size: 40,
+                  color: scheme.tertiaryContainer,
+                  iconColor: scheme.onTertiaryContainer,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    dayTip(formats, tip),
+                    style: theme.textTheme.bodyMedium,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      dayTip(formats, tip),
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                ],
-              ),
-          ], from: 1),
-          Text(
-            l10n.tipsNote,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+                ),
+              ],
             ),
-          ),
         ],
       ),
     );

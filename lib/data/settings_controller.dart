@@ -100,6 +100,8 @@ class SettingsController extends ChangeNotifier {
   bool _dynamicColor = true;
   bool _showAllData = false;
   bool _liquidGlass = false;
+  bool _edgeToEdgeHero = false;
+  bool _flexFont = false;
   String? _language;
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
@@ -129,6 +131,14 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the navigation bar and the tiles are drawn as liquid glass.
   bool get liquidGlass => _liquidGlass;
+
+  /// Whether the scene of a main page runs to the edges of the screen
+  /// instead of sitting in a card.
+  bool get edgeToEdgeHero => _edgeToEdgeHero;
+
+  /// Whether the type uses the axes of the variable font: width, weight,
+  /// slant and grade. Off, the font is a plain typeface.
+  bool get flexFont => _flexFont;
 
   /// The chosen language, or null to follow the system. Only used where the
   /// system keeps no language per app; see `LanguageController`.
@@ -197,6 +207,8 @@ class SettingsController extends ChangeNotifier {
     if (json['dynamicColor'] case final bool v) _dynamicColor = v;
     if (json['showAllData'] case final bool v) _showAllData = v;
     if (json['liquidGlass'] case final bool v) _liquidGlass = v;
+    if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
+    if (json['flexFont'] case final bool v) _flexFont = v;
     if (json['language'] case final String v when appLanguages.contains(v)) {
       _language = v;
     }
@@ -302,6 +314,10 @@ class SettingsController extends ChangeNotifier {
 
   void setLiquidGlass(bool value) => _update(() => _liquidGlass = value);
 
+  void setEdgeToEdgeHero(bool value) => _update(() => _edgeToEdgeHero = value);
+
+  void setFlexFont(bool value) => _update(() => _flexFont = value);
+
   void setLanguage(String? value) {
     if (value != null && !appLanguages.contains(value)) return;
     _update(() => _language = value);
@@ -364,6 +380,8 @@ class SettingsController extends ChangeNotifier {
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,
             'liquidGlass': _liquidGlass,
+            'edgeToEdgeHero': _edgeToEdgeHero,
+            'flexFont': _flexFont,
             'language': ?_language,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,

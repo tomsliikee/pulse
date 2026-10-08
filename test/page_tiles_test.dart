@@ -24,25 +24,26 @@ void main() {
   ) async {
     final app = await pumpApp(tester);
     await _open(tester, 'Herz');
-    expect(find.text('Tagesverlauf'), findsOneWidget);
+    expect(find.text('Ruhepuls'), findsOneWidget);
     await _edit(tester);
 
-    // The first minus belongs to the hero, the second to the day's curve.
-    await tester.tap(find.byTooltip('Entfernen').hitTestable().at(1));
+    // The first minus belongs to the hero, the second to the curve of the
+    // day, the third to the resting heart rate.
+    await tester.tap(find.byTooltip('Entfernen').hitTestable().at(2));
     await advance(tester);
     expect(
       app.store.documents['settings'],
-      contains('"hiddenTiles":{"heart":["day"]}'),
+      contains('"hiddenTiles":{"heart":["restingHeartRate"]}'),
     );
 
     // A fresh start with the same store still leaves it out.
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, store: app.store);
     await _open(tester, 'Herz');
-    expect(find.text('Tagesverlauf'), findsNothing);
+    expect(find.text('Ruhepuls'), findsNothing);
 
     await _edit(tester);
-    final offer = find.text('Tagesverlauf');
+    final offer = find.text('Ruhepuls');
     await tester.scrollUntilVisible(
       offer,
       200,

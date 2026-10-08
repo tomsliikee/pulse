@@ -11,10 +11,19 @@ import '../../widgets/scene_kit.dart';
 /// breathing. Drawn by the app in the colours of the theme. It stands still
 /// where the system asks for no animations.
 class WorkoutScene extends StatelessWidget {
-  const WorkoutScene({super.key, required this.type, this.height = 150});
+  const WorkoutScene({
+    super.key,
+    required this.type,
+    this.height = 150,
+    this.stage,
+  });
 
   final WorkoutType type;
   final double height;
+
+  /// The height the scene is drawn for, at the bottom; above it is only
+  /// its sky. The whole [height] when null.
+  final double? stage;
 
   @override
   Widget build(BuildContext context) => SceneClock(
@@ -22,6 +31,7 @@ class WorkoutScene extends StatelessWidget {
       size: Size(double.infinity, height),
       painter: _ScenePainter(
         type: type,
+        stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
       ),
@@ -54,21 +64,33 @@ class _Gait {
 class _ScenePainter extends CustomPainter {
   _ScenePainter({
     required this.type,
+    required this.stage,
     required this.scheme,
     required this.seconds,
   }) : super(repaint: seconds);
 
   final WorkoutType type;
+  final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
 
   static const double _tau = 2 * math.pi;
+
+  /// A pale sky in the colour of the page, so the scene has an end to fade
+  /// from.
+  Color get _sky =>
+      Color.lerp(scheme.secondaryContainer, scheme.surfaceBright, 0.5)!;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final gait = _Gait.of(type);
     final time = seconds.value;
+    final full = size;
+    size = Size(full.width, math.min(stage ?? full.height, full.height));
+    canvas
+      ..drawRect(Offset.zero & full, Paint()..color = _sky)
+      ..translate(0, full.height - size.height);
     // One hundredth of the height: every length of the figure is in these.
     final u = size.height / 100;
     final ground = size.height - 14 * u;
@@ -130,7 +152,12 @@ class _ScenePainter extends CustomPainter {
       ..close();
     canvas.drawPath(
       path,
-      Paint()..color = scheme.secondaryContainer.withValues(alpha: opacity),
+      Paint()
+        ..color = Color.lerp(
+          scheme.secondaryContainer,
+          scheme.secondary,
+          0.2,
+        )!.withValues(alpha: opacity),
     );
   }
 
@@ -419,5 +446,7 @@ class _ScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ScenePainter oldDelegate) =>
-      oldDelegate.type != type || oldDelegate.scheme != scheme;
+      oldDelegate.type != type ||
+      oldDelegate.stage != stage ||
+      oldDelegate.scheme != scheme;
 }

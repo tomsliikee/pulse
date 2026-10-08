@@ -75,12 +75,22 @@ class BoardTile {
 /// tiles the saved order does not know, so a new tile is never lost. A new
 /// tile with [BoardTile.entersInPlace] goes right after the tile declared
 /// before it instead, or to the top when it is declared first.
-List<String> resolveTileOrder(List<BoardTile> tiles, List<String> saved) {
+List<String> resolveTileOrder(List<BoardTile> tiles, List<String> saved) =>
+    resolveIdOrder([
+      for (final tile in tiles) (id: tile.id, inPlace: tile.entersInPlace),
+    ], saved);
+
+/// [resolveTileOrder] for tiles known only by their id and whether they
+/// enter in place.
+List<String> resolveIdOrder(
+  List<({String id, bool inPlace})> tiles,
+  List<String> saved,
+) {
   final ids = {for (final tile in tiles) tile.id};
   final known = saved.toSet();
   final seen = <String>{};
-  bool inPlace(BoardTile tile) =>
-      tile.entersInPlace && !known.contains(tile.id);
+  bool inPlace(({String id, bool inPlace}) tile) =>
+      tile.inPlace && !known.contains(tile.id);
   final order = [
     for (final id in saved)
       if (ids.contains(id) && seen.add(id)) id,

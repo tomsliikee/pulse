@@ -8,7 +8,11 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/period.dart';
+import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
@@ -96,43 +100,61 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
     final AppScope(:health, :settings) = AppScope.of(context);
     // The page lies on top of the shell, which stays built beneath it. Its own
     // messenger keeps a snackbar from appearing on both scaffolds.
+    final group = widget.metric.group;
     return ScaffoldMessenger(
-      child: ListenableBuilder(
-        listenable: Listenable.merge([health, settings]),
-        builder: (context, _) {
-          final ready =
-              health.status == HealthStatus.ready && health.history != null;
-          return SubPage(
-            title: widget.metric.title(l10n),
-            glass: settings.liquidGlass,
-            // The page ends above the floating tabs.
-            bottomPadding:
-                16 + FloatingTabBar.height + 24 + media.padding.bottom,
-            overlay: !ready
-                ? null
-                : Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 16 + media.padding.bottom,
-                    child: Center(
-                      child: FloatingTabBar(
-                        labels: [
-                          for (final kind in PeriodKind.values) kind.tab(l10n),
-                        ],
-                        selectedIndex: _kind.index,
-                        glass: settings.liquidGlass,
-                        onSelected: (index) => _show(PeriodKind.values[index]),
+      child: PageAccent(
+        // The page keeps the look of the main page its metric belongs to.
+        tone: switch (group) {
+          MetricGroup.activity => Tone.secondary,
+          MetricGroup.sleep => Tone.tertiary,
+          MetricGroup.vitals => Tone.error,
+          _ => Tone.primary,
+        },
+        family: switch (group) {
+          MetricGroup.activity => ShapeFamily.activity,
+          MetricGroup.sleep => ShapeFamily.sleep,
+          MetricGroup.vitals => ShapeFamily.heart,
+          _ => ShapeFamily.day,
+        },
+        child: ListenableBuilder(
+          listenable: Listenable.merge([health, settings]),
+          builder: (context, _) {
+            final ready =
+                health.status == HealthStatus.ready && health.history != null;
+            return SubPage(
+              title: widget.metric.title(l10n),
+              glass: settings.liquidGlass,
+              // The page ends above the floating tabs.
+              bottomPadding:
+                  16 + FloatingTabBar.height + 24 + media.padding.bottom,
+              overlay: !ready
+                  ? null
+                  : Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 16 + media.padding.bottom,
+                      child: Center(
+                        child: FloatingTabBar(
+                          labels: [
+                            for (final kind in PeriodKind.values)
+                              kind.tab(l10n),
+                          ],
+                          selectedIndex: _kind.index,
+                          glass: settings.liquidGlass,
+                          onSelected: (index) =>
+                              _show(PeriodKind.values[index]),
+                        ),
                       ),
                     ),
-                  ),
-            child: ready
-                ? _content(context, health)
-                : const SizedBox(
-                    height: 240,
-                    child: Center(child: M3ELoadingIndicator()),
-                  ),
-          );
-        },
+              child: ready
+                  ? _content(context, health)
+                  : const SizedBox(
+                      height: 240,
+                      child: Center(child: M3ELoadingIndicator()),
+                    ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -233,71 +255,80 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
       if (value > high) high = value;
     }
 
-    Widget row(String label, double value) => M3EListItem(
-      headline: Text(label),
-      trailing: Text(
-        metric.formatWithUnit(formats, value),
-        style: context.emphasizedTextTheme.titleMedium,
-      ),
+    final type = AppType.of(context);
+    final figure = type.hero(context.emphasizedTextTheme.displaySmall);
+    Widget row(String label, double value) => Row(
+      children: [
+        Expanded(
+          child: Text(label, style: type.strong(theme.textTheme.titleSmall)),
+        ),
+        Text(
+          metric.formatWithUnit(formats, value),
+          style: type.figure(context.emphasizedTextTheme.titleMedium),
+        ),
+      ],
     );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // The number stands free above the chart, beside the metric's shape.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+          child: Row(
+            children: [
+              ShapeBadge(
+                shape: spec.shape,
+                icon: spec.icon,
+                size: 72,
+                color: colors.accent,
+                iconColor: colors.onAccent,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      bucket != null
+                          ? _bucketLabel(formats, view, bucket)
+                          : latest?.value != null && latestNote != null
+                          ? l10n.latestValue
+                          : view.kind.headline(l10n),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: muted,
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: switch (bucket == null
+                          ? view.headline ?? latest?.value
+                          : bucket.value) {
+                        // From the number shown before to the new one.
+                        final value? => AnimatedNumber(
+                          value: value,
+                          format: (current) =>
+                              metric.formatWithUnit(formats, current),
+                          style: figure,
+                        ),
+                        null => Text(
+                          metric.formatWithUnit(formats, null),
+                          maxLines: 1,
+                          style: figure,
+                        ),
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
         SurfaceCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  ShapeBadge(
-                    shape: spec.shape,
-                    icon: spec.icon,
-                    size: 56,
-                    color: colors.accent,
-                    iconColor: scheme.surfaceBright,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          bucket != null
-                              ? _bucketLabel(formats, view, bucket)
-                              : latest?.value != null && latestNote != null
-                              ? l10n.latestValue
-                              : view.kind.headline(l10n),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: muted,
-                        ),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: switch (bucket == null
-                              ? view.headline ?? latest?.value
-                              : bucket.value) {
-                            // From the number shown before to the new one.
-                            final value? => AnimatedNumber(
-                              value: value,
-                              format: (current) =>
-                                  metric.formatWithUnit(formats, current),
-                              style: context.emphasizedTextTheme.headlineLarge,
-                            ),
-                            null => Text(
-                              metric.formatWithUnit(formats, null),
-                              maxLines: 1,
-                              style: context.emphasizedTextTheme.headlineLarge,
-                            ),
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               Row(
                 children: [
                   if (view.kind.pages)
@@ -396,8 +427,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
           SectionTitle(l10n.inPeriod),
           Entrance(
             order: 2,
-            child: M3ESegmentedColumn(
-              color: scheme.surfaceBright,
+            child: SegmentGroup(
               children: [row(l10n.highest, high), row(l10n.lowest, low)],
             ),
           ),
@@ -468,69 +498,66 @@ class _Entries extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return SurfaceCard(
+    return SegmentGroup(
       padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (entries.isEmpty)
-            SizedBox(height: 72, child: EmptyNote(l10n.noEntriesThatDay)),
-          for (final entry in entries)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _describe(formats, entry.draft),
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        Text(
-                          [
-                            formatClock(
-                              entry.draft.time.hour * 60 +
-                                  entry.draft.time.minute,
-                            ),
-                            entry.isOwn ? 'Pulse' : entry.source,
-                          ].join(' · '),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
+      children: [
+        if (entries.isEmpty)
+          SizedBox(height: 72, child: EmptyNote(l10n.noEntriesThatDay)),
+        for (final entry in entries)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _describe(formats, entry.draft),
+                        style: theme.textTheme.titleMedium,
+                      ),
+                      Text(
+                        [
+                          formatClock(
+                            entry.draft.time.hour * 60 +
+                                entry.draft.time.minute,
                           ),
+                          entry.isOwn ? 'Pulse' : entry.source,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  if (entry.isOwn) ...[
-                    IconButton(
-                      tooltip: l10n.edit,
-                      onPressed: () =>
-                          showEntrySheet(context, kind, existing: entry),
-                      icon: const Icon(Icons.edit_rounded),
-                    ),
-                    IconButton(
-                      tooltip: l10n.delete,
-                      onPressed: () => _delete(context, entry),
-                      icon: const Icon(Icons.delete_outline_rounded),
-                    ),
-                  ] else
-                    const SizedBox(height: 48),
-                ],
-              ),
-            ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: M3ETextButton(
-              onPressed: () => showEntrySheet(context, kind),
-              child: Text(kind.addTitle(l10n)),
+                ),
+                if (entry.isOwn) ...[
+                  IconButton(
+                    tooltip: l10n.edit,
+                    onPressed: () =>
+                        showEntrySheet(context, kind, existing: entry),
+                    icon: const Icon(Icons.edit_rounded),
+                  ),
+                  IconButton(
+                    tooltip: l10n.delete,
+                    onPressed: () => _delete(context, entry),
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                ] else
+                  const SizedBox(height: 48),
+              ],
             ),
           ),
-        ],
-      ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: M3ETextButton(
+            onPressed: () => showEntrySheet(context, kind),
+            child: Text(kind.addTitle(l10n)),
+          ),
+        ),
+      ],
     );
   }
 }

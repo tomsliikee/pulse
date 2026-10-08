@@ -8,10 +8,15 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/settings_controller.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/morphing_shape.dart';
+import '../../widgets/page_header.dart';
+import '../../widgets/segment_group.dart';
+import '../../widgets/wavy_bar.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/section_card.dart';
-import '../../widgets/stat_tile.dart';
 import '../profile/birth_date_sheet.dart';
 import '../../l10n/generated/app_localizations.dart';
 
@@ -54,17 +59,19 @@ class BodyAgePage extends StatelessWidget {
     final scope = AppScope.of(context);
     final health = scope.health;
     final settings = scope.settings;
-    return ListenableBuilder(
-      listenable: Listenable.merge([health, settings]),
-      builder: (context, _) => SubPage(
-        title: AppLocalizations.of(context).bodyAge,
-        glass: settings.liquidGlass,
-        child: health.status == HealthStatus.ready
-            ? _content(context, health, settings)
-            : const SizedBox(
-                height: 240,
-                child: Center(child: M3ELoadingIndicator()),
-              ),
+    return PageAccent.day(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([health, settings]),
+        builder: (context, _) => SubPage(
+          title: AppLocalizations.of(context).bodyAge,
+          glass: settings.liquidGlass,
+          child: health.status == HealthStatus.ready
+              ? _content(context, health, settings)
+              : const SizedBox(
+                  height: 240,
+                  child: Center(child: M3ELoadingIndicator()),
+                ),
+        ),
       ),
     );
   }
@@ -103,11 +110,20 @@ class BodyAgePage extends StatelessWidget {
     final height = latestKnown(snapshot, health.history, Metric.height);
     final sections = <Widget>[
       _Overview(result: result),
-      for (final factor in result.factors)
-        _FactorCard(factor: factor, sex: settings.sex),
-      SectionCard(
+      TitledSection(
+        title: l10n.ageFactorsTitle,
+        child: SegmentGroup(
+          from: 1,
+          children: [
+            for (final factor in result.factors)
+              _FactorCard(factor: factor, sex: settings.sex),
+          ],
+        ),
+      ),
+      TitledSection(
         title: l10n.yourDetails,
-        child: Column(
+        note: l10n.changeInProfile,
+        child: SegmentGroup(
           children: [
             _Line(l10n.birthDate, formats.birthDate(settings.birthDate!)),
             _Line(l10n.sex, switch (settings.sex) {
@@ -128,8 +144,6 @@ class BodyAgePage extends StatelessWidget {
                   : '${formats.decimal(weight.value)} kg, '
                         '${formats.relativeDay(weight.day, snapshot.today)}',
             ),
-            const SizedBox(height: 8),
-            Text(l10n.changeInProfile, style: muted),
           ],
         ),
       ),
@@ -172,13 +186,30 @@ class _Overview extends StatelessWidget {
     final age = result.age;
     final difference = result.difference;
     final real = formats.decimal(result.chronological);
-    return SurfaceCard(
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
+    // The age stands free on its shape: the younger, the sunnier.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
       child: Row(
         children: [
-          Text(
-            age == null ? '–' : formats.decimal(age),
-            style: context.emphasizedTextTheme.displayMedium?.copyWith(
-              color: scheme.primary,
+          MorphingShape(
+            shape: switch (difference) {
+              null => Shapes.circle,
+              final d when d < -0.05 => Shapes.verySunny,
+              final d when d > 0.05 => Shapes.c6SidedCookie,
+              _ => Shapes.c9SidedCookie,
+            },
+            color: accent.accent,
+            size: 132,
+            child: Text(
+              age == null ? '–' : formats.decimal(age),
+              style: type.hero(
+                context.emphasizedTextTheme.headlineLarge?.copyWith(
+                  color: accent.onAccent,
+                  height: 1,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 20),
@@ -194,7 +225,7 @@ class _Overview extends StatelessWidget {
                     real,
                   ),
                   final d => l10n.yearsOlder(formats.decimal(d), real),
-                }, style: theme.textTheme.titleMedium),
+                }, style: type.title(context.emphasizedTextTheme.titleLarge)),
                 const SizedBox(height: 4),
                 Text(
                   age == null
@@ -233,34 +264,50 @@ class _FactorCard extends StatelessWidget {
     final years = factor.years;
     final position = factor.position;
     final value = factor.value;
-    return SectionCard(
-      title: _title(l10n),
-      trailing: years == null ? null : formatYears(formats, years),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (value == null)
-            Text(_missing(l10n), style: muted)
-          else ...[
-            Text(_reading(formats, value), style: theme.textTheme.titleMedium),
-            if (position != null) ...[
-              const SizedBox(height: 12),
-              M3ELinearWavyProgressIndicator(
-                value: position,
-                color: scheme.primary,
-                backgroundColor: scheme.primary.withValues(alpha: 0.2),
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                _title(l10n),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: type.strong(theme.textTheme.titleMedium),
               ),
-            ],
-            const SizedBox(height: 8),
-            Text(
-              years == null
-                  ? l10n.notCountedYet(factor.days, minFactorDays)
-                  : _guide(formats),
-              style: muted,
             ),
+            if (years != null)
+              Text(
+                formatYears(formats, years),
+                style: type.figure(
+                  context.emphasizedTextTheme.titleMedium?.copyWith(
+                    color: accent.accent,
+                  ),
+                ),
+              ),
           ],
+        ),
+        const SizedBox(height: 4),
+        if (value == null)
+          Text(_missing(l10n), style: muted)
+        else ...[
+          Text(_reading(formats, value), style: theme.textTheme.bodyLarge),
+          if (position != null) ...[
+            const SizedBox(height: 10),
+            WavyBar(value: position, color: accent.accent),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            years == null
+                ? l10n.notCountedYet(factor.days, minFactorDays)
+                : _guide(formats),
+            style: muted,
+          ),
         ],
-      ),
+      ],
     );
   }
 
@@ -367,21 +414,19 @@ class _Line extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+    final type = AppType.of(context);
+    return Row(
+      children: [
+        Text(label, style: type.strong(theme.textTheme.titleSmall)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: type.figure(theme.textTheme.titleMedium),
           ),
-          Text(value, style: theme.textTheme.titleMedium),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

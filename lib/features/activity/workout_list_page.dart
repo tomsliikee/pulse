@@ -4,11 +4,10 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/models.dart';
-import '../../theme/app_shapes.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/sub_page.dart';
-import '../../widgets/tile_surface.dart';
 import 'workout_style.dart';
 import 'workout_tiles.dart';
 
@@ -33,8 +32,6 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
       builder: (context, opening) => ListenableBuilder(
         listenable: Listenable.merge([health, scope.settings]),
         builder: (context, _) {
-          final theme = Theme.of(context);
-          final scheme = theme.colorScheme;
           final formats = Formats.of(context);
           final l10n = formats.l10n;
           final all = health.workouts;
@@ -87,16 +84,13 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
                       formats.month(month),
                       padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
                     ),
-                    final Workout workout => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: TileSurface(
-                        color: scheme.surfaceBright,
-                        radius: AppRadii.extraLarge,
-                        child: SizedBox(
-                          height: 72,
-                          child: WorkoutRow(workout: workout),
-                        ),
-                      ),
+                    // The workouts of a month are one group of segments.
+                    final Workout workout => ListSegment(
+                      first: rows[index - 1] is DateTime,
+                      last:
+                          index == rows.length - 1 ||
+                          rows[index + 1] is DateTime,
+                      child: WorkoutRow(workout: workout),
                     ),
                     _ => const SizedBox.shrink(),
                   },

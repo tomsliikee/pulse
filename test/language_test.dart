@@ -228,7 +228,7 @@ void main() {
         for (final (destination, marker) in [
           (l10n.groupActivity, l10n.activitySubtitle),
           (l10n.groupSleep, l10n.sleepStages),
-          (l10n.navHeart, l10n.dayCurve),
+          (l10n.navHeart, l10n.timeInZones),
         ]) {
           await tester.tap(find.bySemanticsLabel(destination));
           await advance(tester);

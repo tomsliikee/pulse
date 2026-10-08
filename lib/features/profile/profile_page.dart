@@ -6,6 +6,7 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_controller.dart';
 import '../../data/models.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/page_header.dart';
@@ -161,78 +162,76 @@ class ProfilePage extends StatelessWidget {
                   ],
                 ),
               ),
-              // Only offered where the system has a wallpaper palette.
-              if (scope.systemPalette.value != null) ...[
-                const SizedBox(height: 12),
-                SurfaceCard(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          l10n.wallpaperColors,
-                          style: theme.textTheme.titleMedium,
-                        ),
-                      ),
-                      Switch(
-                        value: settings.dynamicColor,
-                        onChanged: (value) {
-                          Haptics.selection();
-                          settings.setDynamicColor(value);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
               const SizedBox(height: 12),
-              SurfaceCard(
-                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Liquid Glass',
-                        style: theme.textTheme.titleMedium,
-                      ),
-                    ),
-                    Switch(
-                      value: settings.liquidGlass,
-                      onChanged: (value) {
-                        Haptics.selection();
-                        settings.setLiquidGlass(value);
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SurfaceCard(
+              // The switches and the language as one group of segments.
+              SegmentGroup(
                 padding: EdgeInsets.zero,
-                child: InkWell(
-                  onTap: () => showLanguageSheet(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.language,
-                            style: theme.textTheme.titleMedium,
+                children: [
+                  for (final (label, value, set) in [
+                    // Only offered where the system has a wallpaper palette.
+                    if (scope.systemPalette.value != null)
+                      (
+                        l10n.wallpaperColors,
+                        settings.dynamicColor,
+                        settings.setDynamicColor,
+                      ),
+                    (
+                      'Liquid Glass',
+                      settings.liquidGlass,
+                      settings.setLiquidGlass,
+                    ),
+                    (
+                      l10n.edgeHero,
+                      settings.edgeToEdgeHero,
+                      settings.setEdgeToEdgeHero,
+                    ),
+                    (l10n.flexFont, settings.flexFont, settings.setFlexFont),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: theme.textTheme.titleMedium,
+                            ),
                           ),
-                        ),
-                        Text(
-                          switch (scope.language.choice) {
-                            final code? => languageName(code),
-                            null => l10n.languageSystem,
-                          },
-                          style: context.emphasizedTextTheme.titleMedium
-                              ?.copyWith(color: scheme.primary),
-                        ),
-                      ],
+                          Switch(
+                            value: value,
+                            onChanged: (value) {
+                              Haptics.selection();
+                              set(value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  InkWell(
+                    onTap: () => showLanguageSheet(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.language,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ),
+                          Text(
+                            switch (scope.language.choice) {
+                              final code? => languageName(code),
+                              null => l10n.languageSystem,
+                            },
+                            style: context.emphasizedTextTheme.titleMedium
+                                ?.copyWith(color: scheme.primary),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
               if (ready) ...[
                 SectionTitle(l10n.data),

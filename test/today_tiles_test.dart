@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/settings_controller.dart';
@@ -92,7 +91,8 @@ void main() {
     expect(find.text('Ruhepuls'), findsNothing);
     expect(find.text('Minuten'), findsNothing);
     expect(find.text('Etagen'), findsNothing);
-    expect(find.text('Kilometer'), findsOneWidget);
+    // Steps and calories are enough up there.
+    expect(find.text('Kilometer'), findsNothing);
   });
 
   testWidgets('the corner buttons only exist while editing', (tester) async {
@@ -233,39 +233,4 @@ void main() {
       });
     }
   }
-
-  group('the shape behind the rings', () {
-    double turns(WidgetTester tester) => tester
-        .widget<RotationTransition>(
-          find
-              .ancestor(
-                of: find.byWidgetPredicate(
-                  (w) => w is M3EShape && w.width == 152,
-                ),
-                matching: find.byType(RotationTransition),
-              )
-              .first,
-        )
-        .turns
-        .value;
-
-    testWidgets('turns slowly', (tester) async {
-      await pumpApp(tester);
-      final before = turns(tester);
-      await tester.pump(const Duration(seconds: 9));
-      expect((turns(tester) - before) % 1, moreOrLessEquals(0.1));
-    });
-
-    testWidgets('stands still when animations are off', (tester) async {
-      tester.platformDispatcher.accessibilityFeaturesTestValue =
-          const FakeAccessibilityFeatures(disableAnimations: true);
-      addTearDown(
-        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
-      );
-      await pumpApp(tester);
-      final before = turns(tester);
-      await tester.pump(const Duration(seconds: 9));
-      expect(turns(tester), before);
-    });
-  });
 }

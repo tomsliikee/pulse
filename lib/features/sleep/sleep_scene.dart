@@ -17,6 +17,7 @@ class SleepScene extends StatelessWidget {
     required this.night,
     required this.score,
     this.height = 150,
+    this.stage,
   });
 
   final SleepNight night;
@@ -25,6 +26,10 @@ class SleepScene extends StatelessWidget {
   final int score;
   final double height;
 
+  /// The height the scene is drawn for, at the bottom; above it is only
+  /// more sky. The whole [height] when null.
+  final double? stage;
+
   @override
   Widget build(BuildContext context) => SceneClock(
     builder: (context, seconds) => CustomPaint(
@@ -32,6 +37,7 @@ class SleepScene extends StatelessWidget {
       painter: _NightPainter(
         night: night,
         score: score,
+        stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
       ),
@@ -43,12 +49,14 @@ class _NightPainter extends CustomPainter {
   _NightPainter({
     required this.night,
     required this.score,
+    required this.stage,
     required this.scheme,
     required this.seconds,
   }) : super(repaint: seconds);
 
   final SleepNight night;
   final int score;
+  final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
 
@@ -94,6 +102,9 @@ class _NightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     final time = seconds.value;
+    final full = size;
+    final stage = math.min(this.stage ?? full.height, full.height);
+    size = Size(full.width, stage);
     final u = size.height / 100;
     final loop = time / _loop % 1;
     // The night itself lies between lying down and getting up.
@@ -116,7 +127,9 @@ class _NightPainter extends CustomPainter {
     );
 
     final sky = _sky(deep, rem, up, dawn);
-    canvas.drawRect(Offset.zero & size, Paint()..color = sky);
+    canvas
+      ..drawRect(Offset.zero & full, Paint()..color = sky)
+      ..translate(0, full.height - stage);
     _stars(canvas, size, u, time, 1 - dawn);
     _moon(canvas, size, u, loop, sky);
     _clouds(canvas, size, u, time);
@@ -333,5 +346,6 @@ class _NightPainter extends CustomPainter {
   bool shouldRepaint(_NightPainter oldDelegate) =>
       oldDelegate.night != night ||
       oldDelegate.score != score ||
+      oldDelegate.stage != stage ||
       oldDelegate.scheme != scheme;
 }

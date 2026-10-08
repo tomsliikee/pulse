@@ -382,6 +382,8 @@
   "dayStepsAndSleep": "{steps} steps · {sleep} sleep",
   "dayStepsOnly": "{steps} steps",
   "amountOfGoal": "{amount} of {goal}",
+  "stepsOfGoal": "of {goal} steps",
+  "ofGoal": "of {goal} {unit}",
   "addGlass": "Add a glass of water",
   "glassAdded": "{amount} of water added",
   "dayTipFew": "After three days Pulse can compare and give hints.",
@@ -411,5 +413,12 @@
   "goalMarkNone": "no data",
   "goalMarkOpen": "still open",
   "dayTabMore": "More",
-  "nightTabToday": "Today"
+  "nightTabToday": "Today",
+  "edgeHero": "Edge-to-edge scene",
+  "flexFont": "Flex font",
+  "dayScoreParts": "What it is made of",
+  "dayNumbers": "The day in numbers",
+  "nightNumbers": "The night in numbers",
+  "workoutNumbers": "The activity in numbers",
+  "ageFactorsTitle": "What goes into it"
 }

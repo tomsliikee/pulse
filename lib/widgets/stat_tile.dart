@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app/layout.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_type.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
 import 'animated_count.dart';
@@ -44,6 +45,12 @@ class StatTile extends StatelessWidget {
     final colors = scheme.tone(tone);
     final neutral = tone == Tone.neutral;
     final onTap = this.onTap;
+    final type = AppType.of(context);
+    final figure = type.figure(
+      context.emphasizedTextTheme.headlineSmall?.copyWith(
+        color: colors.onContainer,
+      ),
+    );
     return Pressable(
       child: TileSurface(
         color: colors.container,
@@ -77,25 +84,19 @@ class StatTile extends StatelessWidget {
                     (final number?, final format?) => AnimatedNumber(
                       value: number,
                       format: format,
-                      style: context.emphasizedTextTheme.titleLarge?.copyWith(
-                        color: colors.onContainer,
-                      ),
+                      style: figure,
                     ),
-                    _ => Text(
-                      value,
-                      maxLines: 1,
-                      style: context.emphasizedTextTheme.titleLarge?.copyWith(
-                        color: colors.onContainer,
-                      ),
-                    ),
+                    _ => Text(value, maxLines: 1, style: figure),
                   },
                 ),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: colors.onContainer.withValues(alpha: 0.72),
+                  style: type.label(
+                    theme.textTheme.labelMedium?.copyWith(
+                      color: colors.onContainer.withValues(alpha: 0.72),
+                    ),
                   ),
                 ),
               ],

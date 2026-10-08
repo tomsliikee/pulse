@@ -3,6 +3,8 @@ import 'package:motor/motor.dart';
 
 import '../app/formatters.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_type.dart';
+import 'pressable.dart';
 
 /// Counts up to [value] when it appears and whenever the value changes.
 class AnimatedCount extends StatelessWidget {
@@ -22,6 +24,8 @@ class AnimatedCount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final format = this.format ?? Formats.of(context).integer;
+    final type = AppType.of(context);
+    final pressed = PressState.of(context);
     return SingleMotionBuilder(
       from: 0,
       value: value.toDouble(),
@@ -29,7 +33,11 @@ class AnimatedCount extends StatelessWidget {
       motion: AppMotion.effectsSlow,
       builder: (context, current, _) => Text(
         format(current.round()),
-        style: style,
+        style: type.moving(
+          style,
+          settled: value == 0 ? 1 : current / value,
+          pressed: pressed,
+        ),
         maxLines: 1,
         softWrap: false,
       ),
@@ -54,12 +62,22 @@ class AnimatedNumber extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final type = AppType.of(context);
+    final pressed = PressState.of(context);
     return SingleMotionBuilder(
       from: 0,
       value: value,
       motion: AppMotion.effectsSlow,
-      builder: (context, current, _) =>
-          Text(format(current), style: style, maxLines: 1, softWrap: false),
+      builder: (context, current, _) => Text(
+        format(current),
+        style: type.moving(
+          style,
+          settled: value == 0 ? 1 : current / value,
+          pressed: pressed,
+        ),
+        maxLines: 1,
+        softWrap: false,
+      ),
     );
   }
 }

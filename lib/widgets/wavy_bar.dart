@@ -7,13 +7,16 @@ import '../theme/app_motion.dart';
 /// A share of something as the wavy line of Material 3 Expressive. It grows
 /// from nothing when it appears and follows the value on a spring.
 class WavyBar extends StatelessWidget {
-  const WavyBar({super.key, required this.value, this.color});
+  const WavyBar({super.key, required this.value, this.color, this.trackColor});
 
   /// From 0 to 1.
   final double value;
 
   /// The theme's primary when null.
   final Color? color;
+
+  /// What is left of the way; a quiet surface tone when null.
+  final Color? trackColor;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +29,7 @@ class WavyBar extends StatelessWidget {
       builder: (context, current, _) => M3ELinearWavyProgressIndicator(
         value: current.clamp(0, 1).toDouble(),
         color: color ?? scheme.primary,
-        backgroundColor: scheme.surfaceContainerHighest,
+        backgroundColor: trackColor ?? scheme.surfaceContainerHighest,
       ),
     );
   }

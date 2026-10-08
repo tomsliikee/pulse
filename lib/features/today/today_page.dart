@@ -11,7 +11,9 @@ import '../../widgets/pressable.dart';
 import '../../widgets/stat_tile.dart';
 import '../browse/all_data_section.dart';
 import '../profile/profile_page.dart';
+import '../../theme/page_accent.dart';
 import 'add_tiles_section.dart';
+import 'day_tiles.dart';
 import 'today_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
 
@@ -33,63 +35,80 @@ class TodayPage extends StatelessWidget {
         final l10n = formats.l10n;
         final snapshot = health.snapshot;
 
-        return BoardPage(
-          pageId: 'today',
-          title: l10n.navToday,
-          // This page always shows today, whatever day is selected elsewhere.
-          subtitle: formats.longDate(snapshot.dateAt(health.todayIndex)),
-          trailing: const _ProfileButton(),
-          editMenu: SurfaceCard(
-            padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.showAllData,
-                    style: Theme.of(context).textTheme.titleMedium,
+        final shown = [
+          for (final id in settings.todayTiles)
+            if (todayTileAvailable(id, health)) id,
+        ];
+        return PageAccent.day(
+          child: Builder(
+            builder: (context) => BoardPage(
+              pageId: 'today',
+              // The sky of the scene is dark before the morning and from
+              // the evening on.
+              backdropInk: health.now.hour < 6 || health.now.hour >= 20
+                  ? const Color(0xFFEFF1FF)
+                  : null,
+              backdrop: !dayHeroBleeds(context, shown)
+                  ? null
+                  : (context, boardTop) =>
+                        DayBackdrop(extent: boardTop + DayCard.sceneHeight),
+              title: l10n.navToday,
+              // This page always shows today, whatever day is selected elsewhere.
+              subtitle: formats.longDate(snapshot.dateAt(health.todayIndex)),
+              trailing: const _ProfileButton(),
+              editMenu: SurfaceCard(
+                padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.showAllData,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    Switch(
+                      value: settings.showAllData,
+                      onChanged: (value) {
+                        Haptics.selection();
+                        settings.setShowAllData(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              editFooter: AddTilesSection(health: health, settings: settings),
+              footer: !settings.showAllData
+                  ? null
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 40),
+                        SectionTitle(
+                          l10n.allData,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
+                          child: Text(
+                            l10n.last30FromHealthConnect,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                        ),
+                        AllDataSection(snapshot: snapshot),
+                      ],
+                    ),
+              tiles: [
+                for (final id in settings.todayTiles)
+                  ?buildTodayTile(
+                    context,
+                    id: id,
+                    health: health,
+                    settings: settings,
                   ),
-                ),
-                Switch(
-                  value: settings.showAllData,
-                  onChanged: (value) {
-                    Haptics.selection();
-                    settings.setShowAllData(value);
-                  },
-                ),
               ],
             ),
           ),
-          editFooter: AddTilesSection(health: health, settings: settings),
-          footer: !settings.showAllData
-              ? null
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
-                    SectionTitle(
-                      l10n.allData,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 2, 4, 4),
-                      child: Text(
-                        l10n.last30FromHealthConnect,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
-                      ),
-                    ),
-                    AllDataSection(snapshot: snapshot),
-                  ],
-                ),
-          tiles: [
-            for (final id in settings.todayTiles)
-              ?buildTodayTile(
-                context,
-                id: id,
-                health: health,
-                settings: settings,
-              ),
-          ],
         );
       },
     );

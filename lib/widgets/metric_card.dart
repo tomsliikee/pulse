@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../app/layout.dart';
 import '../theme/app_shapes.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_type.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
 import 'tile_surface.dart';
@@ -102,8 +103,11 @@ class MetricCard extends StatelessWidget {
                     children: [
                       Flexible(
                         child: DefaultTextStyle.merge(
-                          style: context.emphasizedTextTheme.headlineLarge
-                              ?.copyWith(color: colors.onContainer),
+                          style: AppType.of(context).figure(
+                            context.emphasizedTextTheme.headlineLarge?.copyWith(
+                              color: colors.onContainer,
+                            ),
+                          ),
                           child: value,
                         ),
                       ),

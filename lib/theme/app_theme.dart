@@ -44,11 +44,16 @@ abstract final class AppTheme {
 }
 
 /// The colour role a tile or chart is painted in.
-enum Tone { primary, secondary, tertiary, neutral }
+enum Tone { primary, secondary, tertiary, error, neutral }
 
-/// Resolved colours of a [Tone]: a container, the content on it and the
-/// saturated accent used for the data mark itself.
-typedef ToneColors = ({Color container, Color onContainer, Color accent});
+/// Resolved colours of a [Tone]: a container, the content on it, the
+/// saturated accent used for the data mark itself and what is written on it.
+typedef ToneColors = ({
+  Color container,
+  Color onContainer,
+  Color accent,
+  Color onAccent,
+});
 
 extension ToneScheme on ColorScheme {
   ToneColors tone(Tone tone) => switch (tone) {
@@ -56,21 +61,31 @@ extension ToneScheme on ColorScheme {
       container: primaryContainer,
       onContainer: onPrimaryContainer,
       accent: primary,
+      onAccent: onPrimary,
     ),
     Tone.secondary => (
       container: secondaryContainer,
       onContainer: onSecondaryContainer,
       accent: secondary,
+      onAccent: onSecondary,
     ),
     Tone.tertiary => (
       container: tertiaryContainer,
       onContainer: onTertiaryContainer,
       accent: tertiary,
+      onAccent: onTertiary,
+    ),
+    Tone.error => (
+      container: errorContainer,
+      onContainer: onErrorContainer,
+      accent: error,
+      onAccent: onError,
     ),
     Tone.neutral => (
       container: surfaceBright,
       onContainer: onSurface,
       accent: primary,
+      onAccent: onPrimary,
     ),
   };
 }

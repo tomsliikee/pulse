@@ -5,12 +5,17 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/models.dart';
 import '../../data/workout_insights.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/detail_sections.dart';
+import '../../widgets/page_header.dart';
+import '../../widgets/segment_group.dart';
+import '../../widgets/shape_badge.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/number_grid.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/section_card.dart';
-import '../../widgets/stat_tile.dart';
 import '../../widgets/sub_page.dart';
 import 'workout_format.dart';
 import 'workout_scene.dart';
@@ -28,43 +33,48 @@ class WorkoutDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
     final health = scope.health;
-    return ListenableBuilder(
-      listenable: Listenable.merge([health, scope.settings]),
-      builder: (context, _) {
-        final formats = Formats.of(context);
-        final l10n = formats.l10n;
-        // The archive may hold a later reading of this workout, with the
-        // heart rate added.
-        final current = health.workouts.firstWhere(
-          (other) => other.key == workout.key,
-          orElse: () => workout,
-        );
-        final insights = WorkoutInsights.of(current, health.workouts);
-        return SubPage(
-          title: current.type.label(l10n),
-          glass: scope.settings.liquidGlass,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: 12,
-            children: [
-              // Each section comes in a little after the one above it.
-              for (final (index, section) in [
-                _Summary(insights: insights),
-                _Measures(insights: insights),
-                _Comparison(insights: insights),
-                if (insights.trend.length > 1) _Progress(insights: insights),
-                _Frequency(insights: insights),
-                _Tips(insights: insights),
-              ].indexed)
-                Entrance(order: index, child: section),
-            ],
-          ),
-        );
-      },
+    return PageAccent.activity(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([health, scope.settings]),
+        builder: (context, _) {
+          final formats = Formats.of(context);
+          final l10n = formats.l10n;
+          // The archive may hold a later reading of this workout, with the
+          // heart rate added.
+          final current = health.workouts.firstWhere(
+            (other) => other.key == workout.key,
+            orElse: () => workout,
+          );
+          final insights = WorkoutInsights.of(current, health.workouts);
+          return SubPage(
+            title: current.type.label(l10n),
+            glass: scope.settings.liquidGlass,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              spacing: 12,
+              children: [
+                // Each section comes in a little after the one above it.
+                for (final (index, section) in [
+                  _Summary(insights: insights),
+                  _Measures(insights: insights),
+                  _Comparison(insights: insights),
+                  if (insights.trend.length > 1) _Progress(insights: insights),
+                  _Frequency(insights: insights),
+                  _Tips(insights: insights),
+                ].indexed)
+                  Entrance(order: index, child: section),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }
 
+/// The figure doing the workout in the one container of the page, the kind
+/// of workout on its shape over the edge, and below it, free, how long it
+/// was and how it went.
 class _Summary extends StatelessWidget {
   const _Summary({required this.insights});
 
@@ -72,38 +82,37 @@ class _Summary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final formats = Formats.of(context);
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
     final workout = insights.workout;
-    return SurfaceCard(
-      padding: EdgeInsets.zero,
+    return SceneSummary(
+      scene: WorkoutScene(type: workout.type, height: SceneSummary.sceneHeight),
+      mark: ShapeBadge(
+        shape: workout.type.shape,
+        icon: workout.type.icon,
+        size: SceneSummary.markSize,
+        color: accent.accent,
+        iconColor: accent.onAccent,
+      ),
+      label: formats.l10n.workoutAtTime(
+        formats.longDate(workout.start),
+        formatClock(workout.start.hour * 60 + workout.start.minute),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          WorkoutScene(type: workout.type, height: 140),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  formats.l10n.workoutAtTime(
-                    formats.longDate(workout.start),
-                    formatClock(workout.start.hour * 60 + workout.start.minute),
-                  ),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  workoutHeadline(formats, insights),
-                  style: context.emphasizedTextTheme.titleMedium?.copyWith(
-                    color: scheme.primary,
-                  ),
-                ),
-              ],
+          Text(
+            formats.duration(workout.minutes),
+            style: type.hero(context.emphasizedTextTheme.displaySmall),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            workoutHeadline(formats, insights),
+            style: type.strong(
+              context.emphasizedTextTheme.titleMedium?.copyWith(
+                color: accent.accent,
+              ),
             ),
           ),
         ],
@@ -124,41 +133,43 @@ class _Measures extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return NumberGrid(
-      cellHeight: 104,
-      cells: [
-        for (final comparison in insights.measures)
-          NumberCell(
-            label: comparison.measure.label(l10n),
-            value: AnimatedNumber(
-              value: comparison.value,
-              format: (value) => comparison.measure.format(
-                formats,
-                insights.workout.type,
-                value,
+    return TitledSection(
+      title: l10n.workoutNumbers,
+      child: NumberGrid(
+        cells: [
+          for (final comparison in insights.measures)
+            NumberCell(
+              label: comparison.measure.label(l10n),
+              value: AnimatedNumber(
+                value: comparison.value,
+                format: (value) => comparison.measure.format(
+                  formats,
+                  insights.workout.type,
+                  value,
+                ),
               ),
-            ),
-            footer: !comparison.isBest
-                ? null
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events_rounded,
-                        size: 14,
-                        color: scheme.tertiary,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.personalBest,
-                        style: theme.textTheme.labelMedium?.copyWith(
+              footer: !comparison.isBest
+                  ? null
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.emoji_events_rounded,
+                          size: 14,
                           color: scheme.tertiary,
                         ),
-                      ),
-                    ],
-                  ),
-          ),
-      ],
+                        const SizedBox(width: 4),
+                        Text(
+                          l10n.personalBest,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: scheme.tertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -183,17 +194,14 @@ class _Comparison extends StatelessWidget {
         if (comparison.previous != null) comparison,
     ];
     if (rows.isEmpty) {
-      return SectionCard(
+      return TitledSection(
         title: l10n.compareTitle,
-        child: Text(l10n.compareFirst, style: muted),
+        child: SegmentGroup(children: [Text(l10n.compareFirst, style: muted)]),
       );
     }
     final averaged = insights.earlier.length < WorkoutInsights.averageOver
         ? insights.earlier.length
         : WorkoutInsights.averageOver;
-    final head = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
 
     Widget difference(
       MeasureComparison comparison,
@@ -202,87 +210,40 @@ class _Comparison extends StatelessWidget {
     ) {
       if (other == null) return const SizedBox.shrink();
       final diff = comparison.value - other;
-      final text = trend == Trend.same
-          ? '±0'
-          : '${diff < 0 ? '−' : '+'}'
-                '${comparison.measure.formatDifference(formats, insights.workout.type, diff)}';
-      return Text(
-        text,
-        textAlign: TextAlign.end,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: context.emphasizedTextTheme.labelLarge?.copyWith(
-          color: switch (trend) {
-            Trend.better => scheme.primary,
-            Trend.worse => scheme.error,
-            Trend.same || Trend.neutral => scheme.onSurfaceVariant,
-          },
-        ),
+      return DifferenceText(
+        text: trend == Trend.same
+            ? '±0'
+            : '${diff < 0 ? '−' : '+'}'
+                  '${comparison.measure.formatDifference(formats, insights.workout.type, diff)}',
+        good: switch (trend) {
+          Trend.better => true,
+          Trend.worse => false,
+          Trend.same || Trend.neutral => null,
+        },
       );
     }
 
-    return SectionCard(
+    return ComparisonSegments(
       title: l10n.compareTitle,
-      child: Column(
-        spacing: 12,
-        children: [
-          Row(
-            children: [
-              const Expanded(flex: 5, child: SizedBox.shrink()),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  l10n.compareLast,
-                  textAlign: TextAlign.end,
-                  style: head,
-                ),
+      heads: [l10n.compareLast, l10n.compareAverage(averaged)],
+      rows: [
+        for (final comparison in rows)
+          (
+            label: comparison.measure.label(l10n),
+            cells: [
+              difference(
+                comparison,
+                comparison.previous,
+                comparison.againstPrevious,
               ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  l10n.compareAverage(averaged),
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: head,
-                ),
+              difference(
+                comparison,
+                comparison.average,
+                comparison.againstAverage,
               ),
             ],
           ),
-          ...staggered([
-            for (final comparison in rows)
-              Row(
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                      comparison.measure.label(l10n),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: difference(
-                      comparison,
-                      comparison.previous,
-                      comparison.againstPrevious,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: difference(
-                      comparison,
-                      comparison.average,
-                      comparison.againstAverage,
-                    ),
-                  ),
-                ],
-              ),
-          ], from: 1),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -365,8 +326,8 @@ class _ProgressState extends State<_Progress> {
             key: ValueKey(measure),
             values: [for (final workout in trend) _value(workout, measure)],
             selectedIndex: trend.length - 1,
-            color: scheme.secondaryContainer,
-            selectedColor: scheme.primary,
+            color: PageAccent.colorsOf(context).container,
+            selectedColor: PageAccent.colorsOf(context).accent,
             height: 140,
           ),
         ],
@@ -387,15 +348,14 @@ class _Frequency extends StatelessWidget {
     final formats = Formats.of(context);
     final l10n = formats.l10n;
     final before = insights.perWeekBefore;
-    return SectionCard(
+    final type = AppType.of(context);
+    return TitledSection(
       title: l10n.frequencyTitle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 4,
+      child: SegmentGroup(
         children: [
           Text(
             l10n.frequencyRecent(formats.decimal(insights.perWeekRecent)),
-            style: theme.textTheme.bodyLarge,
+            style: type.strong(theme.textTheme.titleMedium),
           ),
           if (before != null)
             Text(
@@ -417,41 +377,12 @@ class _Tips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final l10n = Formats.of(context).l10n;
-    return SectionCard(
+    return NoteSegments(
       title: l10n.tipsTitle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 12,
-        children: [
-          for (final tip in insights.tips)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.lightbulb_outline_rounded,
-                  size: 20,
-                  color: scheme.tertiary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    workoutTip(l10n, tip),
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ),
-              ],
-            ),
-          Text(
-            l10n.tipsNote,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+      icon: Icons.lightbulb_outline_rounded,
+      sentences: [for (final tip in insights.tips) workoutTip(l10n, tip)],
+      note: l10n.tipsNote,
     );
   }
 }

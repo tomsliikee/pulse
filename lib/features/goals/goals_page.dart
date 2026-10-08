@@ -10,6 +10,8 @@ import '../../data/health_controller.dart';
 import '../../data/health_history.dart';
 import '../../data/settings_controller.dart';
 import '../../theme/app_motion.dart';
+import '../../theme/app_type.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/floating_tab_bar.dart';
 import '../../widgets/page_header.dart';
@@ -188,10 +190,9 @@ class _GoalsPageState extends State<GoalsPage> {
         if (cards.isEmpty)
           SurfaceCard(child: EmptyNote(l10n.goalsNone))
         else ...[
-          for (final (index, card) in cards.indexed) ...[
-            if (index > 0) const SizedBox(height: 12),
-            Entrance(key: card.key, order: index, child: card),
-          ],
+          // Keyed by what is shown, so the segments come in again for
+          // another span.
+          SegmentGroup(key: cards.first.key, children: cards),
           if (_span == _Span.week || _span == _Span.month)
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
@@ -218,20 +219,20 @@ class _GoalsPageState extends State<GoalsPage> {
             padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
             child: Text(
               group.label(l10n),
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+              style: AppType.of(context).label(
+                theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
-          SurfaceCard(
+          SegmentGroup(
             padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-            child: Column(
-              children: [
-                for (final goal in Goal.values)
-                  if (goal.group == group)
-                    _GoalSetting(goal: goal, settings: settings),
-              ],
-            ),
+            children: [
+              for (final goal in Goal.values)
+                if (goal.group == group)
+                  _GoalSetting(goal: goal, settings: settings),
+            ],
           ),
         ],
       ],
@@ -303,48 +304,50 @@ class _GoalCard extends StatelessWidget {
     }
     final streak = goalStreak(goal, target, today, data);
 
-    return SurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  goal.label(l10n),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.emphasizedTextTheme.titleMedium,
-                ),
+    final type = AppType.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                goal.label(l10n),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: type.title(context.emphasizedTextTheme.titleMedium),
               ),
-              ?trailing,
-            ],
-          ),
-          if (note != null) ...[
-            const SizedBox(height: 2),
-            Text(note, style: muted),
+            ),
+            ?trailing,
           ],
-          const SizedBox(height: 14),
-          body,
-          if (streak > 1) ...[
-            const SizedBox(height: 12),
-            Text(
-              goal.weekly
-                  ? l10n.goalStreakWeeks(streak)
-                  : l10n.goalStreakDays(streak),
-              style: context.emphasizedTextTheme.labelLarge?.copyWith(
+        ),
+        if (note != null) ...[
+          const SizedBox(height: 2),
+          Text(note, style: muted),
+        ],
+        const SizedBox(height: 14),
+        body,
+        if (streak > 1) ...[
+          const SizedBox(height: 12),
+          Text(
+            goal.weekly
+                ? l10n.goalStreakWeeks(streak)
+                : l10n.goalStreakDays(streak),
+            style: type.strong(
+              context.emphasizedTextTheme.labelLarge?.copyWith(
                 color: scheme.tertiary,
               ),
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 }
 
-/// One day or week: a filled shape when reached, a ring when missed, a dot
-/// without data.
+/// One day or week: a filled scalloped shape when reached, an empty ring
+/// when missed, a half-filled circle while it is still open, a dot without
+/// data.
 class _Mark extends StatelessWidget {
   const _Mark(this.mark, {this.size = 28});
 
@@ -357,7 +360,7 @@ class _Mark extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final Widget shape = switch (mark) {
       GoalMark.reached => M3EContainer(
-        Shapes.c7SidedCookie,
+        Shapes.c9SidedCookie,
         width: size,
         height: size,
         color: scheme.primary,
@@ -368,7 +371,7 @@ class _Mark extends StatelessWidget {
         ),
       ),
       GoalMark.missed => _ring(scheme.outlineVariant),
-      GoalMark.open => _ring(scheme.primary),
+      GoalMark.open => _half(scheme.primary),
       GoalMark.none || GoalMark.ahead => Container(
         width: size * 0.22,
         height: size * 0.22,
@@ -407,6 +410,28 @@ class _Mark extends StatelessWidget {
     );
   }
 
+  /// A ring whose left half is filled.
+  Widget _half(Color color) => SizedBox.square(
+    dimension: size * 0.72,
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        ClipRect(
+          clipper: const _LeftHalf(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 2.5),
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _ring(Color color) => Container(
     width: size * 0.72,
     height: size * 0.72,
@@ -415,6 +440,16 @@ class _Mark extends StatelessWidget {
       border: Border.all(color: color, width: 2.5),
     ),
   );
+}
+
+class _LeftHalf extends CustomClipper<Rect> {
+  const _LeftHalf();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(0, 0, size.width / 2, size.height);
+
+  @override
+  bool shouldReclip(_LeftHalf oldClipper) => false;
 }
 
 /// The marks of a week, or of the weeks of a month, in one row.

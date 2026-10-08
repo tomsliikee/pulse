@@ -141,7 +141,7 @@ BoardTile? buildTodayTile(
         final earlier = days.reversed.skip(1).take(_moreDays).toList();
         return BoardTile(
           id: id,
-          height: DaysCard.heightFor(earlier.length),
+          height: DaysCard.height,
           onRemove: remove,
           child: DaysCard(days: earlier, total: days.length),
         );

@@ -32,7 +32,7 @@ void main() {
     for (final (destination, marker) in const [
       ('Aktivität', 'Schritte und Trainings'),
       ('Schlaf', 'Schlafphasen'),
-      ('Herz', 'Tagesverlauf'),
+      ('Herz', 'Zeit in Zonen'),
     ]) {
       testWidgets('$destination renders at $label', (tester) async {
         await pumpApp(tester, size: size);

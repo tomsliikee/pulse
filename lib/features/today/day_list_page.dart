@@ -2,11 +2,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
-import '../../theme/app_shapes.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/sub_page.dart';
-import '../../widgets/tile_surface.dart';
 import 'day_tiles.dart';
 
 /// Every day the app knows, newest first and month by month.
@@ -22,7 +21,6 @@ class DayListPage extends StatelessWidget {
       builder: (context, opening) => ListenableBuilder(
         listenable: Listenable.merge([health, scope.settings]),
         builder: (context, _) {
-          final scheme = Theme.of(context).colorScheme;
           final formats = Formats.of(context);
 
           // A month's heading, then its days. A day and a month are both
@@ -53,16 +51,13 @@ class DayListPage extends StatelessWidget {
                           formats.month(rows[index]),
                           padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
                         )
-                      : Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: TileSurface(
-                            color: scheme.surfaceBright,
-                            radius: AppRadii.extraLarge,
-                            child: SizedBox(
-                              height: 72,
-                              child: DayRow(day: rows[index]),
-                            ),
-                          ),
+                      // The days of a month are one group of segments.
+                      : ListSegment(
+                          first: headings.contains(index - 1),
+                          last:
+                              index == rows.length - 1 ||
+                              headings.contains(index + 1),
+                          child: DayRow(day: rows[index]),
                         ),
                 ),
               ),

@@ -29,6 +29,8 @@ class BoardPage extends StatefulWidget {
     this.editMenu,
     this.editFooter,
     this.footer,
+    this.backdrop,
+    this.backdropInk,
     this.removable = false,
   });
 
@@ -54,6 +56,15 @@ class BoardPage extends StatefulWidget {
   final Widget? footer;
   final List<BoardTile> tiles;
 
+  /// Painted behind the page from the top of the screen and scrolling with
+  /// it, such as a scene that runs from edge to edge. It is given the
+  /// distance from the top of the screen to the board; hidden while editing.
+  final Widget Function(BuildContext context, double boardTop)? backdrop;
+
+  /// The colour of the title while it stands on the [backdrop], for a
+  /// backdrop that is dark under a light theme, such as a night sky.
+  final Color? backdropInk;
+
   /// Gives every tile a minus while editing and lists the removed ones below
   /// the board to bring them back. A page that manages its own set of tiles
   /// leaves this off.
@@ -67,6 +78,28 @@ class _BoardPageState extends State<BoardPage> {
   static const double _buttonGap = 8;
 
   bool _editing = false;
+
+  final ScrollController _scroll = ScrollController();
+  final GlobalKey _board = GlobalKey();
+
+  /// From the top of the screen to the board, at rest.
+  double? _boardTop;
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _measure() {
+    final box = _board.currentContext?.findRenderObject();
+    if (!mounted || box is! RenderBox || !box.hasSize || _editing) return;
+    final top =
+        box.localToGlobal(Offset.zero).dy +
+        (_scroll.hasClients ? _scroll.offset : 0);
+    if (_boardTop != null && (top - _boardTop!).abs() < 0.5) return;
+    setState(() => _boardTop = top);
+  }
 
   Future<void> _refresh() async {
     await AppScope.of(context).health.refresh(full: true);
@@ -83,6 +116,11 @@ class _BoardPageState extends State<BoardPage> {
     final top = MediaQuery.paddingOf(context).top;
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
+    final backdrop = widget.backdrop;
+    final boardTop = _boardTop;
+    if (backdrop != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+    }
     final buttons = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -109,6 +147,7 @@ class _BoardPageState extends State<BoardPage> {
     final list = M3EPullToRefreshIndicator(
       onRefresh: _refresh,
       child: ListView(
+        controller: _scroll,
         // Not clipped, so what scrolls out at the top is still seen behind
         // the status bar.
         clipBehavior: Clip.none,
@@ -117,6 +156,9 @@ class _BoardPageState extends State<BoardPage> {
           PageHeader(
             title: widget.title,
             subtitle: widget.subtitle,
+            ink: backdrop != null && boardTop != null && !_editing
+                ? widget.backdropInk
+                : null,
             reserved:
                 _buttonGap +
                 FloatingSurface.height +
@@ -143,6 +185,7 @@ class _BoardPageState extends State<BoardPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TileBoard(
+                    key: _board,
                     tiles: !widget.removable
                         ? widget.tiles
                         : [
@@ -183,18 +226,97 @@ class _BoardPageState extends State<BoardPage> {
         ],
       ),
     );
+    final showsBackdrop = backdrop != null && boardTop != null && !_editing;
     return Stack(
       children: [
+        if (backdrop != null && boardTop != null)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: AnimatedOpacity(
+                opacity: _editing ? 0 : 1,
+                duration: const Duration(milliseconds: 200),
+                child: ListenableBuilder(
+                  listenable: _scroll,
+                  builder: (context, child) => Transform.translate(
+                    offset: Offset(0, _scroll.hasClients ? -_scroll.offset : 0),
+                    child: child,
+                  ),
+                  child: backdrop(context, boardTop),
+                ),
+              ),
+            ),
+          ),
         // The list starts below the status bar, and with it the indicator
         // that pulling down brings out.
         Positioned.fill(
           child: Padding(
             padding: EdgeInsets.only(top: top),
-            child: list,
+            child: BoardBackdrop(shown: showsBackdrop, child: list),
           ),
         ),
         Positioned(top: top + SubPage.buttonTop, right: 16, child: buttons),
       ],
+    );
+  }
+}
+
+/// Tells the tiles of a [BoardPage] whether the page is drawing its
+/// backdrop, so the tile the backdrop belongs to leaves it out.
+class BoardBackdrop extends InheritedWidget {
+  const BoardBackdrop({super.key, required this.shown, required super.child});
+
+  final bool shown;
+
+  static bool isShown(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<BoardBackdrop>()?.shown ??
+      false;
+
+  /// Whether the tile [heroId] of page [pageId] gives its scene to the
+  /// page, which draws it from edge to edge behind the title: the user
+  /// chose that, and of the tiles [shown] the board puts it first. The ids
+  /// in [inPlace] are those of tiles with [BoardTile.entersInPlace].
+  static bool wanted(
+    BuildContext context, {
+    required String pageId,
+    required String heroId,
+    required List<String> shown,
+    Set<String> inPlace = const {},
+  }) {
+    final settings = AppScope.of(context).settings;
+    if (!settings.edgeToEdgeHero) return false;
+    final hidden = settings.hiddenTiles(pageId);
+    // The same order the board lays the tiles out in.
+    final order = resolveIdOrder([
+      for (final id in shown)
+        if (!hidden.contains(id)) (id: id, inPlace: inPlace.contains(id)),
+    ], settings.tileOrder(pageId));
+    return order.firstOrNull == heroId;
+  }
+
+  @override
+  bool updateShouldNotify(BoardBackdrop oldWidget) => oldWidget.shown != shown;
+}
+
+/// A scene used as a page's backdrop: it fades into the page where it ends.
+class FadingBackdrop extends StatelessWidget {
+  const FadingBackdrop({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.dstIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+        stops: [0, 0.82, 1],
+      ).createShader(bounds),
+      child: child,
     );
   }
 }

@@ -7,10 +7,12 @@ import '../data/json_store.dart';
 import '../data/settings_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_type.dart';
 import '../theme/system_palette.dart';
 import 'app_language.dart';
 import 'app_scope.dart';
 import 'app_shell.dart';
+import 'layout.dart';
 
 class PulseApp extends StatefulWidget {
   const PulseApp({
@@ -97,6 +99,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
           final system = _settings.dynamicColor ? _palette.value : null;
           final language = _language.forced;
           return MaterialApp(
+            navigatorObservers: [appRouteObserver],
             onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
             locale: language == null ? null : Locale(language),
             // The first entry is used when the system's language is not offered.
@@ -115,16 +118,19 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
             // with icons that stand out from the theme.
             builder: (context, child) {
               final dark = Theme.of(context).brightness == Brightness.dark;
-              return AnnotatedRegion<SystemUiOverlayStyle>(
-                value:
-                    (dark
-                            ? SystemUiOverlayStyle.light
-                            : SystemUiOverlayStyle.dark)
-                        .copyWith(
-                          statusBarColor: Colors.transparent,
-                          systemNavigationBarColor: Colors.transparent,
-                        ),
-                child: child!,
+              return FlexType(
+                enabled: _settings.flexFont,
+                child: AnnotatedRegion<SystemUiOverlayStyle>(
+                  value:
+                      (dark
+                              ? SystemUiOverlayStyle.light
+                              : SystemUiOverlayStyle.dark)
+                          .copyWith(
+                            statusBarColor: Colors.transparent,
+                            systemNavigationBarColor: Colors.transparent,
+                          ),
+                  child: child!,
+                ),
               );
             },
             home: const AppShell(),

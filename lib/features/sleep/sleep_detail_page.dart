@@ -12,7 +12,13 @@ import '../../data/night_insights.dart';
 import '../../data/settings_controller.dart';
 import '../../data/sleep_insights.dart';
 import '../../data/workout_insights.dart' show Trend;
+import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/app_type.dart';
+import '../../theme/page_accent.dart';
+import '../../widgets/detail_sections.dart';
+import '../../widgets/morphing_shape.dart';
+import '../../widgets/segment_group.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/number_grid.dart';
 import '../../widgets/day_switcher.dart';
@@ -82,45 +88,47 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
     final scope = AppScope.of(context);
     final health = scope.health;
     final l10n = AppLocalizations.of(context);
-    return ListenableBuilder(
-      listenable: Listenable.merge([health, scope.settings]),
-      builder: (context, _) => SubPage(
-        title: l10n.sleepInDetail,
-        glass: scope.settings.liquidGlass,
-        // The page ends above the floating bar.
-        bottomPadding:
-            16 +
-            FloatingTabBar.height +
-            24 +
-            MediaQuery.paddingOf(context).bottom,
-        overlay: health.status != HealthStatus.ready
-            ? null
-            : Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16 + MediaQuery.paddingOf(context).bottom,
-                child: Center(
-                  child: DaySwitcher(
-                    today: health.today,
-                    selected: _date,
-                    earlier: _earlier(health),
-                    allLabel: l10n.allNights,
-                    glass: scope.settings.liquidGlass,
-                    onSelected: _show,
-                    onAll: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const NightListPage(),
+    return PageAccent.sleep(
+      child: ListenableBuilder(
+        listenable: Listenable.merge([health, scope.settings]),
+        builder: (context, _) => SubPage(
+          title: l10n.sleepInDetail,
+          glass: scope.settings.liquidGlass,
+          // The page ends above the floating bar.
+          bottomPadding:
+              16 +
+              FloatingTabBar.height +
+              24 +
+              MediaQuery.paddingOf(context).bottom,
+          overlay: health.status != HealthStatus.ready
+              ? null
+              : Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + MediaQuery.paddingOf(context).bottom,
+                  child: Center(
+                    child: DaySwitcher(
+                      today: health.today,
+                      selected: _date,
+                      earlier: _earlier(health),
+                      allLabel: l10n.allNights,
+                      glass: scope.settings.liquidGlass,
+                      onSelected: _show,
+                      onAll: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const NightListPage(),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-        child: health.status == HealthStatus.ready
-            ? _content(context, health, scope.settings)
-            : const SizedBox(
-                height: 240,
-                child: Center(child: M3ELoadingIndicator()),
-              ),
+          child: health.status == HealthStatus.ready
+              ? _content(context, health, scope.settings)
+              : const SizedBox(
+                  height: 240,
+                  child: Center(child: M3ELoadingIndicator()),
+                ),
+        ),
       ),
     );
   }
@@ -255,7 +263,7 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
             children: [
               LineChart(
                 values: [for (final sample in heart) sample.bpm.toDouble()],
-                color: scheme.tertiary,
+                color: PageAccent.colorsOf(context).accent,
                 height: 140,
               ),
               const SizedBox(height: 8),
@@ -266,11 +274,11 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
           ),
         ),
       if (metrics.isNotEmpty)
-        SectionCard(
+        TitledSection(
           title: l10n.nightValues,
-          padding: const EdgeInsets.fromLTRB(0, 20, 0, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          note: l10n.nightValuesNote,
+          child: SegmentGroup(
+            padding: EdgeInsets.zero,
             children: [
               for (final metric in metrics)
                 _NightValue(
@@ -280,15 +288,6 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
                       : snapshot.value(metric, index),
                   usual: ownRange(snapshot.valuesOf(metric)),
                 ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                child: Text(
-                  l10n.nightValuesNote,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -326,7 +325,9 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
   }
 }
 
-/// The night played back, with how it went against the night before.
+/// The night played back in the one container of the page, the score on a
+/// shape that hangs over its edge, and below it, free, how long it was and
+/// how it went against the night before.
 class _Summary extends StatelessWidget {
   const _Summary({required this.night, required this.insights});
 
@@ -338,38 +339,55 @@ class _Summary extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
-    return SurfaceCard(
-      padding: EdgeInsets.zero,
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
+    final score = insights.score.total;
+    return SceneSummary(
+      scene: SleepScene(
+        night: night,
+        score: score,
+        height: SceneSummary.sceneHeight,
+      ),
+      mark: MorphingShape(
+        shape: AppShapes.of(PageAccent.of(context).family, score),
+        color: accent.accent,
+        size: SceneSummary.markSize,
+        child: AnimatedCount(
+          value: score,
+          style: type.hero(
+            context.emphasizedTextTheme.displaySmall?.copyWith(
+              color: accent.onAccent,
+              height: 1,
+            ),
+          ),
+        ),
+      ),
+      label: formats.l10n.scoreTitle,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SleepScene(night: night, score: insights.score.total, height: 140),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  formats.duration(night.asleepMinutes),
-                  style: context.emphasizedTextTheme.headlineMedium,
-                ),
-                Text(
-                  formats.l10n.asleepFromTo(
-                    formatClock(night.bedtimeMinute),
-                    formatClock(night.wakeMinute),
-                  ),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  nightHeadline(formats, insights),
-                  style: context.emphasizedTextTheme.titleMedium?.copyWith(
-                    color: scheme.primary,
-                  ),
-                ),
-              ],
+          Text(
+            formats.duration(night.asleepMinutes),
+            style: type.hero(context.emphasizedTextTheme.displaySmall),
+          ),
+          Text(
+            formats.l10n.asleepFromTo(
+              formatClock(night.bedtimeMinute),
+              formatClock(night.wakeMinute),
+            ),
+            style: type.label(
+              theme.textTheme.bodyLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            nightHeadline(formats, insights),
+            style: type.strong(
+              context.emphasizedTextTheme.titleMedium?.copyWith(
+                color: accent.accent,
+              ),
             ),
           ),
         ],
@@ -378,7 +396,7 @@ class _Summary extends StatelessWidget {
   }
 }
 
-/// The score with what each of its parts gave.
+/// What each part of the score gave, a segment for each.
 class _ScoreCard extends StatelessWidget {
   const _ScoreCard({required this.score});
 
@@ -389,20 +407,17 @@ class _ScoreCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
-    final muted = theme.textTheme.bodySmall?.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
-    return SectionCard(
-      title: l10n.scoreTitle,
-      trailing: '${score.total}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 14,
+    final type = AppType.of(context);
+    final accent = PageAccent.colorsOf(context);
+    return TitledSection(
+      title: l10n.dayScoreParts,
+      note: l10n.scoreNote,
+      child: SegmentGroup(
         children: [
           for (final part in ScorePart.values)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              spacing: 6,
+              spacing: 8,
               children: [
                 Row(
                   children: [
@@ -411,36 +426,41 @@ class _ScoreCard extends StatelessWidget {
                         part.label(l10n),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
+                        style: type.strong(theme.textTheme.titleSmall),
                       ),
                     ),
-                    Text(
-                      switch (score.parts[part]) {
-                        final earned? => l10n.scorePoints(
-                          earned.round(),
-                          part.points,
+                    switch (score.parts[part]) {
+                      final earned? => Text(
+                        l10n.scorePoints(earned.round(), part.points),
+                        style: type.label(
+                          theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
                         ),
-                        null => l10n.scoreNotJudged,
-                      },
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
                       ),
-                    ),
+                      null => Text(
+                        l10n.scoreNotJudged,
+                        style: type.aside(
+                          theme.textTheme.labelLarge?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    },
                   ],
                 ),
                 // Nothing to draw for a part that was not judged.
                 if (score.parts[part] case final earned?)
-                  WavyBar(value: earned / part.points),
+                  WavyBar(value: earned / part.points, color: accent.accent),
               ],
             ),
-          Text(l10n.scoreNote, style: muted),
         ],
       ),
     );
   }
 }
 
-/// Every number of the night, two to a row.
+/// Every number of the night.
 class _Measures extends StatelessWidget {
   const _Measures({required this.night, required this.insights});
 
@@ -451,36 +471,40 @@ class _Measures extends StatelessWidget {
   Widget build(BuildContext context) {
     final formats = Formats.of(context);
     final l10n = formats.l10n;
-    return NumberGrid(
-      cells: [
-        NumberCell(
-          label: l10n.inBed,
-          value: AnimatedNumber(
-            value: night.totalMinutes.toDouble(),
-            format: (value) => formats.duration(value.round()),
-          ),
-        ),
-        for (final measure in const [
-          NightMeasure.efficiency,
-          NightMeasure.deep,
-          NightMeasure.rem,
-          NightMeasure.light,
-          NightMeasure.awake,
-        ])
-          if (insights.measure(measure) case final comparison?)
-            NumberCell(
-              label: measure.label(l10n),
-              value: AnimatedNumber(
-                value: comparison.value,
-                format: (value) => measure.format(formats, value),
-              ),
+    return TitledSection(
+      title: l10n.nightNumbers,
+      child: NumberGrid(
+        cells: [
+          NumberCell(
+            label: l10n.inBed,
+            value: AnimatedNumber(
+              value: night.totalMinutes.toDouble(),
+              format: (value) => formats.duration(value.round()),
             ),
-      ],
+          ),
+          for (final measure in const [
+            NightMeasure.efficiency,
+            NightMeasure.deep,
+            NightMeasure.rem,
+            NightMeasure.light,
+            NightMeasure.awake,
+          ])
+            if (insights.measure(measure) case final comparison?)
+              NumberCell(
+                label: measure.label(l10n),
+                value: AnimatedNumber(
+                  value: comparison.value,
+                  format: (value) => measure.format(formats, value),
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
 
-/// Each number against the night before and against the week before.
+/// Each number against the night before and against the week before, a
+/// segment for each.
 class _Comparison extends StatelessWidget {
   const _Comparison({required this.insights});
 
@@ -497,154 +521,58 @@ class _Comparison extends StatelessWidget {
         if (comparison.previous != null) comparison,
     ];
     if (rows.isEmpty) {
-      return SectionCard(
+      return TitledSection(
         title: l10n.compareTitle,
-        child: Text(
-          l10n.compareNoNight,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+        child: SegmentGroup(
+          children: [
+            Text(
+              l10n.compareNoNight,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       );
     }
-    final head = theme.textTheme.labelMedium?.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
 
     Widget difference(NightComparison comparison, double? other, Trend trend) {
       if (other == null) return const SizedBox.shrink();
       final diff = comparison.value - other;
       final size = comparison.measure.formatDifference(formats, diff);
-      return Text(
-        trend == Trend.same || diff.abs() < 0.005
+      return DifferenceText(
+        text: trend == Trend.same || diff.abs() < 0.005
             ? '±0'
             : '${diff < 0 ? '−' : '+'}$size',
-        textAlign: TextAlign.end,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: context.emphasizedTextTheme.labelLarge?.copyWith(
-          color: switch (trend) {
-            Trend.better => scheme.primary,
-            Trend.worse => scheme.error,
-            Trend.same || Trend.neutral => scheme.onSurfaceVariant,
-          },
-        ),
+        good: switch (trend) {
+          Trend.better => true,
+          Trend.worse => false,
+          Trend.same || Trend.neutral => null,
+        },
       );
     }
 
-    return SectionCard(
+    return ComparisonSegments(
       title: l10n.compareTitle,
-      child: Column(
-        spacing: 12,
-        children: [
-          Row(
-            children: [
-              const Expanded(flex: 5, child: SizedBox.shrink()),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  l10n.compareNightBefore,
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: head,
-                ),
+      heads: [l10n.compareNightBefore, l10n.compareWeek],
+      rows: [
+        for (final comparison in rows)
+          (
+            label: comparison.measure.label(l10n),
+            cells: [
+              difference(
+                comparison,
+                comparison.previous,
+                comparison.againstPrevious,
               ),
-              Expanded(
-                flex: 4,
-                child: Text(
-                  l10n.compareWeek,
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: head,
-                ),
+              difference(
+                comparison,
+                comparison.average,
+                comparison.againstAverage,
               ),
             ],
           ),
-          ...staggered([
-            for (final comparison in rows)
-              Row(
-                children: [
-                  Expanded(
-                    flex: 5,
-                    child: Text(
-                      comparison.measure.label(l10n),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: difference(
-                      comparison,
-                      comparison.previous,
-                      comparison.againstPrevious,
-                    ),
-                  ),
-                  Expanded(
-                    flex: 4,
-                    child: difference(
-                      comparison,
-                      comparison.average,
-                      comparison.againstAverage,
-                    ),
-                  ),
-                ],
-              ),
-          ], from: 1),
-        ],
-      ),
-    );
-  }
-}
-
-/// A list of sentences, each with the same small icon, and a note below.
-class _Notes extends StatelessWidget {
-  const _Notes({
-    required this.title,
-    required this.icon,
-    required this.sentences,
-    required this.note,
-  });
-
-  final String title;
-  final IconData icon;
-  final List<String> sentences;
-  final String note;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return SectionCard(
-      title: title,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: 12,
-        children: [
-          ...staggered([
-            for (final sentence in sentences)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: 20, color: scheme.tertiary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(sentence, style: theme.textTheme.bodyMedium),
-                  ),
-                ],
-              ),
-          ], from: 1),
-          Text(
-            note,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
@@ -657,9 +585,10 @@ class _Links extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formats = Formats.of(context);
-    return _Notes(
+    return NoteSegments(
       title: formats.l10n.linksTitle,
       icon: Icons.link_rounded,
+      shape: Shapes.l4LeafClover,
       sentences: [for (final link in links) sleepLinkText(formats, link)],
       note: formats.l10n.linksNote,
     );
@@ -674,7 +603,7 @@ class _Tips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formats = Formats.of(context);
-    return _Notes(
+    return NoteSegments(
       title: formats.l10n.sleepTipsTitle,
       icon: Icons.lightbulb_outline_rounded,
       sentences: [for (final tip in insights.tips) nightTip(formats, tip)],
@@ -1023,7 +952,7 @@ class _NightValue extends StatelessWidget {
         if (origin != null) openMetric(context, metric, origin);
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
             Icon(spec.icon, color: scheme.tone(spec.tone).accent),

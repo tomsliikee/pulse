@@ -6,6 +6,7 @@ import 'package:motor/motor.dart';
 
 import '../app/haptics.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_type.dart';
 import 'glass_bar.dart';
 import 'glass_scope.dart';
 
@@ -56,6 +57,9 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
   static const double _maxInset = 14;
   static const double _minInset = 6;
 
+  /// How much wider the selected tab is than at rest, where there is room.
+  static const double _maxGrow = 20;
+
   /// The glass lens the pill becomes while dragged is taller than the bar.
   static const double _lensHeight = 80;
   static const double _lensExtraWidth = 28;
@@ -102,11 +106,13 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final labelStyle = context.emphasizedTextTheme.labelLarge;
+    final type = AppType.of(context);
     final scaler = MediaQuery.textScalerOf(context);
     final labelWidths = [
       for (final (index, label) in labels.indexed)
+        // As wide as the label gets, which is when it is selected.
         (TextPainter(
-              text: TextSpan(text: label, style: labelStyle),
+              text: TextSpan(text: label, style: type.tab(labelStyle, 1)),
               textDirection: TextDirection.ltr,
               textScaler: scaler,
               maxLines: 1,
@@ -120,15 +126,21 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
         final room = constraints.maxWidth - 2 * _padding - labelsWidth;
         final inset = (room / (2 * labels.length)).clamp(_minInset, _maxInset);
         final widths = [for (final width in labelWidths) width + 2 * inset];
-        final lefts = <double>[];
-        var total = 0.0;
-        for (final width in widths) {
-          lefts.add(total);
-          total += width;
-        }
+        final lefts = _leftsOf(widths);
+        final total = lefts.last + widths.last;
+        // The finger goes by where the tabs lie at rest, so the bar does
+        // not shift under it while the pill is dragged.
         _centres = [
           for (var i = 0; i < widths.length; i++) lefts[i] + widths[i] / 2,
         ];
+        // What the selected tab takes from the others, as far as their
+        // insets allow.
+        final grow = labels.length < 2
+            ? 0.0
+            : ((inset - _minInset) * 2 * (labels.length - 1)).clamp(
+                0.0,
+                _maxGrow,
+              );
         return FittedBox(
           fit: BoxFit.scaleDown,
           child: SingleMotionBuilder(
@@ -139,9 +151,10 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
               motion: AppMotion.spatialFast,
               builder: (context, position, _) => _bar(
                 scheme,
+                type,
                 labelStyle,
                 widths,
-                lefts,
+                grow,
                 total,
                 // The springs overshoot; the geometry must stay valid.
                 position.clamp(0.0, labels.length - 1.0),
@@ -154,15 +167,39 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
     );
   }
 
+  static List<double> _leftsOf(List<double> widths) {
+    final lefts = <double>[];
+    var total = 0.0;
+    for (final width in widths) {
+      lefts.add(total);
+      total += width;
+    }
+    return lefts;
+  }
+
+  /// How much tab [index] is the selected one while the pill is at [at]:
+  /// 1 under it, 0 a whole tab away.
+  static double _nearness(double at, int index) =>
+      (1 - (at - index).abs()).clamp(0.0, 1.0);
+
   Widget _bar(
     ColorScheme scheme,
+    AppType type,
     TextStyle? labelStyle,
-    List<double> widths,
-    List<double> lefts,
+    List<double> resting,
+    double grow,
     double total,
     double at,
     double lift,
   ) {
+    // The tab under the pill is wider by [grow]; the others share the
+    // loss, so the bar keeps its width.
+    final give = grow / (labels.length > 1 ? labels.length - 1 : 1);
+    final widths = [
+      for (final (index, width) in resting.indexed)
+        width + (grow + give) * _nearness(at, index) - give,
+    ];
+    final lefts = _leftsOf(widths);
     final glass = widget.glass;
     final lifted = glass ? lift.clamp(0.0, 1.0) : 0.0;
     final last = labels.length - 1;
@@ -208,13 +245,15 @@ class _FloatingTabBarState extends State<FloatingTabBar> {
                       label: labels[i],
                       icon: widget.icons[i],
                       selected: i == selectedIndex,
-                      style: labelStyle?.copyWith(
-                        color: Color.lerp(
-                          scheme.onSurfaceVariant,
-                          onPill,
-                          (1 - (at - i).abs()).clamp(0.0, 1.0),
-                        ),
-                      ),
+                      style: type
+                          .tab(labelStyle, _nearness(at, i))
+                          ?.copyWith(
+                            color: Color.lerp(
+                              scheme.onSurfaceVariant,
+                              onPill,
+                              _nearness(at, i),
+                            ),
+                          ),
                       onTap: () {
                         if (i == selectedIndex) {
                           widget.onReselected?.call(i);

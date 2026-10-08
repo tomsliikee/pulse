@@ -18,3 +18,8 @@ Rect? globalRectOf(BuildContext context) {
   if (box is! RenderBox || !box.hasSize) return null;
   return box.localToGlobal(Offset.zero) & box.size;
 }
+
+/// Tells a widget when the page above its own is closed, so what it shows
+/// can come in again. Given to the app's navigator.
+final RouteObserver<ModalRoute<void>> appRouteObserver =
+    RouteObserver<ModalRoute<void>>();
