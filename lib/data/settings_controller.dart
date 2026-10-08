@@ -76,6 +76,10 @@ bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
   return date.year >= 1900 && date.isBefore(today);
 }
 
+/// The heights the profile accepts, in cm.
+const int minHeightCm = 100;
+const int maxHeightCm = 250;
+
 String? _isoDate(DateTime? date) => date == null
     ? null
     : '${date.year.toString().padLeft(4, '0')}-'
@@ -96,6 +100,7 @@ class SettingsController extends ChangeNotifier {
   int _activeEnergyGoal = 500;
   DateTime? _birthDate;
   Sex? _sex;
+  int? _heightCm;
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
   bool _showAllData = false;
@@ -121,6 +126,9 @@ class SettingsController extends ChangeNotifier {
   /// neither; the body age is counted from them.
   DateTime? get birthDate => _birthDate;
   Sex? get sex => _sex;
+
+  /// The height as typed into the profile, for when the store holds none.
+  int? get heightCm => _heightCm;
   ThemeMode get themeMode => _themeMode;
 
   /// Whether colours follow the system palette when the system offers one.
@@ -198,6 +206,10 @@ class SettingsController extends ChangeNotifier {
       for (final sex in Sex.values) {
         if (sex.name == v) _sex = sex;
       }
+    }
+    if (json['heightCm'] case final int v
+        when v >= minHeightCm && v <= maxHeightCm) {
+      _heightCm = v;
     }
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
@@ -306,6 +318,11 @@ class SettingsController extends ChangeNotifier {
 
   void setSex(Sex? value) => _update(() => _sex = value);
 
+  void setHeightCm(int? value) {
+    if (value != null && (value < minHeightCm || value > maxHeightCm)) return;
+    _update(() => _heightCm = value);
+  }
+
   void setThemeMode(ThemeMode value) => _update(() => _themeMode = value);
 
   void setDynamicColor(bool value) => _update(() => _dynamicColor = value);
@@ -376,6 +393,7 @@ class SettingsController extends ChangeNotifier {
             'activeEnergyGoal': _activeEnergyGoal,
             'birthDate': ?_isoDate(_birthDate),
             'sex': ?_sex?.name,
+            'heightCm': ?_heightCm,
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,

@@ -25,10 +25,15 @@ enum WorkoutMeasure {
 
 enum Trend { better, same, worse, neutral }
 
+/// Below this distance a workout has no pace or speed: a strength session
+/// that drifted a few metres would come out at thousands of minutes per
+/// kilometre.
+const double _minKmForPace = 0.1;
+
 /// The value of [measure] for [workout], or null when it was not recorded.
 double? measureOf(Workout workout, WorkoutMeasure measure) {
   final km = workout.distanceKm;
-  final moved = km != null && km > 0 && workout.minutes > 0;
+  final moved = km != null && km >= _minKmForPace && workout.minutes > 0;
   final wheels = workout.type == WorkoutType.ride;
   return switch (measure) {
     WorkoutMeasure.duration => workout.minutes.toDouble(),

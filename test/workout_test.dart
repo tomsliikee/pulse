@@ -187,6 +187,27 @@ void main() {
     final base = DateTime(2026, 9, 1, 18);
     DateTime week(int n) => base.add(Duration(days: 7 * n));
 
+    test('a few metres give no pace and no speed', () {
+      final drifted = _run(week(0), minutes: 22, km: 0.003);
+      expect(measureOf(drifted, WorkoutMeasure.pace), isNull);
+      expect(measureOf(drifted, WorkoutMeasure.distance), 0.003);
+      final ride = Workout(
+        type: WorkoutType.ride,
+        start: week(0),
+        minutes: 22,
+        distanceKm: 0.05,
+      );
+      expect(measureOf(ride, WorkoutMeasure.speed), isNull);
+
+      // Such a workout is nothing to be faster than.
+      final next = _run(week(1), minutes: 30, km: 5);
+      final pace = WorkoutInsights.of(next, [
+        drifted,
+        next,
+      ]).measure(WorkoutMeasure.pace)!;
+      expect(pace.previous, isNull);
+    });
+
     test('compares with the workout before and the average before', () {
       final all = [
         _run(week(0), minutes: 32, km: 5),

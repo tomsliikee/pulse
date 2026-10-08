@@ -15,6 +15,7 @@ import '../../widgets/stat_tile.dart';
 import '../goals/goal_format.dart';
 import '../goals/goals_page.dart';
 import 'birth_date_sheet.dart';
+import 'height_sheet.dart';
 import 'language_sheet.dart';
 
 /// Goals, appearance and background refresh.
@@ -133,32 +134,49 @@ class ProfilePage extends StatelessWidget {
             // The sections come in one after the other.
             children: staggered([
               SectionTitle(l10n.aboutYou),
-              SurfaceCard(
+              SegmentGroup(
                 padding: EdgeInsets.zero,
-                child: InkWell(
-                  onTap: () => showBirthDateSheet(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.birthDate,
-                            style: theme.textTheme.titleMedium,
-                          ),
-                        ),
-                        Text(
-                          switch (settings.birthDate) {
-                            final date? => formats.birthDate(date),
-                            null => l10n.notGiven,
-                          },
-                          style: context.emphasizedTextTheme.titleMedium
-                              ?.copyWith(color: scheme.primary),
-                        ),
-                      ],
+                children: [
+                  for (final (label, value, open) in [
+                    (
+                      l10n.birthDate,
+                      switch (settings.birthDate) {
+                        final date? => formats.birthDate(date),
+                        null => l10n.notGiven,
+                      },
+                      showBirthDateSheet,
                     ),
-                  ),
-                ),
+                    (
+                      l10n.heightLabel,
+                      switch (settings.heightCm) {
+                        final height? => '$height cm',
+                        null => l10n.notGiven,
+                      },
+                      showHeightSheet,
+                    ),
+                  ])
+                    InkWell(
+                      onTap: () => open(context),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                style: theme.textTheme.titleMedium,
+                              ),
+                            ),
+                            Text(
+                              value,
+                              style: context.emphasizedTextTheme.titleMedium
+                                  ?.copyWith(color: scheme.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
               Align(

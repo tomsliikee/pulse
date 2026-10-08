@@ -33,7 +33,7 @@ BodyAge? bodyAgeOf(HealthController health, SettingsController settings) {
     sex: settings.sex,
     snapshot: snapshot,
     weight: latest(Metric.weight),
-    height: latest(Metric.height),
+    height: settings.heightCm?.toDouble() ?? latest(Metric.height),
     bodyFat: latest(Metric.bodyFat),
     systolic: latest(Metric.systolic),
     diastolic: latest(Metric.diastolic),
@@ -107,7 +107,9 @@ class BodyAgePage extends StatelessWidget {
 
     final snapshot = health.snapshot;
     final weight = latestKnown(snapshot, health.history, Metric.weight);
-    final height = latestKnown(snapshot, health.history, Metric.height);
+    final height =
+        settings.heightCm ??
+        latestKnown(snapshot, health.history, Metric.height)?.value.round();
     final sections = <Widget>[
       _Overview(result: result),
       TitledSection(
@@ -133,9 +135,7 @@ class BodyAgePage extends StatelessWidget {
             }),
             _Line(
               l10n.heightLabel,
-              height == null
-                  ? l10n.noMeasurement
-                  : '${height.value.round()} cm',
+              height == null ? l10n.noMeasurement : '$height cm',
             ),
             _Line(
               l10n.metricWeight,

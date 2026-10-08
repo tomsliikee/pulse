@@ -565,8 +565,10 @@
   "yourDetails": "Deine Angaben",
   "sex": "Geschlecht",
   "heightLabel": "Größe",
+  "heightHint": "Größe in cm",
+  "heightInvalid": "Bitte eine Größe zwischen 100 und 250 cm eingeben.",
   "noMeasurement": "Keine Messung",
-  "changeInProfile": "Geburtsdatum und Geschlecht änderst du im Profil.",
+  "changeInProfile": "Geburtsdatum, Geschlecht und Größe änderst du im Profil.",
   "howCalculated": "So wird gerechnet",
   "howCalculatedBody": "Pulse beginnt bei deinem echten Alter. Jeder Faktor zieht Jahre ab oder legt welche dazu, je nachdem, wo dein Wert der letzten {days} Tage zwischen dem besten und dem schlechtesten Ende liegt. Die Summe ist das Körperalter.\n\nEin Faktor zählt erst ab {minDays} Tagen mit Daten, ein Alter gibt es ab {minFactors} Faktoren. Was fehlt, verändert nichts.\n\nDie Richtwerte folgen gängigen Empfehlungen. Wie viele Jahre ein Faktor wert ist, hat Pulse selbst festgelegt; das ist nicht wissenschaftlich geprüft. Das Körperalter ist eine Schätzung und keine medizinische Aussage.",
   "@howCalculatedBody": {
