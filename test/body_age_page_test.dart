@@ -104,7 +104,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, store: _storeWithBirthDate());
-    await tester.tap(find.text('Tageswert bisher'));
+    await tester.tap(find.text('Recovery'));
     await advance(tester);
     expect(find.byType(DayDetailPage), findsOne);
     expect(find.byType(BodyAgePage), findsNothing);

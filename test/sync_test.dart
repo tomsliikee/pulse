@@ -4,6 +4,7 @@ import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/data/sync_report.dart';
 
 import 'support/fixtures.dart';
 
@@ -21,6 +22,10 @@ void main() {
         expect(store.documents, contains(StoreKeys.snapshot));
         final history = await HistoryArchive(store).load(fixtureNow);
         expect(history.value(Metric.steps, fixtureNow), 7432);
+        final report = SyncReport.fromJson(await store.read(StoreKeys.sync))!;
+        expect(report.full, isTrue);
+        expect(report.error, isNull);
+        expect(report.at.isBefore(fixtureNow), isFalse);
       },
     );
 
@@ -36,6 +41,8 @@ void main() {
       await syncOnce(repository, store, fixtureNow);
 
       expect(repository.loadedWith.single?.loadedAt, morning);
+      final report = SyncReport.fromJson(await store.read(StoreKeys.sync))!;
+      expect(report.full, isFalse);
     });
 
     test('reads in full on the first run of a day', () async {
@@ -52,6 +59,16 @@ void main() {
       await syncOnce(repository, store, fixtureNow);
 
       expect(repository.loadedWith, [null]);
+    });
+
+    test('a report survives its own JSON, with and without an error', () {
+      final failed = SyncReport(at: fixtureNow, error: 'no access');
+      final read = SyncReport.fromJson(failed.toJson())!;
+      expect(read.at, fixtureNow);
+      expect(read.error, 'no access');
+      expect(read.seconds, isNull);
+      expect(SyncReport.fromJson({'at': 'never'}), isNull);
+      expect(SyncReport.fromJson(null), isNull);
     });
   });
 }

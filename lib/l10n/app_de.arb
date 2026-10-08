@@ -370,6 +370,45 @@
   "backgroundOn": "Pulse aktualisiert die Daten etwa stündlich im Hintergrund.",
   "backgroundOff": "Ohne Hintergrundzugriff werden die Daten nur beim Öffnen der App aktualisiert.",
   "refreshInBackground": "Im Hintergrund aktualisieren",
+  "backgroundLast": "Im Hintergrund zuletzt: {when}",
+  "@backgroundLast": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backgroundFailed": "Im Hintergrund zuletzt ohne Ergebnis: {when}",
+  "@backgroundFailed": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backup": "Sicherung",
+  "backupAbout": "Ältere Tage, Nächte und Trainings liegen nur auf diesem Gerät. Eine Sicherung ist eine Datei, die du selbst aufbewahrst.",
+  "backupSave": "Sicherung speichern",
+  "backupOpen": "Sicherung einlesen",
+  "backupSaved": "Sicherung gespeichert",
+  "backupSaveFailed": "Die Sicherung konnte nicht gespeichert werden.",
+  "backupInvalid": "Diese Datei ist keine Sicherung von Pulse.",
+  "backupOpenFailed": "Die Datei konnte nicht gelesen werden.",
+  "backupNothingNew": "Die Sicherung enthält nichts, was hier fehlt.",
+  "backupRestored": "Neu aus der Sicherung: Tage {days}, Nächte {nights}, Trainings {workouts}",
+  "@backupRestored": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "String"
+      },
+      "workouts": {
+        "type": "String"
+      }
+    }
+  },
   "accessTitle": "Deine Gesundheitsdaten",
   "accessBody": "Pulse liest Schritte, Puls, Schlaf und weitere Werte aus Health Connect und schreibt Wasser, Gewicht und Mahlzeiten, die du hier einträgst. Die Daten bleiben auf diesem Gerät.",
   "accessAction": "Zugriff erlauben",
@@ -1056,7 +1095,6 @@
   "nightTipKeepGoing": "Deine Nächte sind im Rhythmus. Bleib dabei.",
   "dayTileTitle": "Der Tag",
   "dayScore": "Tageswert",
-  "dayScoreSoFar": "Tageswert bisher",
   "dayScoreNote": "Von Pulse aus Bewegung, Schlaf, Ruhepuls und Wasser geschätzt, keine Messung. Was sich nicht werten lässt, zählt nicht mit; der Rest wird hochgerechnet.",
   "dayPartMovement": "Bewegung",
   "dayTipsTitle": "Hinweise für heute",
@@ -1289,9 +1327,38 @@
   "nightTabToday": "Heute",
   "edgeHero": "Szene randlos",
   "flexFont": "Flex-Schrift",
-  "dayScoreParts": "So setzt er sich zusammen",
+  "dayScoreParts": "So setzt sich der Tageswert zusammen",
   "dayNumbers": "Der Tag in Zahlen",
   "nightNumbers": "Die Nacht in Zahlen",
   "workoutNumbers": "Die Aktivität in Zahlen",
-  "ageFactorsTitle": "Das fließt ein"
+  "ageFactorsTitle": "Das fließt ein",
+  "recovery": "Recovery",
+  "dayShort": "Tag",
+  "recoveryGreen": "Recovery im grünen Bereich",
+  "recoveryYellow": "Recovery im gelben Bereich",
+  "recoveryRed": "Recovery im roten Bereich",
+  "recoveryParts": "So setzt sich die Recovery zusammen",
+  "recoveryNote": "Von Pulse aus Herzfrequenzvariabilität, Ruhepuls, Schlaf und Atemfrequenz geschätzt, jeweils gegen deine letzten 30 Tage; keine Messung. Rot bis 33 %, gelb bis 66 %, darüber grün.",
+  "recoveryUsual": "{value} · üblich {usual}",
+  "@recoveryUsual": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryAimed": "{value} · Ziel {usual}",
+  "@recoveryAimed": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  }
 }

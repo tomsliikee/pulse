@@ -7,6 +7,7 @@ import '../data/health_repository.dart';
 import '../data/health_snapshot.dart';
 import '../data/json_store.dart';
 import '../data/night_archive.dart';
+import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
 
 const String _uniqueName = 'pulse.sync';
@@ -18,14 +19,26 @@ const String _taskName = 'sync';
 void backgroundSyncDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     WidgetsFlutterBinding.ensureInitialized();
+    final store = await FileJsonStore.open();
+    Future<void> failed(String why) => store.write(
+      StoreKeys.sync,
+      SyncReport(at: DateTime.now(), error: why).toJson(),
+    );
     try {
       final repository = HealthConnectRepository();
-      if (await repository.access() != HealthAccess.granted) return true;
-      if (!await repository.backgroundAccessGranted()) return true;
-      await syncOnce(repository, await FileJsonStore.open(), DateTime.now());
+      if (await repository.access() != HealthAccess.granted) {
+        await failed('no access');
+        return true;
+      }
+      if (!await repository.backgroundAccessGranted()) {
+        await failed('no background access');
+        return true;
+      }
+      await syncOnce(repository, store, DateTime.now());
       return true;
     } on Exception catch (error) {
       debugPrint('Background sync failed: $error');
+      await failed('$error');
       // Reported as done: the next period tries again anyway, and a retry
       // with backoff would only spend battery on the same failure.
       return true;
@@ -34,25 +47,32 @@ void backgroundSyncDispatcher() {
 }
 
 /// Reads the store and saves the result. Builds on the saved snapshot, so
-/// only what can have changed since is read again.
+/// only what can have changed since is read again. Leaves a [SyncReport].
 Future<void> syncOnce(
   HealthRepository repository,
   JsonStore store,
   DateTime now,
 ) async {
+  final watch = Stopwatch()..start();
   final saved = HealthSnapshot.fromJson(await store.read(StoreKeys.snapshot));
   final today = DateTime(now.year, now.month, now.day);
-  final snapshot = await repository.load(
-    now,
-    // The first read of a day is a full one, as in the app.
-    previous: saved != null && saved.today == today ? saved : null,
-  );
+  // The first read of a day is a full one, as in the app.
+  final previous = saved != null && saved.today == today ? saved : null;
+  final snapshot = await repository.load(now, previous: previous);
   await store.write(StoreKeys.snapshot, snapshot.toJson());
   // Also kept for the long term, so no day is lost when the app stays
   // closed for longer than the store's window.
   await HistoryArchive(store).mergeIntoStore(dailyValuesOf(snapshot));
   await WorkoutArchive(store).mergeIntoStore(workoutsWithHeart(snapshot));
   await NightArchive(store).mergeIntoStore(nightSummaries(snapshot));
+  await store.write(
+    StoreKeys.sync,
+    SyncReport(
+      at: now.add(watch.elapsed),
+      seconds: watch.elapsedMilliseconds / 1000,
+      full: previous == null,
+    ).toJson(),
+  );
 }
 
 /// Registers the hourly refresh. Safe to call on every start.

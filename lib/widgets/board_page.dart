@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
@@ -244,7 +245,18 @@ class _BoardPageState extends State<BoardPage> {
                     offset: Offset(0, _scroll.hasClients ? -_scroll.offset : 0),
                     child: child,
                   ),
-                  child: backdrop(context, boardTop),
+                  // A backdrop that needs a light title is dark, so the
+                  // status bar's icons are light for as long as it is
+                  // behind them.
+                  child: widget.backdropInk == null
+                      ? backdrop(context, boardTop)
+                      : AnnotatedRegion<SystemUiOverlayStyle>(
+                          value: SystemUiOverlayStyle.light.copyWith(
+                            statusBarColor: Colors.transparent,
+                            systemNavigationBarColor: Colors.transparent,
+                          ),
+                          child: backdrop(context, boardTop),
+                        ),
                 ),
               ),
             ),

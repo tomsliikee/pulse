@@ -1,8 +1,10 @@
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/models.dart';
+import 'package:pulse/data/recovery.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/features/activity/workout_detail_page.dart';
 import 'package:pulse/features/activity/workout_tiles.dart';
@@ -14,9 +16,11 @@ import 'package:pulse/features/today/day_scene.dart';
 import 'package:pulse/features/today/day_tiles.dart';
 import 'package:pulse/features/today/today_page.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
+import 'package:pulse/theme/app_theme.dart';
 import 'package:pulse/widgets/day_switcher.dart';
 import 'package:pulse/widgets/floating_surface.dart';
 import 'package:pulse/widgets/metric_card.dart';
+import 'package:pulse/widgets/morphing_shape.dart';
 
 import 'support/fixtures.dart';
 
@@ -49,7 +53,7 @@ void main() {
       find.descendant(of: card, matching: find.byType(DayScene)),
       findsOneWidget,
     );
-    expect(find.text('Tageswert bisher'), findsOneWidget);
+    expect(find.text('Recovery'), findsOneWidget);
     // 7.432 by half past three against 3.000 by then the day before.
     expect(
       find.text('4.432 Schritte mehr als gestern um diese Zeit'),
@@ -70,7 +74,7 @@ void main() {
   testWidgets('with the pills open the bar stays live: a tap on Gestern '
       'switches the day and takes them away', (tester) async {
     await pumpApp(tester, repository: _withTwoYears());
-    await tester.tap(find.text('Tageswert bisher'));
+    await tester.tap(find.text('Recovery'));
     await advance(tester);
     final page = find.byType(DayDetailPage);
     final bar = find.descendant(of: page, matching: find.byType(DaySwitcher));
@@ -201,7 +205,7 @@ void main() {
   testWidgets('the bar of a day leads to yesterday, and its menu to the days '
       'before and to all of them', (tester) async {
     await pumpApp(tester, repository: _withTwoYears());
-    await tester.tap(find.text('Tageswert bisher'));
+    await tester.tap(find.text('Recovery'));
     await advance(tester);
     final page = find.byType(DayDetailPage);
     Finder onPage(String text) => find.descendant(
@@ -216,7 +220,8 @@ void main() {
     await tester.tap(tab('Gestern'));
     await advance(tester);
     expect(onPage('Montag, 5. Oktober'), findsOneWidget);
-    expect(onPage('Tageswert bisher'), findsNothing);
+    // A day that is over shows its score beside the recovery.
+    expect(onPage('Tag'), findsOneWidget);
 
     final surfaces = find.byType(FloatingSurface).evaluate().length;
     await tester.tap(tab('Weitere'));
@@ -284,10 +289,10 @@ void main() {
     expect(page, findsOneWidget);
     Finder onPage(Finder finder) => find.descendant(of: page, matching: finder);
     expect(onPage(find.text('Montag, 5. Oktober')), findsOneWidget);
-    // A day that is over has its score, not a score so far, and is set
+    // A day that is over has its score beside the recovery, and is set
     // against whole days.
     expect(onPage(find.text('Tageswert')), findsWidgets);
-    expect(onPage(find.text('Tageswert bisher')), findsNothing);
+    expect(onPage(find.text('Tag')), findsOneWidget);
     expect(onPage(find.text('Tag davor', skipOffstage: false)), findsOneWidget);
     expect(
       onPage(find.text('nicht gewertet', skipOffstage: false)),
@@ -308,7 +313,7 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    await tester.tap(find.text('Tageswert bisher'));
+    await tester.tap(find.text('Recovery'));
     await advance(tester);
     final page = find.byType(DayDetailPage);
     expect(page, findsOneWidget);
@@ -484,7 +489,7 @@ void main() {
           await tester.drag(find.byType(ListView).first, const Offset(0, 9000));
           await advance(tester);
 
-          await tester.tap(find.text(l10n.dayScoreSoFar));
+          await tester.tap(find.text(l10n.recovery).first);
           await advance(tester);
           final page = find.byType(DayDetailPage);
           expect(page, findsOneWidget);
@@ -503,31 +508,19 @@ void main() {
     }
   }
 
-  testWidgets('the scene runs through every kind of day, and stands at the '
-      'moment the day has reached when animations are off', (tester) async {
+  testWidgets('the scene draws every kind of day, and stands still '
+      'when animations are off', (tester) async {
     final hours = [for (var hour = 0; hour < 24; hour++) hour * 90.0];
     for (final scene in [
-      // Today in the afternoon, with hours and a run.
-      DayScene(
-        untilMinute: 15 * 60 + 30,
-        score: 90,
-        hours: hours,
-        wakeMinute: 6 * 60 + 40,
-        workouts: [
-          Workout(
-            type: WorkoutType.run,
-            start: DateTime(2026, 10, 6, 12),
-            minutes: 40,
-          ),
-        ],
-      ),
+      // Today in the afternoon, with hours.
+      DayScene(untilMinute: 15 * 60 + 30, score: 90, hours: hours),
       // A day that is over, known only by its total.
       const DayScene(untilMinute: 22 * 60, score: 30, steps: 9000),
       // Early in the morning, before anything has happened.
       const DayScene(untilMinute: 5, score: 50),
     ]) {
       await tester.pumpWidget(themed(Scaffold(body: scene)));
-      // Through a whole loop and into the next.
+      // Long enough for everything in it to have moved.
       for (var i = 0; i < 14; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
@@ -547,5 +540,151 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(tester.hasRunningAnimations, isFalse);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a scene that does not play shows its minute from the first '
+      'frame on', (tester) async {
+    // The colour of the sky, read from the scene's top left corner.
+    Future<Color> sky() async {
+      final boundary = tester.renderObject<RenderRepaintBoundary>(
+        find
+            .descendant(
+              of: find.byType(DayScene),
+              matching: find.byType(RepaintBoundary),
+            )
+            .first,
+      );
+      final bytes = await tester.runAsync(() async {
+        final image = await boundary.toImage();
+        final data = await image.toByteData();
+        image.dispose();
+        return data!;
+      });
+      return Color.fromARGB(
+        255,
+        bytes!.getUint8(0),
+        bytes.getUint8(1),
+        bytes.getUint8(2),
+      );
+    }
+
+    for (final (minute, dark) in [(15 * 60 + 30, false), (23 * 60, true)]) {
+      await tester.pumpWidget(themed(DayScene(untilMinute: minute, score: 90)));
+      final first = await sky();
+      expect(first.computeLuminance() < 0.2, dark);
+      for (var i = 0; i < 14; i++) {
+        await tester.pump(const Duration(seconds: 1));
+        if (i == 0 || i == 5) expect(await sky(), first);
+      }
+      // What is in the scene still moves.
+      expect(tester.hasRunningAnimations, isTrue);
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
+
+  group('recovery and day score', () {
+    const recoveryKey = ValueKey('recovery');
+    const dayKey = ValueKey('dayScore');
+    Finder inside(Finder of, Key key) =>
+        find.descendant(of: of, matching: find.byKey(key));
+
+    testWidgets('by day the recovery stands alone, on the left and in the '
+        'colour of its zone', (tester) async {
+      await pumpApp(tester);
+      final card = find.byType(DayCard);
+      final recovery = inside(card, recoveryKey);
+      expect(recovery, findsOneWidget);
+      expect(inside(card, dayKey), findsNothing);
+      expect(
+        tester.getRect(recovery).left,
+        closeTo(tester.getRect(card).left + 16, 0.5),
+      );
+      expect(
+        find.descendant(of: recovery, matching: find.textContaining('%')),
+        findsOneWidget,
+      );
+      final scheme = AppTheme.light().colorScheme;
+      expect([
+        for (final zone in RecoveryZone.values)
+          recoveryColors(scheme, zone).fill,
+      ], contains(tester.widget<MorphingShape>(recovery).color));
+    });
+
+    for (final (language, width) in [
+      ('de', 412.0),
+      ('en', 360.0),
+      ('pl', 360.0),
+    ]) {
+      testWidgets('from nine in the evening the day score stands beside it '
+          '($language, $width)', (tester) async {
+        await pumpApp(
+          tester,
+          size: Size(width, 800),
+          locale: Locale(language),
+          now: DateTime(2026, 10, 6, 21),
+        );
+        final card = find.byType(DayCard);
+        final recovery = inside(card, recoveryKey);
+        final day = inside(card, dayKey);
+        expect(recovery, findsOneWidget);
+        expect(day, findsOneWidget);
+        // The recovery stays where it stands by day; the day score takes
+        // the middle, or what the recovery leaves of it on a narrow phone.
+        expect(
+          tester.getRect(recovery).left,
+          closeTo(tester.getRect(card).left + 16, 0.5),
+        );
+        final middle = tester.getCenter(card).dx;
+        expect(
+          tester.getCenter(day).dx,
+          width > 400 ? closeTo(middle, 0.5) : greaterThan(middle),
+        );
+        expect(
+          tester.getRect(recovery).right,
+          lessThan(tester.getRect(day).left),
+        );
+        expect(tester.getRect(day).right, lessThan(width));
+        expect(tester.getSize(recovery), tester.getSize(day));
+        expect(tester.takeException(), isNull);
+      });
+    }
+
+    testWidgets('the page of today follows the same hour, a day that is '
+        'over always has both', (tester) async {
+      await pumpApp(tester, repository: _withTwoYears());
+      await tester.tap(find.text('Recovery'));
+      await advance(tester);
+      final page = find.byType(DayDetailPage);
+      expect(inside(page, recoveryKey), findsOneWidget);
+      expect(inside(page, dayKey), findsNothing);
+      expect(
+        find.descendant(
+          of: page,
+          matching: find.text(
+            'So setzt sich die Recovery zusammen',
+            skipOffstage: false,
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      final bar = find.descendant(of: page, matching: find.byType(DaySwitcher));
+      await tester.tap(
+        find.descendant(of: bar, matching: find.bySemanticsLabel('Gestern')),
+      );
+      await advance(tester);
+      expect(inside(page, recoveryKey), findsOneWidget);
+      expect(inside(page, dayKey), findsOneWidget);
+    });
+  });
+
+  test('the sky is dark until the morning and from the evening on', () {
+    expect(DayScene.isDarkAt(2 * 60), isTrue);
+    expect(DayScene.isDarkAt(6 * 60), isTrue);
+    expect(DayScene.isDarkAt(6 * 60 + 30), isFalse);
+    expect(DayScene.isDarkAt(15 * 60 + 30), isFalse);
+    expect(DayScene.isDarkAt(19 * 60 + 30), isFalse);
+    expect(DayScene.isDarkAt(20 * 60), isTrue);
+    expect(DayScene.isDarkAt(23 * 60 + 59), isTrue);
   });
 }

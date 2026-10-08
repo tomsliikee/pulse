@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
@@ -18,6 +19,7 @@ import 'package:pulse/theme/app_type.dart';
 import 'package:pulse/widgets/animated_count.dart';
 import 'package:pulse/widgets/chip_carousel.dart';
 import 'package:pulse/widgets/line_chart.dart';
+import 'package:pulse/widgets/page_header.dart';
 import 'package:pulse/widgets/pressable.dart';
 import 'package:pulse/widgets/progress_ring.dart';
 import 'package:pulse/widgets/segment_group.dart';
@@ -192,6 +194,54 @@ void main() {
           tester.getRect(find.byType(DayCard)).top + DayCard.sceneHeight,
           0.5,
         ),
+      );
+    });
+
+    testWidgets('stands at the time it is and has a title that reads on its '
+        'sky', (tester) async {
+      Color? title() => tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byType(PageHeader),
+              matching: find.text('Heute'),
+            ),
+          )
+          .style
+          ?.color;
+      final scheme = AppTheme.light().colorScheme;
+
+      await pumpApp(tester, store: _settings('{"edgeToEdgeHero":true}'));
+      final scene = find.descendant(
+        of: find.byType(DayBackdrop),
+        matching: find.byType(DayScene),
+      );
+      expect(tester.widget<DayScene>(scene).untilMinute, 15 * 60 + 30);
+      expect(title(), scheme.onSurface);
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.dark,
+      );
+
+      // A new app, started late in the evening.
+      await tester.pumpWidget(const SizedBox());
+      await pumpApp(
+        tester,
+        store: _settings('{"edgeToEdgeHero":true}'),
+        now: DateTime(2026, 10, 6, 22),
+      );
+      expect(tester.widget<DayScene>(scene).untilMinute, 22 * 60);
+      expect(title(), const Color(0xFFEFF1FF));
+      // The status bar's icons are light on the dark sky, and dark again
+      // once the scene has scrolled away from under them.
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.light,
+      );
+      await tester.drag(find.byType(ListView).first, const Offset(0, -600));
+      await advance(tester);
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.dark,
       );
     });
 
@@ -590,7 +640,7 @@ void main() {
         }
         await tester.drag(find.byType(ListView).first, const Offset(0, 9000));
         await advance(tester);
-        await tester.tap(find.text(l10n.dayScoreSoFar));
+        await tester.tap(find.text(l10n.recovery).first);
         await advance(tester);
         await tester.tap(find.text(l10n.periodYesterday));
         await advance(tester);

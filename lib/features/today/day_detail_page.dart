@@ -7,15 +7,15 @@ import '../../data/day_insights.dart';
 import '../../data/health_controller.dart';
 import '../../data/health_history.dart';
 import '../../data/metric_catalog.dart';
+import '../../data/recovery.dart';
 import '../../data/settings_controller.dart';
 import '../../data/workout_insights.dart' show Trend;
 import '../../widgets/animated_count.dart';
 import '../../widgets/number_grid.dart';
 import '../../widgets/page_header.dart';
-import '../../theme/app_shapes.dart';
+import '../../theme/app_theme.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
-import '../../widgets/morphing_shape.dart';
 import '../../widgets/segment_group.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
@@ -28,6 +28,7 @@ import '../activity/workout_tiles.dart';
 import '../sleep/night_tiles.dart';
 import 'day_format.dart';
 import 'day_list_page.dart';
+import 'day_scores.dart';
 import 'day_tiles.dart';
 import '../detail/metric_spec.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -162,6 +163,7 @@ class _DayDetailPageState extends State<DayDetailPage> {
         today: today,
         soFar: today ? stepsSoFar(health.snapshot, health.now) : null,
       ),
+      _RecoveryParts(recovery: insights.recovery),
       _ScoreParts(score: insights.score),
       _Measures(insights: insights),
       // A day that is still running is not set against whole days.
@@ -245,14 +247,10 @@ class _Summary extends StatelessWidget {
     final formats = Formats.of(context);
     final l10n = formats.l10n;
     final type = AppType.of(context);
-    final accent = PageAccent.colorsOf(context);
     final steps = insights.measure(DayMeasure.steps);
-    final score = insights.score.total;
+    final health = AppScope.of(context).health;
     final scoreStyle = type.hero(
-      context.emphasizedTextTheme.displaySmall?.copyWith(
-        color: accent.onAccent,
-        height: 1,
-      ),
+      context.emphasizedTextTheme.headlineLarge?.copyWith(height: 1),
     );
     return Stack(
       clipBehavior: Clip.none,
@@ -262,31 +260,9 @@ class _Summary extends StatelessWidget {
           children: [
             SurfaceCard(
               padding: EdgeInsets.zero,
-              child: daySceneOf(
-                AppScope.of(context).health,
-                insights,
-                height: _scene,
-              ),
+              child: daySceneOf(health, insights, height: _scene),
             ),
-            SizedBox(
-              height: _shape - _overlap,
-              child: Padding(
-                padding: const EdgeInsets.only(left: _shape + 28, right: 4),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    today ? l10n.dayScoreSoFar : l10n.dayScore,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: type.label(
-                      theme.textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            const SizedBox(height: _shape - _overlap + DayScores.captionHeight),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
               child: Column(
@@ -322,18 +298,88 @@ class _Summary extends StatelessWidget {
           ],
         ),
         Positioned(
-          left: 16,
+          left: 0,
+          right: 0,
           top: _scene - _overlap,
-          child: MorphingShape(
-            shape: AppShapes.of(PageAccent.of(context).family, score),
-            color: accent.accent,
+          child: DayScores(
+            insights: insights,
+            withDay: showsDayScore(insights.day, health.now),
             size: _shape,
-            child: score == null
-                ? Text('–', style: scoreStyle)
-                : AnimatedCount(value: score, style: scoreStyle),
+            style: scoreStyle,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// What each part of the recovery read and gave, a segment for each.
+class _RecoveryParts extends StatelessWidget {
+  const _RecoveryParts({required this.recovery});
+
+  final Recovery recovery;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    final type = AppType.of(context);
+    final zone = recoveryColors(scheme, recovery.zone);
+    final muted = theme.textTheme.labelLarge?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return TitledSection(
+      title: l10n.recoveryParts,
+      note: l10n.recoveryNote,
+      child: SegmentGroup(
+        children: [
+          for (final part in RecoveryPart.values)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              spacing: 8,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        part.metric?.title(l10n) ?? l10n.groupSleep,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: type.strong(theme.textTheme.titleSmall),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    switch ((recovery.parts[part], part.metric)) {
+                      (final reading?, final metric?) => Text(
+                        l10n.recoveryUsual(
+                          metric.formatWithUnit(formats, reading.value),
+                          metric.format(formats, reading.usual),
+                        ),
+                        style: type.label(muted),
+                      ),
+                      (final reading?, null) => Text(
+                        l10n.recoveryAimed(
+                          formats.duration(reading.value.round()),
+                          formats.duration(reading.usual.round()),
+                        ),
+                        style: type.label(muted),
+                      ),
+                      (null, _) => Text(
+                        l10n.scoreNotJudged,
+                        style: type.aside(muted),
+                      ),
+                    },
+                  ],
+                ),
+                // Nothing to draw for a part that was not judged.
+                if (recovery.parts[part] case final reading?)
+                  WavyBar(value: reading.share, color: zone.fill),
+              ],
+            ),
+        ],
+      ),
     );
   }
 }

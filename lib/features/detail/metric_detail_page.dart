@@ -358,7 +358,12 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                 const SizedBox(height: 4),
                 Text(comparison, style: muted),
               ],
-              const SizedBox(height: 20),
+              // A day with a value but nothing to draw has the date alone.
+              if (!view.kind.isDay ||
+                  hours != null ||
+                  heart.length >= 2 ||
+                  (view.headline == null && latest?.value == null))
+                const SizedBox(height: 20),
               if (view.kind.isDay) ...[
                 if (hours != null) ...[
                   BarChart(

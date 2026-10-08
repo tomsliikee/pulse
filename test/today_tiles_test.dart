@@ -118,12 +118,12 @@ void main() {
     // The first minus belongs to the first tile, the one about the day.
     await tester.tap(find.byTooltip('Entfernen').hitTestable().first);
     await advance(tester);
-    expect(find.text('Tageswert bisher'), findsNothing);
+    expect(find.text('Recovery'), findsNothing);
 
     // A fresh start with the same store still leaves it out.
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, store: app.store);
-    expect(find.text('Tageswert bisher'), findsNothing);
+    expect(find.text('Recovery'), findsNothing);
 
     await _edit(tester);
     final offer = find.text('Der Tag');
@@ -142,7 +142,7 @@ void main() {
     await tester.drag(find.byType(ListView).first, const Offset(0, -4000));
     await advance(tester);
 
-    expect(find.text('Tageswert bisher'), findsOneWidget);
+    expect(find.text('Recovery'), findsOneWidget);
   });
 
   testWidgets('only measurements with data are offered', (tester) async {

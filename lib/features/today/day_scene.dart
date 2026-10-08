@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../data/models.dart';
 import '../../widgets/scene_kit.dart';
 
 /// Plays a day back in a few seconds, from the early morning to [untilMinute]:
@@ -18,15 +17,18 @@ class DayScene extends StatelessWidget {
     required this.score,
     this.hours,
     this.steps = 0,
-    this.wakeMinute,
-    this.workouts = const [],
     this.height = 150,
     this.stage,
     this.figure = true,
   });
 
-  /// Minute of the day the scene runs to: now for today, the evening for a
-  /// day that is over.
+  /// Whether the sky of the scene is dark at [minute] of the day, so what
+  /// is written over it has to be light.
+  static bool isDarkAt(int minute) =>
+      _DayPainter._daylight(minute.toDouble()) < 0.5;
+
+  /// Minute of the day the scene stands at: now for today, the evening for
+  /// a day that is over.
   final int untilMinute;
 
   /// From 1 to 100; decides how clear the sky is.
@@ -38,11 +40,6 @@ class DayScene extends StatelessWidget {
   /// The steps of the whole day, used where [hours] is missing.
   final double steps;
 
-  /// When the night ended, as a minute of the day.
-  final int? wakeMinute;
-
-  /// The workouts that started on the day.
-  final List<Workout> workouts;
   final double height;
 
   /// The height the scene is drawn for, at the bottom of [height]; above it
@@ -60,8 +57,6 @@ class DayScene extends StatelessWidget {
         scene: this,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
-        // Where nothing moves, the scene shows the moment the day is at.
-        still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
   );
@@ -72,26 +67,11 @@ class _DayPainter extends CustomPainter {
     required this.scene,
     required this.scheme,
     required this.seconds,
-    required this.still,
   }) : super(repaint: seconds);
 
   final DayScene scene;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
-  final bool still;
-
-  /// Seconds the loop takes, and the share of it the day plays in; the rest
-  /// rests on the moment the day has reached.
-  static const double _loop = 12;
-  static const double _play = 0.68;
-
-  /// Where the playback starts, and how long it is at least.
-  static const int _start = 4 * 60 + 30;
-  static const int _shortest = 90;
-  static const int _wakeDefault = 6 * 60 + 30;
-
-  /// Steps an hour that are a brisk walk.
-  static const double _brisk = 1500;
 
   static const double _tau = 2 * math.pi;
   static const Color _navy = Color(0xFF101A38);
@@ -103,30 +83,11 @@ class _DayPainter extends CustomPainter {
   /// so the sun at noon does not sit on its head.
   static const double _figureAt = 0.4;
 
-  int get _end => math.max(scene.untilMinute, _start + _shortest);
-
   /// How light it is at [minute], from 0 at night to 1 in the day.
   static double _daylight(double minute) {
     double ramp(double from, double to) =>
         Curves.easeInOut.transform(((minute - from) / (to - from)).clamp(0, 1));
     return math.min(ramp(5 * 60, 7.5 * 60), 1 - ramp(18.5 * 60, 21 * 60));
-  }
-
-  /// The steps an hour around [minute].
-  double _stepsAnHour(double minute) {
-    final hours = scene.hours;
-    if (hours == null) {
-      // Without hours the day's steps are spread over its waking part.
-      final awake = minute >= 8 * 60 && minute <= 20 * 60;
-      return awake ? scene.steps / 12 : 0;
-    }
-    // Between the middles of two hours, so the pace changes smoothly.
-    final at = (minute / 60 - 0.5).clamp(0.0, 23.0);
-    final below = at.floor();
-    final above = math.min(below + 1, 23);
-    final a = hours[below] ?? 0;
-    final b = hours[above] ?? 0;
-    return a + (b - a) * (at - below);
   }
 
   /// The steps taken up to [minute], which is how far the ground has passed.
@@ -144,14 +105,6 @@ class _DayPainter extends CustomPainter {
     return sum;
   }
 
-  bool _inWorkout(double minute) {
-    for (final workout in scene.workouts) {
-      final from = workout.start.hour * 60 + workout.start.minute;
-      if (minute >= from && minute < from + workout.minutes) return true;
-    }
-    return false;
-  }
-
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
@@ -160,10 +113,9 @@ class _DayPainter extends CustomPainter {
     final stage = math.min(scene.stage ?? full.height, full.height);
     size = Size(full.width, stage);
     final u = size.height / 100;
-    final loop = still ? 1.0 : time / _loop % 1;
-    final played = Curves.easeInOut.transform((loop / _play).clamp(0.0, 1.0));
-    final minute = _start + (_end - _start) * played;
-    final resting = loop >= _play;
+    // The scene shows its minute as it is, however early; the day is not
+    // played back, only what is in the picture moves.
+    final minute = scene.untilMinute.toDouble();
     final light = _daylight(minute);
 
     final sky = _sky(minute, light);
@@ -189,20 +141,9 @@ class _DayPainter extends CustomPainter {
       color: Color.lerp(_nightFigure, scheme.primary, light),
     );
     final x = size.width * _figureAt;
-    final wake = scene.wakeMinute ?? _wakeDefault;
-    if (minute < wake && !resting) {
-      _sleeper(canvas, pen, u, x, ground, time);
-    } else {
-      final running = !resting && _inWorkout(minute);
-      final pace = resting
-          ? 0.0
-          : running
-          ? 1.0
-          : (_stepsAnHour(minute) / _brisk).clamp(0.0, 1.0);
-      // The strides follow the ground, so the feet do not slide.
-      final turn = _tau * (travelled / (running ? 62 : 38) / u % 1);
-      _walker(pen, u, x, ground, turn, time, pace: pace, running: running);
-    }
+    // The strides follow the ground, so the feet do not slide.
+    final turn = _tau * (travelled / 38 / u % 1);
+    _walker(pen, u, x, ground, turn, time, pace: 0, running: false);
   }
 
   /// The figure in a light tone at night, to stand out from the dark sky.
@@ -424,63 +365,11 @@ class _DayPainter extends CustomPainter {
       ..line(pen.limb(), arm(turn));
   }
 
-  /// Lying on the ground under a blanket, before the night is over.
-  void _sleeper(
-    Canvas canvas,
-    FigurePen pen,
-    double u,
-    double x,
-    double ground,
-    double time,
-  ) {
-    final breath = 0.5 - 0.5 * math.cos(_tau * time / 4);
-    final hip = Offset(x + 2 * u, ground - 3 * u);
-    final shoulder = hip + Offset(-21 * u, -1.5 * u);
-    final head = shoulder + Offset(-9.5 * u, -1 * u);
-    pen
-      ..line(pen.limb(), [hip, shoulder])
-      ..head(head);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTRB(
-          x - 12 * u,
-          ground - (9 + 2.2 * breath) * u,
-          x + 34 * u,
-          ground + 2 * u,
-        ),
-        Radius.circular(5 * u),
-      ),
-      Paint()..color = scheme.tertiary,
-    );
-    // Three letters z that rise from the head and fade.
-    for (var i = 0; i < 3; i++) {
-      final age = (time / 2.6 + i / 3) % 1;
-      final size = (3 + 4 * age) * u;
-      final at = head + Offset((8 + 9 * age) * u, (-10 - 26 * age) * u);
-      canvas.drawPath(
-        Path()
-          ..moveTo(at.dx, at.dy)
-          ..relativeLineTo(size, 0)
-          ..relativeLineTo(-size, size)
-          ..relativeLineTo(size, 0),
-        Paint()
-          ..color = Colors.white.withValues(
-            alpha: 0.9 * math.sin(math.pi * age),
-          )
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5 * u
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round,
-      );
-    }
-  }
-
   @override
   bool shouldRepaint(_DayPainter oldDelegate) =>
       oldDelegate.scene.untilMinute != scene.untilMinute ||
       oldDelegate.scene.score != scene.score ||
       oldDelegate.scene.hours != scene.hours ||
       oldDelegate.scene.steps != scene.steps ||
-      oldDelegate.scheme != scheme ||
-      oldDelegate.still != still;
+      oldDelegate.scheme != scheme;
 }

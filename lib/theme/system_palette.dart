@@ -10,6 +10,15 @@ class SystemPalette {
 
   final ColorScheme light;
   final ColorScheme dark;
+
+  // Equal by its colours, so loading the same wallpaper's palette again
+  // changes nothing.
+  @override
+  bool operator ==(Object other) =>
+      other is SystemPalette && other.light == light && other.dark == dark;
+
+  @override
+  int get hashCode => Object.hash(light, dark);
 }
 
 typedef SystemPaletteLoader = Future<SystemPalette?> Function();

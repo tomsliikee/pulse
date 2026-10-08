@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'backup.dart';
 import 'health_history.dart';
 import 'health_repository.dart';
 import 'health_snapshot.dart';
@@ -7,6 +8,7 @@ import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'night_archive.dart';
+import 'sync_report.dart';
 import 'workout_archive.dart';
 
 enum HealthStatus {
@@ -56,11 +58,26 @@ class HealthController extends ChangeNotifier {
   List<Workout> _workouts = const [];
   bool _backfillingNights = false;
   List<SleepNight> _nights = const [];
+  SyncReport? _backgroundSync;
   bool _disposed = false;
+  int _revision = 0;
+
+  /// Counts the changes, for what is worked out from the data and kept
+  /// until the next one.
+  int get revision => _revision;
+
+  @override
+  void notifyListeners() {
+    _revision++;
+    super.notifyListeners();
+  }
 
   HealthStatus get status => _status;
   bool get refreshing => _refreshing;
   bool get backgroundAccess => _backgroundAccess;
+
+  /// What the last refresh in the background reported, if one has run.
+  SyncReport? get backgroundSync => _backgroundSync;
 
   /// One value per day for as long as the app has been collecting. Null
   /// until it has been loaded from disk.
@@ -142,19 +159,39 @@ class HealthController extends ChangeNotifier {
     final saved = HealthSnapshot.fromJson(
       await _store.read(StoreKeys.snapshot),
     );
-    final history = await _archive.load(_clock());
-    final workouts = await _workoutArchive.load();
-    final nights = await _nightArchive.load();
+    await _loadArchives();
     if (_disposed) return;
-    _history = history;
-    _workouts = List.unmodifiable(workouts);
-    _nights = List.unmodifiable(nights);
     if (saved != null) _show(saved);
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
     await _backfill();
     await _backfillWorkouts();
     await _backfillNights();
+  }
+
+  Future<void> _loadArchives() async {
+    final history = await _archive.load(_clock());
+    final workouts = await _workoutArchive.load();
+    final nights = await _nightArchive.load();
+    final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
+    if (_disposed) return;
+    _history = history;
+    _workouts = List.unmodifiable(workouts);
+    _nights = List.unmodifiable(nights);
+    _backgroundSync = sync;
+  }
+
+  /// The history, the nights, the workouts and the settings as one text to
+  /// keep outside the app.
+  Future<String> backup() => exportBackup(_store, _clock());
+
+  /// Adds what the backup [text] holds to the app's data and shows it.
+  /// Throws a [FormatException] when [text] is not a backup.
+  Future<BackupResult> restore(String text) async {
+    final result = await importBackup(_store, text, _clock());
+    await _loadArchives();
+    if (!_disposed) notifyListeners();
+    return result;
   }
 
   /// A snapshot younger than this is not read again when the app merely
@@ -196,8 +233,10 @@ class HealthController extends ChangeNotifier {
         previous: full || shown == null || shown.today != today ? null : shown,
       );
       final background = await _repository.backgroundAccessGranted();
+      final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
       if (_disposed) return;
       _backgroundAccess = background;
+      _backgroundSync = sync;
       _show(fresh);
       await _store.write(StoreKeys.snapshot, fresh.toJson());
       await _archiveDays(dailyValuesOf(fresh));
@@ -459,6 +498,39 @@ class HealthController extends ChangeNotifier {
     await _repository.delete(entry);
     if (_disposed) return;
     await refresh();
+    await _forgetDeleted(entry);
+  }
+
+  /// A day's value that is gone with [entry] also leaves the history, which
+  /// otherwise keeps what a later reading no longer has.
+  Future<void> _forgetDeleted(HealthEntry entry) async {
+    final snapshot = _snapshot;
+    final history = _history;
+    final day = entry.draft.time;
+    final index = snapshot?.indexOf(day);
+    if (_disposed || snapshot == null || history == null || index == null) {
+      return;
+    }
+    final gone = [
+      for (final metric in switch (entry.draft.kind) {
+        EntryKind.water => const [Metric.water],
+        EntryKind.weight => const [Metric.weight],
+        EntryKind.meal => const [
+          Metric.energyIntake,
+          Metric.carbs,
+          Metric.protein,
+          Metric.fat,
+          Metric.fiber,
+          Metric.sugar,
+        ],
+      })
+        if (snapshot.value(metric, index) == null &&
+            history.remove(metric, day))
+          metric,
+    ];
+    if (gone.isEmpty) return;
+    await _archive.forget(gone, day);
+    if (!_disposed) notifyListeners();
   }
 
   /// Health Connect cannot change a record, so an edit is a delete followed
@@ -472,6 +544,7 @@ class HealthController extends ChangeNotifier {
     await _repository.delete(entry);
     if (_disposed) return;
     await refresh();
+    await _forgetDeleted(entry);
   }
 
   void _show(HealthSnapshot next) {

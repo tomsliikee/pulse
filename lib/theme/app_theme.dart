@@ -1,3 +1,5 @@
+import '../data/recovery.dart';
+
 import 'package:material_ui/material_ui.dart';
 
 /// The only place colours are defined. Everything else reads the scheme.
@@ -54,6 +56,31 @@ typedef ToneColors = ({
   Color accent,
   Color onAccent,
 });
+
+/// The fill of a recovery's shape and what is written on it: green, yellow
+/// or red by its zone, and plain where there is no recovery. The three are
+/// fixed colours, because they mean the same on every wallpaper.
+({Color fill, Color onFill}) recoveryColors(
+  ColorScheme scheme,
+  RecoveryZone? zone,
+) {
+  final dark = scheme.brightness == Brightness.dark;
+  return switch (zone) {
+    RecoveryZone.green => (
+      fill: dark ? const Color(0xFF7BD88F) : const Color(0xFF2E7D32),
+      onFill: dark ? const Color(0xFF00390F) : const Color(0xFFFFFFFF),
+    ),
+    RecoveryZone.yellow => (
+      fill: dark ? const Color(0xFFF5CC4A) : const Color(0xFFF2B600),
+      onFill: const Color(0xFF3A2C00),
+    ),
+    RecoveryZone.red => (fill: scheme.error, onFill: scheme.onError),
+    null => (
+      fill: scheme.surfaceContainerHighest,
+      onFill: scheme.onSurfaceVariant,
+    ),
+  };
+}
 
 extension ToneScheme on ColorScheme {
   ToneColors tone(Tone tone) => switch (tone) {

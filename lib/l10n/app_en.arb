@@ -192,6 +192,45 @@
   "backgroundOn": "Pulse refreshes the data about once an hour in the background.",
   "backgroundOff": "Without background access the data is only refreshed when the app is opened.",
   "refreshInBackground": "Refresh in the background",
+  "backgroundLast": "Last in the background: {when}",
+  "@backgroundLast": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backgroundFailed": "Last in the background, without a result: {when}",
+  "@backgroundFailed": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backup": "Backup",
+  "backupAbout": "Older days, nights and workouts are kept on this device only. A backup is a file that you keep yourself.",
+  "backupSave": "Save a backup",
+  "backupOpen": "Read a backup",
+  "backupSaved": "Backup saved",
+  "backupSaveFailed": "The backup could not be saved.",
+  "backupInvalid": "This file is not a backup of Pulse.",
+  "backupOpenFailed": "The file could not be read.",
+  "backupNothingNew": "The backup holds nothing that is missing here.",
+  "backupRestored": "New from the backup: days {days}, nights {nights}, workouts {workouts}",
+  "@backupRestored": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "String"
+      },
+      "workouts": {
+        "type": "String"
+      }
+    }
+  },
   "accessTitle": "Your health data",
   "accessBody": "Pulse reads steps, heart rate, sleep and other values from Health Connect and writes the water, weight and meals you enter here. The data stays on this device.",
   "accessAction": "Allow access",
@@ -356,7 +395,6 @@
   "nightTipKeepGoing": "Your nights are in rhythm. Keep it that way.",
   "dayTileTitle": "The day",
   "dayScore": "Day score",
-  "dayScoreSoFar": "Day score so far",
   "dayScoreNote": "Estimated by Pulse from movement, sleep, resting heart rate and water, not a measurement. What cannot be judged does not count; the rest is scaled up.",
   "dayPartMovement": "Movement",
   "dayTipsTitle": "Hints for today",
@@ -416,9 +454,38 @@
   "nightTabToday": "Today",
   "edgeHero": "Edge-to-edge scene",
   "flexFont": "Flex font",
-  "dayScoreParts": "What it is made of",
+  "dayScoreParts": "What the day score is made of",
   "dayNumbers": "The day in numbers",
   "nightNumbers": "The night in numbers",
   "workoutNumbers": "The activity in numbers",
-  "ageFactorsTitle": "What goes into it"
+  "ageFactorsTitle": "What goes into it",
+  "recovery": "Recovery",
+  "dayShort": "Day",
+  "recoveryGreen": "Recovery in the green zone",
+  "recoveryYellow": "Recovery in the yellow zone",
+  "recoveryRed": "Recovery in the red zone",
+  "recoveryParts": "What the recovery is made of",
+  "recoveryNote": "Estimated by Pulse from heart rate variability, resting heart rate, sleep and respiratory rate, each against your last 30 days; not a measurement. Red up to 33%, yellow up to 66%, green above.",
+  "recoveryUsual": "{value} · usually {usual}",
+  "@recoveryUsual": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryAimed": "{value} · goal {usual}",
+  "@recoveryAimed": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  }
 }

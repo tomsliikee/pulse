@@ -24,6 +24,7 @@ abstract final class StoreKeys {
   static const String workouts = 'workouts';
   static const String workoutBackfill = 'workoutBackfill';
   static const String nightBackfill = 'nightBackfill';
+  static const String sync = 'sync';
 }
 
 class FileJsonStore implements JsonStore {

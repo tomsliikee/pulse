@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/data/day_insights.dart';
 import 'package:pulse/data/health_controller.dart';
 import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/health_repository.dart';
@@ -10,6 +11,7 @@ import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/settings_controller.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/features/today/day_format.dart';
 
 import 'support/fixtures.dart';
 
@@ -149,6 +151,37 @@ void main() {
         controller.snapshot.entriesOn(today, EntryKind.weight).single,
       );
       expect(controller.snapshot.entriesOn(today, EntryKind.weight), isEmpty);
+    });
+
+    test('a deleted entry takes its day value out of the history', () async {
+      final store = MemoryJsonStore();
+      final controller = _controller(
+        FixtureRepository(readings: const RawReadings()),
+        store,
+      );
+      await controller.start();
+      final today = controller.todayIndex;
+
+      await controller.addEntry(
+        EntryDraft(kind: EntryKind.meal, time: fixtureNow, amount: 300),
+      );
+      expect(controller.valueOn(Metric.energyIntake, fixtureNow), 300);
+      expect(
+        (await HistoryArchive(store).load(fixtureNow))
+            .value(Metric.energyIntake, fixtureNow),
+        300,
+      );
+
+      await controller.deleteEntry(
+        controller.snapshot.entriesOn(today, EntryKind.meal).single,
+      );
+
+      expect(controller.valueOn(Metric.energyIntake, fixtureNow), isNull);
+      expect(
+        (await HistoryArchive(store).load(fixtureNow))
+            .value(Metric.energyIntake, fixtureNow),
+        isNull,
+      );
     });
 
     test('an edit that cannot be written keeps the old entry', () async {
@@ -412,5 +445,32 @@ void main() {
 
       expect(await FileJsonStore(directory).read('snapshot'), isNull);
     });
+  });
+
+  test('what is said about a day is worked out once and again after a '
+      'change of the data or the goals', () async {
+    final store = MemoryJsonStore();
+    final health = _controller(FixtureRepository(), store);
+    final settings = SettingsController(store);
+    await health.start();
+    DayInsights today() => dayInsightsOf(health, settings, health.today);
+
+    final first = today();
+    expect(today(), same(first));
+    // Another day does not push it out.
+    dayInsightsOf(
+      health,
+      settings,
+      fixtureNow.subtract(const Duration(days: 1)),
+    );
+    expect(today(), same(first));
+
+    await health.refresh();
+    final second = today();
+    expect(second, isNot(same(first)));
+
+    settings.setStepGoal(12000);
+    expect(today(), isNot(same(second)));
+    health.dispose();
   });
 }

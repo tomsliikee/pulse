@@ -12,6 +12,8 @@ import '../theme/system_palette.dart';
 import 'app_language.dart';
 import 'app_scope.dart';
 import 'app_shell.dart';
+import 'backup_files.dart';
+import 'frame_log.dart';
 import 'layout.dart';
 
 class PulseApp extends StatefulWidget {
@@ -21,6 +23,7 @@ class PulseApp extends StatefulWidget {
     required this.store,
     this.paletteLoader = loadSystemPalette,
     this.clock = DateTime.now,
+    this.files = const SystemBackupFiles(),
   });
 
   final HealthRepository repository;
@@ -29,6 +32,7 @@ class PulseApp extends StatefulWidget {
 
   /// Tests pass a fixed time.
   final DateTime Function() clock;
+  final BackupFiles files;
 
   @override
   State<PulseApp> createState() => _PulseAppState();
@@ -43,11 +47,17 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   late final SettingsController _settings = SettingsController(widget.store);
   late final LanguageController _language = LanguageController(_settings);
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
+  final FrameLog _frames = FrameLog();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // What can make the app rebuild widely, for the report of slow frames.
+    _frames.start();
+    _health.addListener(() => _frames.mark('health'));
+    _settings.addListener(() => _frames.mark('settings'));
+    _palette.addListener(() => _frames.mark('palette'));
     _settings.load();
     _language.refresh();
     _health.start();
@@ -59,6 +69,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     // Back in the foreground: other apps may have written new data, and the
     // wallpaper or the app's language may have changed in the system.
     if (state == AppLifecycleState.resumed) {
+      _frames.mark('resumed');
       _language.refresh();
       _health.refreshIfStale();
       _loadPalette();
@@ -79,6 +90,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _frames.stop();
     _health.dispose();
     _language.dispose();
     _settings.dispose();
@@ -93,6 +105,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       settings: _settings,
       language: _language,
       systemPalette: _palette,
+      files: widget.files,
       child: ListenableBuilder(
         listenable: Listenable.merge([_settings, _language, _palette]),
         builder: (context, _) {

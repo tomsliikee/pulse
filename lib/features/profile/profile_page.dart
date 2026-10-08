@@ -2,6 +2,7 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
+import '../../data/backup.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_controller.dart';
@@ -22,6 +23,58 @@ class ProfilePage extends StatelessWidget {
 
   static const _modes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
   static const _sexes = [Sex.female, Sex.male];
+
+  static Future<void> _saveBackup(BuildContext context) async {
+    final AppScope(:health, :files) = AppScope.of(context);
+    final l10n = Formats.of(context).l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) => messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+    Haptics.tap();
+    try {
+      final saved = await files.save(
+        backupFileName(health.now),
+        await health.backup(),
+      );
+      if (saved) say(l10n.backupSaved);
+    } on Exception catch (error) {
+      debugPrint('Saving the backup failed: $error');
+      say(l10n.backupSaveFailed);
+    }
+  }
+
+  static Future<void> _openBackup(BuildContext context) async {
+    final AppScope(:health, :settings, :files) = AppScope.of(context);
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    void say(String text) => messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(text)));
+    Haptics.tap();
+    try {
+      final text = await files.open();
+      if (text == null) return;
+      final result = await health.restore(text);
+      if (result.settings) await settings.load();
+      final (:days, :nights, :workouts, settings: _) = result;
+      say(
+        days + nights + workouts == 0
+            ? l10n.backupNothingNew
+            : l10n.backupRestored(
+                formats.integer(days),
+                formats.integer(nights),
+                formats.integer(workouts),
+              ),
+      );
+    } on FormatException {
+      say(l10n.backupInvalid);
+    } on Exception catch (error) {
+      debugPrint('Reading the backup failed: $error');
+      say(l10n.backupOpenFailed);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +100,13 @@ class ProfilePage extends StatelessWidget {
         final ready = health.status == HealthStatus.ready;
         final loadedAt = ready ? health.snapshot.loadedAt : null;
         final backfill = health.backfillReached;
+        final sync = ready ? health.backgroundSync : null;
         return SubPage(
           title: l10n.profile,
           glass: settings.liquidGlass,
+          // Room for a snackbar below the last card, so it does not lie on
+          // the buttons that raised it.
+          bottomPadding: 96 + MediaQuery.paddingOf(context).bottom,
           largeTitle: Column(
             children: [
               M3EContainer(
@@ -251,6 +308,18 @@ class ProfilePage extends StatelessWidget {
                           ),
                           style: muted,
                         ),
+                      if (sync != null)
+                        Text(
+                          (sync.error == null
+                              ? l10n.backgroundLast
+                              : l10n.backgroundFailed)(
+                            l10n.dateAtTime(
+                              formats.shortDate(sync.at),
+                              formatClock(sync.at.hour * 60 + sync.at.minute),
+                            ),
+                          ),
+                          style: muted,
+                        ),
                       if (backfill != null) ...[
                         const SizedBox(height: 16),
                         Text(
@@ -278,6 +347,30 @@ class ProfilePage extends StatelessWidget {
                           child: Text(l10n.refreshInBackground),
                         ),
                       ],
+                    ],
+                  ),
+                ),
+                SectionTitle(l10n.backup),
+                SurfaceCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.backupAbout, style: muted),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          M3EFilledButton.tonal(
+                            onPressed: () => _saveBackup(context),
+                            child: Text(l10n.backupSave),
+                          ),
+                          M3EFilledButton.tonal(
+                            onPressed: () => _openBackup(context),
+                            child: Text(l10n.backupOpen),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

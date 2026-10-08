@@ -16,20 +16,42 @@ DayGoals dayGoalsOf(SettingsController settings) => DayGoals(
 );
 
 /// Everything the app can say about [day]. The time of day only counts for
-/// today.
+/// today. Several tiles ask for the same day in one build and working it
+/// out reads the whole history, so the answers are kept until the data, the
+/// goals or the minute change.
 DayInsights dayInsightsOf(
   HealthController health,
   SettingsController settings,
   DateTime day,
-) => DayInsights.of(
-  day: day,
-  valueOf: health.valueOn,
-  nights: health.nights,
-  workouts: health.workouts,
-  goals: dayGoalsOf(settings),
-  history: health.history,
-  now: day == health.today ? health.now : null,
-);
+) {
+  final goals = dayGoalsOf(settings);
+  final now = health.now;
+  final state = (
+    health.revision,
+    goals.steps,
+    goals.activeEnergy,
+    goals.waterMl,
+    goals.sleepHours,
+    health.today,
+    now.hour * 60 + now.minute,
+  );
+  var kept = _insights[health];
+  if (kept == null || kept.state != state) {
+    kept = _insights[health] = (state: state, days: {});
+  }
+  return kept.days[day] ??= DayInsights.of(
+    day: day,
+    valueOf: health.valueOn,
+    nights: health.nights,
+    workouts: health.workouts,
+    goals: goals,
+    history: health.history,
+    now: day == health.today ? now : null,
+  );
+}
+
+final Expando<({Object state, Map<DateTime, DayInsights> days})> _insights =
+    Expando();
 
 /// How the measures of a day are named and written.
 extension DayMeasureText on DayMeasure {

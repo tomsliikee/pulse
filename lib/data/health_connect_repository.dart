@@ -31,12 +31,15 @@ class HealthConnectRepository implements HealthRepository {
     Metric.distance: HealthDataType.DISTANCE_DELTA,
     Metric.activeEnergy: HealthDataType.ACTIVE_ENERGY_BURNED,
     Metric.totalEnergy: HealthDataType.TOTAL_CALORIES_BURNED,
-    Metric.water: HealthDataType.WATER,
   };
 
   /// Minutes of activity are added up here from their records: the store
   /// refuses to aggregate them on some phones, and the plugin hides that.
   static const HealthDataType _intensity = HealthDataType.ACTIVITY_INTENSITY;
+
+  /// Water is added up here as well: the plugin fails to hand over the
+  /// store's own total of it, and hides that too.
+  static const HealthDataType _water = HealthDataType.WATER;
 
   /// Metrics read as individual records and combined by their [DayRule].
   static const Map<Metric, HealthDataType> _samples = {
@@ -94,6 +97,7 @@ class HealthConnectRepository implements HealthRepository {
     return [
       ..._totals.values,
       _intensity,
+      _water,
       for (final type in _samples.values)
         if (type != HealthDataType.SKIN_TEMPERATURE || skin) type,
       HealthDataType.HEART_RATE,
@@ -383,6 +387,23 @@ class HealthConnectRepository implements HealthRepository {
       }
     }
 
+    final water = await _read(_water, start, end);
+    final drunk = <DateTime, double>{};
+    for (final point in water) {
+      final litres = _numeric(point);
+      if (litres == null || litres <= 0) continue;
+      final at = point.dateFrom;
+      final hour = DateTime(at.year, at.month, at.day, at.hour);
+      drunk[hour] = (drunk[hour] ?? 0) + litres;
+    }
+    if (drunk.isNotEmpty) {
+      final days = totals[Metric.water] = <DateTime, double>{};
+      for (final MapEntry(key: hour, value: litres) in drunk.entries) {
+        final day = DateTime(hour.year, hour.month, hour.day);
+        days[day] = (days[day] ?? 0) + litres;
+      }
+    }
+
     final samples = <RawSample>[];
     for (final MapEntry(key: metric, value: type) in _samples.entries) {
       if (type == HealthDataType.SKIN_TEMPERATURE && !skin) continue;
@@ -393,15 +414,22 @@ class HealthConnectRepository implements HealthRepository {
       }
     }
     if (heartFrom != null) {
-      for (final point in await _read(
-        HealthDataType.HEART_RATE,
-        heartFrom,
-        end,
-      )) {
-        final value = _numeric(point);
-        if (value != null) {
+      // Days of single beats in one read took half a gigabyte for a moment,
+      // and the interface stood still at the end of it. One day at a time,
+      // each day's records are let go before the next is read.
+      var before = <int>{};
+      for (final (from, to) in daySlices(heartFrom, end)) {
+        final times = <int>{};
+        for (final point in await _read(HealthDataType.HEART_RATE, from, to)) {
+          final value = _numeric(point);
+          if (value == null) continue;
+          // A record that lies across midnight may come with both days.
+          final time = point.dateFrom.microsecondsSinceEpoch;
+          if (before.contains(time)) continue;
+          times.add(time);
           samples.add(RawSample(Metric.heartRate, point.dateFrom, value));
         }
+        before = times;
       }
     }
 
@@ -410,8 +438,7 @@ class HealthConnectRepository implements HealthRepository {
     final nutrition = await _read(HealthDataType.NUTRITION, start, end);
     final entries = <HealthEntry>[
       if (withEntries) ...[
-        for (final point in await _read(HealthDataType.WATER, start, end))
-          ?_entry(point, EntryKind.water, scale: 1000),
+        for (final point in water) ?_entry(point, EntryKind.water, scale: 1000),
         for (final point in await _read(HealthDataType.WEIGHT, start, end))
           ?_entry(point, EntryKind.weight),
       ],
@@ -438,6 +465,7 @@ class HealthConnectRepository implements HealthRepository {
       hourlyTotals: {
         ...hourly,
         if (active.isNotEmpty) Metric.intensityMinutes: active,
+        if (drunk.isNotEmpty) Metric.water: drunk,
       },
     );
   }
@@ -554,6 +582,20 @@ class HealthConnectRepository implements HealthRepository {
       }
     }
     return totals;
+  }
+
+  /// The stretch from [start] to [end] cut at the local midnights between.
+  @visibleForTesting
+  static List<(DateTime, DateTime)> daySlices(DateTime start, DateTime end) {
+    final slices = <(DateTime, DateTime)>[];
+    var from = start;
+    while (from.isBefore(end)) {
+      final midnight = DateTime(from.year, from.month, from.day + 1);
+      final to = midnight.isBefore(end) ? midnight : end;
+      slices.add((from, to));
+      from = to;
+    }
+    return slices;
   }
 
   static List<(DateTime, DateTime)> _constantOffsetRanges(

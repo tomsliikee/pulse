@@ -18,7 +18,6 @@ import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/chip_carousel.dart';
-import '../../widgets/morphing_shape.dart';
 import '../../widgets/segment_group.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/pressable.dart';
@@ -35,6 +34,7 @@ import 'day_detail_page.dart';
 import 'day_format.dart';
 import 'day_list_page.dart';
 import 'day_scene.dart';
+import 'day_scores.dart';
 
 /// Opens the page about [day], growing it out of the rectangle [origin] of
 /// what was tapped.
@@ -66,8 +66,6 @@ DayScene daySceneOf(
     score: insights.score.total ?? 50,
     hours: index == null ? null : health.snapshot.hoursOf(Metric.steps, index),
     steps: insights.measure(DayMeasure.steps)?.value ?? 0,
-    wakeMinute: insights.night?.wakeMinute,
-    workouts: insights.workouts,
     height: height,
     stage: stage,
     figure: figure,
@@ -117,7 +115,7 @@ class DayCard extends StatelessWidget {
   const DayCard({super.key});
 
   static const double sceneHeight = 132;
-  static const double height = sceneHeight + 304;
+  static const double height = sceneHeight + 304 + DayScores.captionHeight;
 
   static const double _rings = 168;
 
@@ -148,11 +146,9 @@ class DayCard extends StatelessWidget {
     final health = scope.health;
     final settings = scope.settings;
     final type = AppType.of(context);
-    final accent = PageAccent.colorsOf(context);
     final insights = dayInsightsOf(health, settings, health.today);
     final steps = insights.measure(DayMeasure.steps)?.value;
     final energy = insights.measure(DayMeasure.activeEnergy)?.value;
-    final score = insights.score.total;
     // The page draws the scene itself, behind the title.
     final bleeds = BoardBackdrop.isShown(context);
     // The hours of today that have begun; null without hourly values.
@@ -160,10 +156,7 @@ class DayCard extends StatelessWidget {
         .hoursOf(metric, health.todayIndex)
         ?.sublist(0, health.now.hour + 1);
     final scoreStyle = type.hero(
-      context.emphasizedTextTheme.headlineLarge?.copyWith(
-        color: accent.onAccent,
-        height: 1,
-      ),
+      context.emphasizedTextTheme.headlineMedium?.copyWith(height: 1),
     );
 
     return Pressable(
@@ -195,29 +188,15 @@ class DayCard extends StatelessWidget {
                           height: sceneHeight,
                         ),
                       ),
+                    // Room for the shapes that hang over the scene's edge,
+                    // and for what is written below them.
                     SizedBox(
-                      height: _shape - _overlap,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: _shape + 28),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                l10n.dayScoreSoFar,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: type.label(
-                                  theme.textTheme.titleSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right_rounded,
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ],
+                      height: _shape - _overlap + DayScores.captionHeight,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Icon(
+                          Icons.chevron_right_rounded,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -318,15 +297,14 @@ class DayCard extends StatelessWidget {
                   ],
                 ),
                 Positioned(
-                  left: 16,
+                  left: 0,
+                  right: 0,
                   top: sceneHeight - _overlap,
-                  child: MorphingShape(
-                    shape: AppShapes.of(PageAccent.of(context).family, score),
-                    color: accent.accent,
+                  child: DayScores(
+                    insights: insights,
+                    withDay: showsDayScore(health.today, health.now),
                     size: _shape,
-                    child: score == null
-                        ? Text('–', style: scoreStyle)
-                        : AnimatedCount(value: score, style: scoreStyle),
+                    style: scoreStyle,
                   ),
                 ),
               ],

@@ -3,6 +3,7 @@ import 'health_snapshot.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'night_insights.dart';
+import 'recovery.dart';
 import 'sleep_insights.dart';
 import 'workout_insights.dart' show Trend;
 
@@ -317,6 +318,7 @@ class DayInsights {
   DayInsights._({
     required this.day,
     required this.score,
+    required this.recovery,
     required this.night,
     required this.workouts,
     required this.measures,
@@ -346,6 +348,9 @@ class DayInsights {
 
   final DateTime day;
   final DayScore score;
+
+  /// How rested the day began.
+  final Recovery recovery;
 
   /// The night that ended on the day.
   final SleepNight? night;
@@ -422,6 +427,12 @@ class DayInsights {
     return DayInsights._(
       day: day,
       score: scoreOf(day),
+      recovery: recoveryOf(
+        day: day,
+        valueOf: valueOf,
+        nights: nights,
+        sleepGoalHours: goals.sleepHours,
+      ),
       night: nightOn(nights, day),
       workouts: [
         for (final workout in workouts)

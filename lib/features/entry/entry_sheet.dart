@@ -246,7 +246,7 @@ class _EntrySheetState extends State<EntrySheet> {
   InputDecoration _decoration(String label) => InputDecoration(
     labelText: label,
     filled: true,
-    border: OutlineInputBorder(
+    border: UnderlineInputBorder(
       borderRadius: BorderRadius.circular(AppRadii.large),
       borderSide: BorderSide.none,
     ),

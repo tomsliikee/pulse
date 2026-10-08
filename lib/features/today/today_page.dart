@@ -13,6 +13,7 @@ import '../browse/all_data_section.dart';
 import '../profile/profile_page.dart';
 import '../../theme/page_accent.dart';
 import 'add_tiles_section.dart';
+import 'day_scene.dart';
 import 'day_tiles.dart';
 import 'today_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -43,9 +44,10 @@ class TodayPage extends StatelessWidget {
           child: Builder(
             builder: (context) => BoardPage(
               pageId: 'today',
-              // The sky of the scene is dark before the morning and from
-              // the evening on.
-              backdropInk: health.now.hour < 6 || health.now.hour >= 20
+              // The scene stands at this minute, so its sky says whether
+              // the title has to be light.
+              backdropInk:
+                  DayScene.isDarkAt(health.now.hour * 60 + health.now.minute)
                   ? const Color(0xFFEFF1FF)
                   : null,
               backdrop: !dayHeroBleeds(context, shown)

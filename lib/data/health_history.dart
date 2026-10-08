@@ -76,6 +76,15 @@ class HealthHistory {
     return first == null ? null : dateOfKey(first);
   }
 
+  /// What this history has for days on which [other] has no value.
+  DailyValues notIn(HealthHistory other) => {
+    for (final MapEntry(key: metric, value: days) in _values.entries)
+      metric: {
+        for (final MapEntry(key: day, :value) in days.entries)
+          if (other._values[metric]?[day] == null) dateOfKey(day): value,
+      },
+  };
+
   /// Takes [values] over. A new value replaces an older one for the same
   /// day; a day that is missing from [values] keeps what is stored, so a gap
   /// in a later reading never erases history. Returns the years that changed.
@@ -93,6 +102,10 @@ class HealthHistory {
     }
     return changed;
   }
+
+  /// Drops the value of [metric] on [day]. Whether there was one.
+  bool remove(Metric metric, DateTime day) =>
+      _values[metric]?.remove(dayKey(day)) != null;
 
   Map<String, Object?> yearToJson(int year) {
     final first = dayKey(DateTime(year));
@@ -182,6 +195,18 @@ class HistoryArchive {
     for (final year in years) {
       await _store.write(_name(year), history.yearToJson(year));
     }
+  }
+
+  /// Drops the values of [metrics] on [day] from its stored year. The one
+  /// way a value leaves the archive: the user has deleted what it came from.
+  Future<void> forget(Iterable<Metric> metrics, DateTime day) async {
+    final history = HealthHistory()
+      ..addYearJson(day.year, await _store.read(_name(day.year)));
+    var changed = false;
+    for (final metric in metrics) {
+      if (history.remove(metric, day)) changed = true;
+    }
+    if (changed) await save(history, {day.year});
   }
 
   /// Merges [values] into the stored years without loading the others. Used

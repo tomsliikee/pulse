@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/app/formatters.dart';
+import 'package:pulse/app/backup_files.dart';
 import 'package:pulse/app/pulse_app.dart';
 import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/health_repository.dart';
@@ -430,6 +431,8 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   FixtureRepository? repository,
   MemoryJsonStore? store,
   Locale locale = const Locale('de'),
+  DateTime? now,
+  BackupFiles files = const SystemBackupFiles(),
 }) async {
   // The system's language; the tests read German unless they ask otherwise.
   tester.platformDispatcher.localesTestValue = [locale];
@@ -444,7 +447,8 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
       repository: repo,
       store: memory,
       paletteLoader: () async => null,
-      clock: () => fixtureNow,
+      clock: () => now ?? fixtureNow,
+      files: files,
     ),
   );
   await advance(tester);

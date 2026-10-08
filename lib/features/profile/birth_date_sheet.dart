@@ -97,7 +97,7 @@ class _BirthDateSheetState extends State<_BirthDateSheet> {
             decoration: InputDecoration(
               labelText: l10n.birthDateHint,
               filled: true,
-              border: OutlineInputBorder(
+              border: UnderlineInputBorder(
                 borderRadius: BorderRadius.circular(AppRadii.large),
                 borderSide: BorderSide.none,
               ),

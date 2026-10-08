@@ -192,6 +192,45 @@
   "backgroundOn": "Pulse odświeża dane w tle mniej więcej co godzinę.",
   "backgroundOff": "Bez dostępu w tle dane są odświeżane tylko po otwarciu aplikacji.",
   "refreshInBackground": "Odświeżaj w tle",
+  "backgroundLast": "Ostatnio w tle: {when}",
+  "@backgroundLast": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backgroundFailed": "Ostatnio w tle bez wyniku: {when}",
+  "@backgroundFailed": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backup": "Kopia zapasowa",
+  "backupAbout": "Starsze dni, noce i treningi są tylko na tym urządzeniu. Kopia zapasowa to plik, który przechowujesz samodzielnie.",
+  "backupSave": "Zapisz kopię",
+  "backupOpen": "Wczytaj kopię",
+  "backupSaved": "Kopia zapisana",
+  "backupSaveFailed": "Nie udało się zapisać kopii.",
+  "backupInvalid": "Ten plik nie jest kopią zapasową Pulse.",
+  "backupOpenFailed": "Nie udało się odczytać pliku.",
+  "backupNothingNew": "Kopia nie zawiera niczego, czego tu brakuje.",
+  "backupRestored": "Nowe z kopii: dni {days}, noce {nights}, treningi {workouts}",
+  "@backupRestored": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "String"
+      },
+      "workouts": {
+        "type": "String"
+      }
+    }
+  },
   "accessTitle": "Twoje dane zdrowotne",
   "accessBody": "Pulse odczytuje kroki, tętno, sen i inne wartości z Health Connect oraz zapisuje wodę, wagę i posiłki, które tu wpisujesz. Dane pozostają na tym urządzeniu.",
   "accessAction": "Zezwól na dostęp",
@@ -356,7 +395,6 @@
   "nightTipKeepGoing": "Twoje noce są w rytmie. Tak trzymaj.",
   "dayTileTitle": "Dzień",
   "dayScore": "Wynik dnia",
-  "dayScoreSoFar": "Wynik dnia do teraz",
   "dayScoreNote": "Oszacowany przez Pulse z ruchu, snu, tętna spoczynkowego i wody, to nie pomiar. To, czego nie da się ocenić, nie liczy się; reszta jest przeliczana.",
   "dayPartMovement": "Ruch",
   "dayTipsTitle": "Wskazówki na dziś",
@@ -416,9 +454,38 @@
   "nightTabToday": "Dziś",
   "edgeHero": "Scena bez ramki",
   "flexFont": "Czcionka Flex",
-  "dayScoreParts": "Z czego się składa",
+  "dayScoreParts": "Z czego składa się wynik dnia",
   "dayNumbers": "Dzień w liczbach",
   "nightNumbers": "Noc w liczbach",
   "workoutNumbers": "Aktywność w liczbach",
-  "ageFactorsTitle": "Co się na to składa"
+  "ageFactorsTitle": "Co się na to składa",
+  "recovery": "Regeneracja",
+  "dayShort": "Dzień",
+  "recoveryGreen": "Regeneracja w strefie zielonej",
+  "recoveryYellow": "Regeneracja w strefie żółtej",
+  "recoveryRed": "Regeneracja w strefie czerwonej",
+  "recoveryParts": "Z czego składa się regeneracja",
+  "recoveryNote": "Oszacowana przez Pulse ze zmienności tętna, tętna spoczynkowego, snu i częstości oddechów, każde względem ostatnich 30 dni; to nie pomiar. Czerwona do 33%, żółta do 66%, powyżej zielona.",
+  "recoveryUsual": "{value} · zwykle {usual}",
+  "@recoveryUsual": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  },
+  "recoveryAimed": "{value} · cel {usual}",
+  "@recoveryAimed": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "usual": {
+        "type": "String"
+      }
+    }
+  }
 }

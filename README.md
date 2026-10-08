@@ -61,9 +61,11 @@ Each main page has **one scene**, drawn and animated by the app, as its only lar
 
 ### Today
 
-- **The Day as a Scene:** The day runs from the early morning to now in twelve seconds. The sun crosses a sky that follows the time of day; the figure sleeps, walks as fast as the steps of each hour say, runs during a workout, and stands where the day has got to.
+- **The Day as a Scene:** The scene stands at the time it is, under a sky that follows the time of day; a day that is over stands at its evening. Nothing is played back: only what is in the picture moves, the stars, the clouds and the figure.
 
-- **Day Score:** The score so far sits on a shape that grows more pronounced the higher it is. See [The Scores](#the-scores).
+- **Recovery:** How rested the day began, from 0 to 100 %, on a shape in the colour of its zone: red up to 33, yellow up to 66, green above. It stands on the left of the scene's edge, like the main number of every page.
+
+- **Day Score:** From nine in the evening the score of the day comes in beside it, in the middle, on a shape of the same size. A day that is over always shows both. See [The Scores](#the-scores).
 
 - **Two Rings:** **Steps** outside and **active calories** inside, each against its goal, around the **body age**. A ring that has reached its goal turns into a **wave** that travels slowly around it.
 
@@ -218,7 +220,20 @@ This image shows the **blurred fallback**, because the test renderer has no Impe
 
 ## The Scores
 
-Both scores are the app's own rules, not measurements; Health Connect stores none. A part that cannot be judged is left out and the rest scaled to a hundred.
+All three are the app's own rules, not measurements; Health Connect stores none. A part that cannot be judged is left out and the rest scaled to a hundred.
+
+### Recovery
+
+It takes the readings a recovery is commonly judged by, the scale from 0 to 100 % and the three zones. The weights and the curve are this app's own, so the number resembles that of a wearable's own app and will not equal it.
+
+| Part | Weight | Judged Against |
+| :--- | :--- | :--- |
+| **Heart rate variability** | **50** | The own average of the 30 days before; higher is better |
+| **Resting heart rate** | **20** | The own average of the 30 days before; lower is better |
+| **Sleep** | **20** | Time asleep in the night before against the sleep goal |
+| **Respiratory rate** | **10** | The own average of the 30 days before; only breathing faster than that counts against |
+
+A reading at its own average gives six tenths of its part, and one standard deviation to the better or worse side two tenths more or less. A part needs five earlier days to be set against. Without heart rate variability and without resting heart rate there is no recovery.
 
 ### Day Score
 
@@ -229,7 +244,7 @@ Both scores are the app's own rules, not measurements; Health Connect stores non
 | **Resting heart rate** | up to **15** | The upper end of the own usual range of the 30 days before; nothing at 10 beats above it |
 | **Water** | up to **10** | The water goal, only for somebody who enters what they drink |
 
-For today it is the score **so far** and grows with the day.
+For today it is the score **so far** and grows with the day, which is why Today shows it only from nine in the evening.
 
 ### Sleep Score
 
@@ -371,14 +386,17 @@ sequenceDiagram
 
 ### What Has Been Verified
 
-Everything above the plugin is ***tested*** by **520** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
+Everything above the plugin is ***tested*** by **557** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
 
 | Area | Status |
 | :--- | :--- |
 | **Reading Health Connect** | ***Tested*** on a **Pixel 10 Pro**: 30 days of real data, and older data back to 2017; steps and energy agreed with the Fitbit app once it had synced |
-| **Writing, editing, deleting an entry** | ***Tested*** against the fixture store only, not on a device |
+| **Writing, editing, deleting an entry** | ***Tested*** on an **Android 17** emulator with an empty Health Connect: water written, changed and shown; a meal written and deleted. Not tried on a phone with real data |
+| **Backup** | ***Tested*** by unit and widget tests, and on the emulator: saved through the system's file dialog, a stored year removed, the file read back, the year identical to before |
+| **Refresh in the background** | ***Tested*** on the emulator: a run read Health Connect and stored the result while the app was open. A run with the app closed, and any run on a phone, is not confirmed |
 | **The four main pages and their sub pages** | ***Tested*** by widget tests in the three languages at both sizes, with and without glass, edge-to-edge scene and flex font, and as rendered images; looked at on the **Pixel 10 Pro** |
 | **Scores, hints, goals, body age** | ***Tested*** by unit tests of every rule and every kind of goal |
+| **Recovery** | ***Tested*** by unit tests of every part and by widget tests of the one shape by day and the two in the evening; looked at as rendered images from fixture data. With real readings it is ***built*** only: whether the watch writes heart rate variability and respiratory rate to Health Connect is not known |
 | **Motion** | ***Tested*** as values: entrances run once per opening, rings and bars fill again on return, the wave on a full ring travels, and all of it stands still with animations off. How it feels and whether it stays smooth is not measured |
 | **Loading older nights and workouts** | ***Tested*** against the fixture store, ***built*** against Health Connect |
 | **Language choice** | ***Tested*** on an **Android 17** emulator: set in the profile and read back with `cmd locale get-app-locales` |
@@ -447,7 +465,7 @@ On first start the app asks for access to Health Connect, then once for older da
 
 ## Data Storage & Disk Paths
 
-Everything is kept in the app's private support directory (**`/data/data/at.haiden.pulse/files/`**). Uninstalling the app deletes it; there is no export yet.
+Everything is kept in the app's private support directory (**`/data/data/at.haiden.pulse/files/`**). Uninstalling the app deletes it. **Profile → Backup** writes the history, the nights, the workouts and the settings into one JSON file at a place you choose, and reads such a file again: days, nights and workouts that are missing are added, what is already there stays as it is, and the settings are only taken where the app has none yet.
 
 | File | Purpose |
 | :--- | :--- |
@@ -456,6 +474,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | **`nights-YYYY.json`** | Every night that ended in that calendar year: its times and the minutes in each stage, without the curve |
 | **`workouts.json`** | Every workout the app has seen, oldest first |
 | **`settings.json`** | Goals with their switches and targets, date of birth and sex, theme, the switches for Material You, Liquid Glass, edge-to-edge scene and flex font, the language (only before Android 13), tile order per page, the tiles on Today and their sizes |
+| **`sync.json`** | When the last refresh in the background ended, how long it took, or why it stored nothing. Shown in the profile |
 | **`backfill.json`**, **`nightBackfill.json`**, **`workoutBackfill.json`** | How far back each one-time load of older data has reached |
 
 Every value read from disk or from Health Connect is checked against the bounds in the metric catalog; a reading outside them is dropped.

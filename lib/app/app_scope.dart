@@ -5,6 +5,7 @@ import '../data/health_controller.dart';
 import '../data/settings_controller.dart';
 import '../theme/system_palette.dart';
 import 'app_language.dart';
+import 'backup_files.dart';
 
 /// Hands the app-wide controllers down the tree.
 class AppScope extends InheritedWidget {
@@ -14,6 +15,7 @@ class AppScope extends InheritedWidget {
     required this.settings,
     required this.language,
     required this.systemPalette,
+    this.files = const SystemBackupFiles(),
     required super.child,
   });
 
@@ -21,6 +23,9 @@ class AppScope extends InheritedWidget {
   final SettingsController settings;
   final LanguageController language;
   final ValueListenable<SystemPalette?> systemPalette;
+
+  /// Where a backup is kept and picked from.
+  final BackupFiles files;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -33,5 +38,6 @@ class AppScope extends InheritedWidget {
       health != oldWidget.health ||
       settings != oldWidget.settings ||
       language != oldWidget.language ||
-      systemPalette != oldWidget.systemPalette;
+      systemPalette != oldWidget.systemPalette ||
+      files != oldWidget.files;
 }
