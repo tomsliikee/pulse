@@ -62,6 +62,11 @@ abstract interface class HealthRepository {
   /// Used once to fill the workout archive with what the store already has.
   Future<List<Workout>> loadWorkouts(DateTime from, DateTime to);
 
+  /// What the store counted from [start] to [end], by the day it fell on:
+  /// its totals, the minutes of activity and the floors. Used to take a
+  /// removed workout out of its days.
+  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end);
+
   /// The nights that ended on the days from [from] to [to], both inclusive,
   /// as the archive keeps them. Used once to fill the night archive.
   Future<List<SleepNight>> loadNights(DateTime from, DateTime to);
@@ -110,6 +115,10 @@ class UnsupportedHealthRepository implements HealthRepository {
   @override
   Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) async =>
       const [];
+
+  @override
+  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async =>
+      const {};
 
   @override
   Future<List<SleepNight>> loadNights(DateTime from, DateTime to) async =>

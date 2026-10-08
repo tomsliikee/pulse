@@ -56,6 +56,7 @@ class HealthController extends ChangeNotifier {
   bool _backfilling = false;
   bool _backfillingWorkouts = false;
   List<Workout> _workouts = const [];
+  List<RemovedWorkout> _removedWorkouts = const [];
   bool _backfillingNights = false;
   List<SleepNight> _nights = const [];
   SyncReport? _backgroundSync;
@@ -172,11 +173,13 @@ class HealthController extends ChangeNotifier {
   Future<void> _loadArchives() async {
     final history = await _archive.load(_clock());
     final workouts = await _workoutArchive.load();
+    final removed = await _workoutArchive.loadRemoved();
     final nights = await _nightArchive.load();
     final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
     if (_disposed) return;
     _history = history;
     _workouts = List.unmodifiable(workouts);
+    _removedWorkouts = List.unmodifiable(removed);
     _nights = List.unmodifiable(nights);
     _backgroundSync = sync;
   }
@@ -227,11 +230,12 @@ class HealthController extends ChangeNotifier {
         return;
       }
       final shown = _snapshot;
-      final fresh = await _repository.load(
+      final read = await _repository.load(
         _clock(),
         // The first read of a day is a full one as well.
         previous: full || shown == null || shown.today != today ? null : shown,
       );
+      final fresh = withoutWorkouts(read, _removedWorkouts);
       final background = await _repository.backgroundAccessGranted();
       final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
       if (_disposed) return;
@@ -240,7 +244,12 @@ class HealthController extends ChangeNotifier {
       _show(fresh);
       await _store.write(StoreKeys.snapshot, fresh.toJson());
       await _archiveDays(dailyValuesOf(fresh));
-      await _archiveWorkouts(workoutsWithHeart(fresh));
+      await _archiveWorkouts(
+        workoutsWithHeart(fresh),
+        // The read covers these days in full, so what the archive has
+        // beyond it was deleted where it came from.
+        window: (fresh.dateAt(0), fresh.loadedAt),
+      );
       await _archiveNights(nightSummaries(fresh));
     } on Exception catch (error) {
       debugPrint('Health refresh failed: $error');
@@ -275,10 +284,90 @@ class HealthController extends ChangeNotifier {
     await _nightArchive.mergeIntoStore(nights);
   }
 
-  Future<void> _archiveWorkouts(Iterable<Workout> workouts) async {
-    final all = await _workoutArchive.mergeIntoStore(workouts);
+  Future<void> _archiveWorkouts(
+    Iterable<Workout> workouts, {
+    (DateTime, DateTime)? window,
+  }) async {
+    final all = await _workoutArchive.mergeIntoStore(workouts, window: window);
     if (_disposed) return;
     _workouts = List.unmodifiable(all);
+  }
+
+  /// Takes [workout] out of the app, with what the store counted while it
+  /// ran: steps, distance, energy, minutes of activity and floors. The
+  /// health store keeps all of it; an app cannot delete another's records.
+  /// Returns what [restoreWorkout] needs to undo it.
+  Future<RemovedWorkout> removeWorkout(Workout workout) async {
+    var totals = const <Metric, Map<DateTime, double>>{};
+    try {
+      totals = await _repository.loadTotalsDuring(workout.start, workout.end);
+    } on Exception catch (error) {
+      debugPrint('Reading the totals of a workout failed: $error');
+    }
+    if (totals.values.every((days) => days.isEmpty)) {
+      totals = ownTotals(workout);
+    }
+    final removed = RemovedWorkout(workout: workout, totals: totals);
+    final all = await _workoutArchive.remove(removed);
+    if (_disposed) return removed;
+    _workouts = List.unmodifiable(all);
+    _removedWorkouts = List.unmodifiable([
+      for (final other in _removedWorkouts)
+        if (other.workout.key != workout.key) other,
+      removed,
+    ]);
+    final snapshot = _snapshot;
+    if (snapshot != null) {
+      // The snapshot on screen is already without the earlier ones.
+      final next = withoutWorkouts(snapshot, [removed]);
+      _snapshot = next;
+      await _store.write(StoreKeys.snapshot, next.toJson());
+      await _archiveDays(dailyValuesOf(next));
+    }
+    await _changeOlderDays(removed, restore: false);
+    if (!_disposed) notifyListeners();
+    return removed;
+  }
+
+  /// Undoes [removeWorkout].
+  Future<void> restoreWorkout(RemovedWorkout removed) async {
+    final all = await _workoutArchive.restore(removed);
+    if (_disposed) return;
+    _workouts = List.unmodifiable(all);
+    _removedWorkouts = List.unmodifiable([
+      for (final other in _removedWorkouts)
+        if (other.workout.key != removed.workout.key) other,
+    ]);
+    await _changeOlderDays(removed, restore: true);
+    if (_disposed) return;
+    notifyListeners();
+    // The days of the window are read again, with the workout in them.
+    await refresh(full: true);
+  }
+
+  /// Takes what [removed] added out of the days before the snapshot's
+  /// window, or puts it back. Those days are not read again, so the history
+  /// is changed directly.
+  Future<void> _changeOlderDays(
+    RemovedWorkout removed, {
+    required bool restore,
+  }) async {
+    final history = _history;
+    if (history == null) return;
+    final changed = <Metric, Map<DateTime, double>>{};
+    for (final MapEntry(key: metric, value: days) in removed.totals.entries) {
+      for (final MapEntry(key: day, value: amount) in days.entries) {
+        final value = history.value(metric, day);
+        if (value == null || _snapshot?.indexOf(day) != null) continue;
+        changed.putIfAbsent(metric, () => {})[day] = restore
+            ? value + amount
+            : (value > amount ? value - amount : 0);
+      }
+    }
+    if (changed.isEmpty) return;
+    if (history.merge(changed).isNotEmpty) {
+      await _archive.mergeIntoStore(changed);
+    }
   }
 
   Future<void> _archiveDays(DailyValues values) async {
@@ -331,7 +420,10 @@ class HealthController extends ChangeNotifier {
         if (from.isBefore(limit)) from = limit;
         _backfillReached = from;
         if (!_disposed) notifyListeners();
-        final values = await _repository.loadHistory(from, to);
+        final values = withoutRemovedTotals(
+          await _repository.loadHistory(from, to),
+          _removedWorkouts,
+        );
         if (_disposed) return;
         empty = values.values.every((days) => days.isEmpty) ? empty + 1 : 0;
         await _archiveDays(values);

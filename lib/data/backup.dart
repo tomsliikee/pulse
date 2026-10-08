@@ -84,6 +84,9 @@ Future<BackupResult> importBackup(
         if (!ownWorkouts.contains(workout.key)) workout,
     ];
     await WorkoutArchive(store).mergeIntoStore(workouts);
+    // After the workouts, so one the app holds is not removed by a backup.
+    await WorkoutArchive(store)
+        .addRemoved(await WorkoutArchive(file).loadRemoved());
 
     final settings = documents[StoreKeys.settings];
     final restore =

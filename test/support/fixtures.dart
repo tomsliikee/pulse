@@ -65,6 +65,11 @@ class FixtureRepository implements HealthRepository {
   List<Workout> olderWorkouts = const [];
   final List<(DateTime, DateTime)> workoutRequests = [];
 
+  /// What the store counted during a workout, handed out by
+  /// [loadTotalsDuring].
+  DailyValues totalsDuring = const {};
+  final List<(DateTime, DateTime)> totalsRequests = [];
+
   /// Nights from before the window, handed out by [loadNights].
   List<SleepNight> olderNights = const [];
   final List<(DateTime, DateTime)> nightRequests = [];
@@ -162,6 +167,12 @@ class FixtureRepository implements HealthRepository {
         if (!workout.start.isBefore(from) && workout.start.isBefore(end))
           workout,
     ];
+  }
+
+  @override
+  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async {
+    totalsRequests.add((start, end));
+    return totalsDuring;
   }
 
   @override

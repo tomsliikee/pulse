@@ -286,6 +286,8 @@
   "entryDeleted": "Eintrag gelöscht",
   "undo": "Rückgängig",
   "restoreFailed": "Wiederherstellen fehlgeschlagen",
+  "removeWorkout": "Aktivität entfernen",
+  "workoutRemoved": "Aktivität samt Werten entfernt",
   "noEntriesThatDay": "Keine Einträge an diesem Tag.",
   "edit": "Bearbeiten",
   "delete": "Löschen",

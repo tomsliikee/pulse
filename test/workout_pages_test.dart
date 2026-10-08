@@ -119,6 +119,40 @@ void main() {
     );
   });
 
+  testWidgets('the bin on a workout\'s page removes it, and the undo brings '
+      'it back', (tester) async {
+    final l10n = lookupAppLocalizations(const Locale('de'));
+    await pumpApp(tester);
+    await _openActivity(tester, l10n);
+    await tester.tap(find.text('Letzte Aktivität'));
+    await advance(tester);
+    expect(find.byType(WorkoutDetailPage), findsOneWidget);
+
+    await tester.tap(find.byTooltip(l10n.removeWorkout));
+    await advance(tester);
+    expect(find.byType(WorkoutDetailPage), findsNothing);
+    expect(find.text(l10n.workoutRemoved), findsOneWidget);
+    // The ride of two days before is the latest now.
+    expect(
+      find.descendant(
+        of: find.byType(LatestWorkoutCard),
+        matching: find.text('Radfahren'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text(l10n.undo));
+    await advance(tester);
+    expect(
+      find.descendant(
+        of: find.byType(LatestWorkoutCard),
+        matching: find.text('Laufen'),
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the list of all workouts filters by kind', (tester) async {
     await pumpApp(tester);
     await _openActivity(tester, lookupAppLocalizations(const Locale('de')));

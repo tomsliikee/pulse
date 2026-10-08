@@ -221,6 +221,51 @@ class HealthConnectRepository implements HealthRepository {
     ];
   }
 
+  @override
+  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async {
+    await _configure();
+    final values = <Metric, Map<DateTime, double>>{};
+    void add(Metric metric, DateTime at, double amount) {
+      if (amount <= 0) return;
+      final days = values.putIfAbsent(metric, () => {});
+      final day = DateTime(at.year, at.month, at.day);
+      days[day] = (days[day] ?? 0) + amount;
+    }
+
+    // Asked for day by day, so a workout across midnight is taken out of
+    // both of its days.
+    for (final (from, to) in daySlices(start, end)) {
+      for (final MapEntry(key: metric, value: type) in _totals.entries) {
+        final totals = await _totalsBy(
+          type,
+          metric,
+          from,
+          to,
+          Duration.secondsPerDay,
+        );
+        for (final total in totals.values) {
+          add(metric, from, total);
+        }
+      }
+    }
+    final active = minutesByHour([
+      for (final point in await _read(_intensity, start, end))
+        // A record may reach beyond the workout.
+        (
+          point.dateFrom.isBefore(start) ? start : point.dateFrom,
+          point.dateTo.isAfter(end) ? end : point.dateTo,
+        ),
+    ]);
+    for (final MapEntry(key: hour, value: minutes) in active.entries) {
+      add(Metric.intensityMinutes, hour, minutes);
+    }
+    final floors = await _read(_samples[Metric.floors]!, start, end);
+    for (final point in floors) {
+      add(Metric.floors, point.dateFrom, _numeric(point) ?? 0);
+    }
+    return values;
+  }
+
   static Future<List<SleepNight>> _loadNightsInWorker(
     RootIsolateToken token,
     DateTime from,

@@ -93,6 +93,8 @@ Each main page has **one scene**, drawn and animated by the app, as its only lar
 
 - **All Activities:** Month by month, with a filter for the kind.
 
+- **Removing a Workout:** A workout deleted in the app that recorded it leaves Pulse at the next refresh. The **bin** on a workout's page removes any other one from Pulse, together with what Health Connect counted while it ran: **steps**, **distance**, **active** and **total calories**, **intensity minutes** and **floors**. Health Connect keeps the workout, because an app cannot delete another app's records; the snackbar offers an **undo**.
+
 ![Steps and activity metrics, the page about one run, its comparison and progress, and the list of all activities](readmestuff/activities.png)
 
 ### Sleep
@@ -367,6 +369,7 @@ sequenceDiagram
     App->>Disk: write snapshot
     App->>Disk: merge days into history-YYYY
     App->>Disk: merge nights and workouts into their archives
+    App->>Disk: set aside workouts the 30 days no longer hold
     opt first run with history access
         App->>Repo: older days, nights and workouts in 90-day stretches, backwards
         Repo-->>App: one stretch at a time
@@ -386,7 +389,7 @@ sequenceDiagram
 
 ### What Has Been Verified
 
-Everything above the plugin is ***tested*** by **557** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
+Everything above the plugin is ***tested*** by **579** unit and widget tests against an in-memory fixture store, at **360 x 640** and **412 x 915**, in all three languages.
 
 | Area | Status |
 | :--- | :--- |
@@ -398,6 +401,7 @@ Everything above the plugin is ***tested*** by **557** unit and widget tests aga
 | **Scores, hints, goals, body age** | ***Tested*** by unit tests of every rule and every kind of goal |
 | **Recovery** | ***Tested*** by unit tests of every part and by widget tests of the one shape by day and the two in the evening; looked at as rendered images from fixture data. With real readings it is ***built*** only: whether the watch writes heart rate variability and respiratory rate to Health Connect is not known |
 | **Motion** | ***Tested*** as values: entrances run once per opening, rings and bars fill again on return, the wave on a full ring travels, and all of it stands still with animations off. How it feels and whether it stays smooth is not measured |
+| **Removing workouts** | ***Tested*** by unit and widget tests, and on a **Pixel 10 Pro** with real data: two workouts deleted in the app that recorded them left the archive at the next read; the bin took a walk and its steps, distance and calories out of its day, its hour and the history, and the undo brought all of it back. A removal of a workout older than 30 days, and one that survives a background run, are tested against the fixture store only |
 | **Loading older nights and workouts** | ***Tested*** against the fixture store, ***built*** against Health Connect |
 | **Language choice** | ***Tested*** on an **Android 17** emulator: set in the profile and read back with `cmd locale get-app-locales` |
 | **Liquid Glass** | ***Tested*** by widget tests in the blurred fallback, and by stills on a **Pixel 8** emulator under **Vulkan** before the pages were reworked. The current pages with glass are ***built*** only |
@@ -472,7 +476,7 @@ Everything is kept in the app's private support directory (**`/data/data/at.haid
 | **`snapshot.json`** | The last 30 days in full: daily values, sleep stages, heart samples, workouts, entries |
 | **`history-YYYY.json`** | One value per day and metric for that calendar year. Files older than ten years are removed at start |
 | **`nights-YYYY.json`** | Every night that ended in that calendar year: its times and the minutes in each stage, without the curve |
-| **`workouts.json`** | Every workout the app has seen, oldest first |
+| **`workouts.json`** | Every workout the app has seen, oldest first; the ones removed by hand with the amounts taken out of their days; the ones the store no longer has, set aside |
 | **`settings.json`** | Goals with their switches and targets, date of birth and sex, theme, the switches for Material You, Liquid Glass, edge-to-edge scene and flex font, the language (only before Android 13), tile order per page, the tiles on Today and their sizes |
 | **`sync.json`** | When the last refresh in the background ended, how long it took, or why it stored nothing. Shown in the profile |
 | **`backfill.json`**, **`nightBackfill.json`**, **`workoutBackfill.json`** | How far back each one-time load of older data has reached |
@@ -486,6 +490,8 @@ Every value read from disk or from Health Connect is checked against the bounds 
 - **Heart rate:** Single samples are loaded for the last **8 days**. The daily average is therefore not backfilled and only builds up from use; resting heart rate is.
 
 - **Workouts:** The heart rate of a workout is only known if the app read it within those **8 days**. There are no routes or maps.
+
+- **Removed workouts:** The amounts are measured once, when the workout is removed, and stay taken out of its days. The total calories lose the basal part of that time as well. After the snackbar has gone there is no way to bring a removed workout back.
 
 - **Nights:** The curve of the stages exists for the last 30 days only; older nights keep their times and the minutes in each stage.
 

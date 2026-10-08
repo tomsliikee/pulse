@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse/background/sync_task.dart';
 import 'package:pulse/data/health_controller.dart';
+import 'package:pulse/data/backup.dart';
+import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/json_store.dart';
+import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/data/workout_archive.dart';
@@ -31,6 +34,23 @@ HealthController _controller(FixtureRepository repository, JsonStore store) =>
       store: store,
       clock: () => fixtureNow,
     );
+
+/// The fixture's readings without the workouts that [gone] names.
+RawReadings _without(bool Function(Workout) gone) {
+  final readings = fixtureReadings();
+  return RawReadings(
+    samples: readings.samples,
+    dailyTotals: readings.dailyTotals,
+    sleepSessions: readings.sleepSessions,
+    sleepStages: readings.sleepStages,
+    workouts: [
+      for (final workout in readings.workouts)
+        if (!gone(workout)) workout,
+    ],
+    entries: readings.entries,
+    hourlyTotals: readings.hourlyTotals,
+  );
+}
 
 void main() {
   group('Workout', () {
@@ -180,6 +200,239 @@ void main() {
       final store = MemoryJsonStore();
       await syncOnce(FixtureRepository(), store, fixtureNow);
       expect(await WorkoutArchive(store).load(), hasLength(6));
+    });
+  });
+
+  group('workouts deleted where they came from', () {
+    final from = DateTime(2026, 9, 7);
+    final to = fixtureNow;
+    final old = _run(DateTime(2026, 8, 1, 7));
+    final first = _run(DateTime(2026, 10, 1, 7), avgBpm: 150);
+    final second = _run(DateTime(2026, 10, 3, 7));
+
+    test('one that the window no longer has is set aside, older ones '
+        'stay', () {
+      final records = reconcileWorkouts(
+        WorkoutRecords(workouts: [old, first, second]),
+        [second],
+        window: (from, to),
+      )!;
+      expect(records.workouts, [old, second]);
+      expect(records.missing, [first]);
+    });
+
+    test('without a window nothing is set aside', () {
+      expect(
+        reconcileWorkouts(WorkoutRecords(workouts: [old, first, second]), [
+          second,
+        ]),
+        isNull,
+      );
+    });
+
+    test('one that comes back keeps its pulse', () {
+      final records = reconcileWorkouts(
+        WorkoutRecords(workouts: [second], missing: [first]),
+        [_run(first.start), second],
+        window: (from, to),
+      )!;
+      expect(records.workouts.map((w) => w.avgBpm), [150, null]);
+      expect(records.missing, isEmpty);
+    });
+
+    test('a read that changes nothing reports no change', () {
+      expect(
+        reconcileWorkouts(
+          WorkoutRecords(workouts: [old, first, second]),
+          [first, second],
+          window: (from, to),
+        ),
+        isNull,
+      );
+    });
+
+    test('a refresh and the background task both drop it', () async {
+      final store = MemoryJsonStore();
+      final repository = FixtureRepository();
+      final health = _controller(repository, store);
+      await health.start();
+      final latest = health.latestWorkout!;
+
+      repository.readings = _without((w) => w.key == latest.key);
+      await health.refresh(full: true);
+      expect(health.workouts, hasLength(5));
+      expect(health.workouts.map((w) => w.key), isNot(contains(latest.key)));
+
+      // The store has it again: it is back, by the background task as well.
+      await syncOnce(FixtureRepository(), store, fixtureNow);
+      expect(await WorkoutArchive(store).load(), hasLength(6));
+      await syncOnce(repository, store, fixtureNow);
+      expect(await WorkoutArchive(store).load(), hasLength(5));
+    });
+  });
+
+  group('removing a workout', () {
+    final yesterday = DateTime(
+      fixtureNow.year,
+      fixtureNow.month,
+      fixtureNow.day - 1,
+    );
+
+    test('takes it and what was counted during it out of its day, and a '
+        'later read does not bring either back', () async {
+      final store = MemoryJsonStore();
+      final repository = FixtureRepository()
+        ..totalsDuring = {
+          Metric.steps: {yesterday: 1200},
+          Metric.activeEnergy: {yesterday: 300},
+        };
+      final health = _controller(repository, store);
+      await health.start();
+      final run = health.latestWorkout!;
+      final index = health.snapshot.indexOf(yesterday)!;
+      final steps = health.valueAt(Metric.steps, index)!;
+      final energy = health.valueAt(Metric.activeEnergy, index)!;
+      final distance = health.valueAt(Metric.distance, index);
+      // The run started at 18:00 and took 35 minutes: all in one hour.
+      final hour = health.snapshot.hoursOf(Metric.steps, index)![18]!;
+
+      await health.removeWorkout(run);
+
+      expect(repository.totalsRequests, [(run.start, run.end)]);
+      void isWithout(HealthController health) {
+        expect(health.workouts, hasLength(5));
+        expect(health.snapshot.workouts, hasLength(5));
+        expect(health.valueAt(Metric.steps, index), steps - 1200);
+        expect(health.valueAt(Metric.activeEnergy, index), energy - 300);
+        expect(health.valueAt(Metric.distance, index), distance);
+        expect(health.snapshot.hoursOf(Metric.steps, index)![18], hour - 400);
+        expect(health.history!.value(Metric.steps, yesterday), steps - 1200);
+      }
+
+      isWithout(health);
+      await health.refresh(full: true);
+      isWithout(health);
+      await syncOnce(repository, store, fixtureNow);
+      final again = _controller(repository, store);
+      await again.start();
+      isWithout(again);
+    });
+
+    test('undone, the workout and its values are back', () async {
+      final store = MemoryJsonStore();
+      final repository = FixtureRepository()
+        ..totalsDuring = {
+          Metric.steps: {yesterday: 1200},
+        };
+      final health = _controller(repository, store);
+      await health.start();
+      final index = health.snapshot.indexOf(yesterday)!;
+      final steps = health.valueAt(Metric.steps, index)!;
+
+      final removed = await health.removeWorkout(health.latestWorkout!);
+      await health.restoreWorkout(removed);
+
+      expect(health.workouts, hasLength(6));
+      expect(health.valueAt(Metric.steps, index), steps);
+      expect(health.history!.value(Metric.steps, yesterday), steps);
+      expect(await WorkoutArchive(store).loadRemoved(), isEmpty);
+    });
+
+    test('when the store cannot say what was counted, the workout\'s own '
+        'numbers are taken', () async {
+      final store = MemoryJsonStore();
+      final health = _controller(FixtureRepository(), store);
+      await health.start();
+      final walk = health.workouts.firstWhere(
+        (w) => w.type == WorkoutType.walk,
+      );
+      final index = health.snapshot.indexOf(walk.start)!;
+      final steps = health.valueAt(Metric.steps, index)!;
+      final total = health.valueAt(Metric.totalEnergy, index)!;
+
+      await health.removeWorkout(walk);
+
+      expect(health.valueAt(Metric.steps, index), steps - walk.steps!);
+      expect(health.valueAt(Metric.totalEnergy, index), total - walk.kcal!);
+    });
+
+    test('one from before the window is taken out of the history', () async {
+      final store = MemoryJsonStore();
+      final day = DateTime(2026, 6, 1);
+      final repository = FixtureRepository()
+        ..historyAccess = true
+        ..olderDays = {
+          Metric.steps: {day: 9000},
+        }
+        ..olderWorkouts = [_run(DateTime(2026, 6, 1, 7))]
+        ..totalsDuring = {
+          Metric.steps: {day: 4000},
+        };
+      final health = _controller(repository, store);
+      await health.start();
+      expect(health.history!.value(Metric.steps, day), 9000);
+
+      final removed = await health.removeWorkout(health.workouts.first);
+      expect(health.workouts, hasLength(6));
+      expect(health.history!.value(Metric.steps, day), 5000);
+      final stored = await HistoryArchive(store).load(fixtureNow);
+      expect(stored.value(Metric.steps, day), 5000);
+
+      await health.restoreWorkout(removed);
+      expect(health.history!.value(Metric.steps, day), 9000);
+    });
+
+    test('never takes more than the day has', () {
+      final snapshot = buildSnapshot(
+        now: fixtureNow,
+        raw: RawReadings(
+          dailyTotals: {
+            Metric.steps: {yesterday: 500},
+          },
+        ),
+      );
+      final run = _run(
+        DateTime(yesterday.year, yesterday.month, yesterday.day, 9),
+      );
+      final without = withoutWorkouts(snapshot, [
+        RemovedWorkout(
+          workout: run,
+          totals: {
+            Metric.steps: {yesterday: 800},
+          },
+        ),
+      ]);
+      expect(without.value(Metric.steps, snapshot.indexOf(yesterday)!), 0);
+    });
+
+    test('a removal survives its JSON and a backup', () async {
+      final store = MemoryJsonStore();
+      final repository = FixtureRepository()
+        ..totalsDuring = {
+          Metric.steps: {yesterday: 1200},
+        };
+      final health = _controller(repository, store);
+      await health.start();
+      final run = health.latestWorkout!;
+      await health.removeWorkout(run);
+
+      final removed = (await WorkoutArchive(store).loadRemoved()).single;
+      expect(removed.workout.key, run.key);
+      expect(removed.totals, {
+        Metric.steps: {yesterday: 1200.0},
+      });
+
+      // Read into a fresh install, the workout is not taken in again.
+      final fresh = MemoryJsonStore();
+      await importBackup(
+        fresh,
+        await exportBackup(store, fixtureNow),
+        fixtureNow,
+      );
+      final later = _controller(FixtureRepository(), fresh);
+      await later.start();
+      expect(later.workouts, hasLength(5));
+      expect(await WorkoutArchive(fresh).loadRemoved(), hasLength(1));
     });
   });
 

@@ -149,6 +149,8 @@
   "entryDeleted": "Entry deleted",
   "undo": "Undo",
   "restoreFailed": "Restoring failed",
+  "removeWorkout": "Remove activity",
+  "workoutRemoved": "Activity and its values removed",
   "noEntriesThatDay": "No entries on this day.",
   "edit": "Edit",
   "delete": "Delete",

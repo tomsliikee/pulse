@@ -58,12 +58,19 @@ Future<void> syncOnce(
   final today = DateTime(now.year, now.month, now.day);
   // The first read of a day is a full one, as in the app.
   final previous = saved != null && saved.today == today ? saved : null;
-  final snapshot = await repository.load(now, previous: previous);
+  final workouts = WorkoutArchive(store);
+  final snapshot = withoutWorkouts(
+    await repository.load(now, previous: previous),
+    await workouts.loadRemoved(),
+  );
   await store.write(StoreKeys.snapshot, snapshot.toJson());
   // Also kept for the long term, so no day is lost when the app stays
   // closed for longer than the store's window.
   await HistoryArchive(store).mergeIntoStore(dailyValuesOf(snapshot));
-  await WorkoutArchive(store).mergeIntoStore(workoutsWithHeart(snapshot));
+  await workouts.mergeIntoStore(
+    workoutsWithHeart(snapshot),
+    window: (snapshot.dateAt(0), snapshot.loadedAt),
+  );
   await NightArchive(store).mergeIntoStore(nightSummaries(snapshot));
   await store.write(
     StoreKeys.sync,

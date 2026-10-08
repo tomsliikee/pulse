@@ -149,6 +149,8 @@
   "entryDeleted": "Wpis usunięty",
   "undo": "Cofnij",
   "restoreFailed": "Przywracanie nie powiodło się",
+  "removeWorkout": "Usuń aktywność",
+  "workoutRemoved": "Usunięto aktywność i jej wartości",
   "noEntriesThatDay": "Brak wpisów w tym dniu.",
   "edit": "Edytuj",
   "delete": "Usuń",

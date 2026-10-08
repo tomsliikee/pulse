@@ -3,7 +3,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
+import '../../app/haptics.dart';
+import '../../data/health_controller.dart';
 import '../../data/models.dart';
+import '../../data/workout_archive.dart';
 import '../../data/workout_insights.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
@@ -29,6 +32,42 @@ class WorkoutDetailPage extends StatelessWidget {
 
   final Workout workout;
 
+  /// Takes the workout out of the app and leaves the page. The health store
+  /// keeps it, so there is an undo that brings it back.
+  Future<void> _remove(BuildContext context, HealthController health) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final l10n = Formats.of(context).l10n;
+    final RemovedWorkout removed;
+    try {
+      removed = await health.removeWorkout(workout);
+    } on Exception {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.deleteFailed)));
+      return;
+    }
+    Haptics.confirm();
+    navigator.maybePop();
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(l10n.workoutRemoved),
+          action: SnackBarAction(
+            label: l10n.undo,
+            onPressed: () async {
+              try {
+                await health.restoreWorkout(removed);
+              } on Exception {
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l10n.restoreFailed)),
+                );
+              }
+            },
+          ),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
@@ -49,6 +88,12 @@ class WorkoutDetailPage extends StatelessWidget {
           return SubPage(
             title: current.type.label(l10n),
             glass: scope.settings.liquidGlass,
+            action: IconButton(
+              onPressed: () => _remove(context, health),
+              tooltip: l10n.removeWorkout,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              icon: const Icon(Icons.delete_outline_rounded),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 12,

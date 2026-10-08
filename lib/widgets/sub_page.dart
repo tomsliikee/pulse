@@ -20,6 +20,7 @@ class SubPage extends StatefulWidget {
     this.glass = false,
     this.bottomPadding = 32,
     this.overlay,
+    this.action,
   }) : assert((child == null) != (slivers == null));
 
   final String title;
@@ -43,6 +44,10 @@ class SubPage extends StatefulWidget {
 
   /// Floats over the content, like a bar at the bottom of the page.
   final Widget? overlay;
+
+  /// Floats at the end of the row of the back button, on a surface of its
+  /// own; an icon button as a rule.
+  final Widget? action;
 
   /// Space between the status bar and the floating buttons of a page.
   static const double buttonTop = 8;
@@ -143,16 +148,29 @@ class _SubPageState extends State<SubPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Flexible(
-                  child: ValueListenableBuilder(
-                    valueListenable: _pill,
-                    builder: (context, shown, _) => _TitlePill(
-                      title: widget.title,
-                      glass: widget.glass,
-                      shown: shown,
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: ValueListenableBuilder(
+                      valueListenable: _pill,
+                      builder: (context, shown, _) => _TitlePill(
+                        title: widget.title,
+                        glass: widget.glass,
+                        shown: shown,
+                      ),
                     ),
                   ),
                 ),
+                if (widget.action case final action?) ...[
+                  const SizedBox(width: 8),
+                  FloatingSurface(
+                    glass: widget.glass,
+                    child: SizedBox.square(
+                      dimension: FloatingSurface.height,
+                      child: action,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
