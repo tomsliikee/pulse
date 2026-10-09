@@ -8,6 +8,7 @@ import '../../widgets/segment_group.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/sub_page.dart';
+import 'removed_workouts_page.dart';
 import 'workout_style.dart';
 import 'workout_tiles.dart';
 
@@ -35,6 +36,7 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           final formats = Formats.of(context);
           final l10n = formats.l10n;
           final all = health.workouts;
+          final removed = health.removedWorkouts.length;
           final kinds = [
             for (final type in WorkoutType.values)
               if (all.any((workout) => workout.type == type)) type,
@@ -66,6 +68,23 @@ class _WorkoutListPageState extends State<WorkoutListPage> {
           return SubPage(
             title: l10n.allActivities,
             glass: scope.settings.liquidGlass,
+            // The way back for what the bin took out of the app. At the top:
+            // the list below can be hundreds of rows long.
+            action: removed == 0
+                ? null
+                : IconButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const RemovedWorkoutsPage(),
+                      ),
+                    ),
+                    tooltip: l10n.removedActivities,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    icon: Badge.count(
+                      count: removed,
+                      child: const Icon(Icons.restore_from_trash_rounded),
+                    ),
+                  ),
             slivers: [
               if (kinds.length > 1)
                 SliverToBoxAdapter(

@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/widgets/chip_carousel.dart';
+import 'package:pulse/app/app_scope.dart';
 import 'package:pulse/data/json_store.dart';
+import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/data/workout_archive.dart';
+import 'package:pulse/features/activity/removed_workouts_page.dart';
 import 'package:pulse/features/activity/workout_detail_page.dart';
 import 'package:pulse/features/activity/workout_list_page.dart';
 import 'package:pulse/features/activity/workout_scene.dart';
@@ -152,6 +156,60 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  for (final language in ['de', 'en', 'pl']) {
+    for (final size in _sizes) {
+      testWidgets('a removed workout is listed and can be brought back in '
+          '$language at ${size.width.round()}x${size.height.round()}', (
+        tester,
+      ) async {
+        final l10n = lookupAppLocalizations(Locale(language));
+        final app = await pumpApp(tester, size: size, locale: Locale(language));
+        await _openActivity(tester, l10n);
+        await tapInView(tester, find.text(l10n.allActivities));
+        final list = find.byType(WorkoutListPage);
+
+        // Nothing was removed yet, so there is nothing to go to.
+        expect(find.byTooltip(l10n.removedActivities), findsNothing);
+
+        final health = AppScope.of(tester.element(list)).health;
+        final before = health.workouts.length;
+        final start = health.latestWorkout!.start;
+        final date = DateTime(start.year, start.month, start.day);
+        final day = health.snapshot.indexOf(date)!;
+        app.repository.totalsDuring = {
+          Metric.steps: {date: 1000},
+        };
+        final steps = health.snapshot.value(Metric.steps, day);
+        await tester.runAsync(
+          () => health.removeWorkout(health.latestWorkout!),
+        );
+        await advance(tester);
+        expect(health.workouts.length, before - 1);
+        expect(health.snapshot.value(Metric.steps, day), lessThan(steps!));
+
+        await tester.tap(find.byTooltip(l10n.removedActivities));
+        await advance(tester);
+        final page = find.byType(RemovedWorkoutsPage);
+        expect(
+          find.descendant(of: page, matching: find.byType(WorkoutRow)),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byTooltip(l10n.restoreWorkout));
+        await advance(tester);
+        // The page had nothing left to list and closed.
+        expect(page, findsNothing);
+        expect(find.text(l10n.workoutRestored), findsOneWidget);
+        expect(find.byTooltip(l10n.removedActivities), findsNothing);
+        expect(health.workouts.length, before);
+        expect(health.snapshot.value(Metric.steps, day), steps);
+        expect(await WorkoutArchive(app.store).loadRemoved(), isEmpty);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 
   testWidgets('the list of all workouts filters by kind', (tester) async {
     await pumpApp(tester);

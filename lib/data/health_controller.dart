@@ -188,6 +188,9 @@ class HealthController extends ChangeNotifier {
 
   Workout? get latestWorkout => _workouts.isEmpty ? null : _workouts.last;
 
+  /// The workouts the user took out of the app, in the order of removal.
+  List<RemovedWorkout> get removedWorkouts => _removedWorkouts;
+
   /// Shows the saved snapshot at once, then checks access and reads fresh.
   Future<void> start() async {
     final saved = HealthSnapshot.fromJson(

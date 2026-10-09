@@ -303,9 +303,13 @@ class RecentWorkoutsCard extends StatelessWidget {
 
 /// One workout in a list. Tapping it opens the page about it.
 class WorkoutRow extends StatelessWidget {
-  const WorkoutRow({super.key, required this.workout});
+  const WorkoutRow({super.key, required this.workout, this.onRestore});
 
   final Workout workout;
+
+  /// For a workout that was removed: the row has no page to open and ends
+  /// with a button that brings the workout back.
+  final VoidCallback? onRestore;
 
   @override
   Widget build(BuildContext context) {
@@ -318,12 +322,14 @@ class WorkoutRow extends StatelessWidget {
     // A workout keeps the colour of activity on whatever page it is listed.
     final activity = scheme.tone(Tone.secondary);
     return InkWell(
-      onTap: () {
-        final origin = globalRectOf(context);
-        if (origin != null) openWorkout(context, workout, origin);
-      },
+      onTap: onRestore != null
+          ? null
+          : () {
+              final origin = globalRectOf(context);
+              if (origin != null) openWorkout(context, workout, origin);
+            },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.only(left: 20, right: onRestore != null ? 12 : 20),
         child: Row(
           children: [
             ShapeBadge(
@@ -365,7 +371,14 @@ class WorkoutRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (workout.kcal case final kcal?) ...[
+            if (onRestore != null) ...[
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                onPressed: onRestore,
+                tooltip: l10n.restoreWorkout,
+                icon: const Icon(Icons.restore_rounded),
+              ),
+            ] else if (workout.kcal case final kcal?) ...[
               const SizedBox(width: 8),
               Text(
                 '${formats.integer(kcal)} kcal',
