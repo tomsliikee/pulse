@@ -163,7 +163,7 @@ class _DayDetailPageState extends State<DayDetailPage> {
         today: today,
         soFar: today ? stepsSoFar(health.snapshot, health.now) : null,
       ),
-      _RecoveryParts(recovery: insights.recovery),
+      RecoveryParts(recovery: insights.recovery),
       // The parts come with the score: in the evening, or once the day is over.
       if (showsDayScore(insights.day, health.now))
         _ScoreParts(score: insights.score),
@@ -316,8 +316,8 @@ class _Summary extends StatelessWidget {
 }
 
 /// What each part of the recovery read and gave, a segment for each.
-class _RecoveryParts extends StatelessWidget {
-  const _RecoveryParts({required this.recovery});
+class RecoveryParts extends StatelessWidget {
+  const RecoveryParts({super.key, required this.recovery});
 
   final Recovery recovery;
 

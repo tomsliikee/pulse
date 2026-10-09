@@ -1,3 +1,5 @@
+import 'dart:ui' show PlatformDispatcher;
+
 import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 
@@ -11,6 +13,7 @@ import '../data/night_archive.dart';
 import '../data/settings_controller.dart';
 import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
+import 'morning_notice.dart';
 
 const String _uniqueName = 'pulse.sync';
 const String _taskName = 'sync';
@@ -78,7 +81,15 @@ Future<void> syncOnce(
     workoutsWithHeart(snapshot),
     window: (snapshot.dateAt(0), snapshot.loadedAt),
   );
-  await NightArchive(store).mergeIntoStore(nightSummaries(snapshot));
+  // Oldest first, as the snapshot holds its days.
+  final nights = nightSummaries(snapshot);
+  await NightArchive(store).mergeIntoStore(nights);
+  await leaveMorningNotice(
+    store,
+    nights,
+    now,
+    PlatformDispatcher.instance.locale.languageCode,
+  );
   await store.write(
     StoreKeys.sync,
     SyncReport(

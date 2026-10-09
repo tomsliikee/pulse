@@ -1,7 +1,7 @@
 <div align="center">
   <img src="readmestuff/app_icon_512.png" width="96" height="96" alt="Pulse logo" />
   <h1>Pulse</h1>
-  <p><strong>A health app for Android in Material 3 Expressive. It reads your data from Health Connect, keeps up to ten years of it on the phone, and sends nothing anywhere.</strong></p>
+  <p><strong>A health app for Android in Material 3 Expressive. It reads your data from Health Connect, keeps up to ten years of it on the phone, and sends none of it anywhere.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Platform-Android%208.0+-neutral?style=flat-square" alt="Platform" />
@@ -21,7 +21,7 @@
 
 **Pulse** shows what your phone and watch already measure: steps, workouts, sleep, heart rate and the rest. It has one data source, **Health Connect**, so anything your phone, a **Fitbit** or another app writes there shows up without a second sign-in.
 
-There is no account, no server and no analytics. A release build does not even hold the **`INTERNET`** permission.
+There is no account, no server and no analytics. The one thing Pulse asks the network for is the **weather** of the morning, and only once you set a place in the profile; your health data never leaves the phone.
 
 The screenshots on this page show sample data.
 
@@ -30,6 +30,7 @@ The screenshots on this page show sample data.
 ## Features
 
 - **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape.
+- **Good Morning:** A few cards when you get up: last night, your recovery, the weather and your goals.
 - **Recovery, Day Score and Sleep Score:** Three scores from 0 to 100, each broken down into the parts it is made of.
 - **Twelve Goals:** By day or by week, with streaks and a view per week, month and year.
 - **Body Age:** Your real age plus or minus the years your last 30 days are worth.
@@ -55,13 +56,28 @@ The screenshots on this page show sample data.
 
 ![Goals and tiles on Today, the page about one day, and the list of all days](readmestuff/today.png)
 
+### Good Morning
+
+Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. Once the night has arrived from your watch, the hourly refresh also sends a **notification**.
+
+- **Greeting:** A morning scene whose sky shows the weather, your name, and one sentence on how hard the day should be: **easy**, **normal** or **demanding**.
+- **Last Night:** Sleep score, time asleep and the stages. While the watch has not synced, the card says so.
+- **Recovery:** The score with its parts, and the readings of the night that **stand out** against your last 30 days: heart rate variability, resting heart rate, respiratory rate, oxygen saturation and skin temperature.
+- **Weather:** Now, highest, lowest, the chance of rain and the day in two-hour steps, for the place you set in the profile. Without a place there is no weather card and no network access.
+- **Goals:** Where each goal stands and its streak, and yesterday in numbers.
+- **Tonight:** When to go to bed.
+
+Afterwards the **Good morning** tile on Today opens the cards again. One switch in the profile turns all of it off.
+
+![The greeting, last night, the recovery and the weather](readmestuff/morning.png)
+
 ### Activity
 
 - **The Latest Workout as a Scene:** A figure walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape.
 - **A Page per Workout:** Every number against the workout before and the average of the last ones, a chart of the last twelve of its kind, and marks for personal bests.
 - **All Activities:** Month by month, with a filter for the kind.
 - **Steps by Week and Month:** The average per day stands large above the chart.
-- **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. A workout deleted in the app that recorded it disappears on its own.
+- **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
 
 ![Steps and activity metrics, the page about one run, its comparison and progress, and the list of all activities](readmestuff/activities.png)
 
@@ -175,6 +191,8 @@ flutter test
 | **`WRITE_HYDRATION`**, **`WRITE_WEIGHT`**, **`WRITE_NUTRITION`** | The three kinds of entries you can add |
 | **`READ_HEALTH_DATA_HISTORY`** | Loading data older than 30 days once. If declined, history grows from today |
 | **`READ_HEALTH_DATA_IN_BACKGROUND`** | The hourly refresh. If declined, data is refreshed when the app is opened |
+| **`POST_NOTIFICATIONS`** | The notification that says good morning. Asked for after the cards first opened by themselves; if declined, they still open in the app |
+| **`INTERNET`** | The weather and the search for a place, both from **Open-Meteo**. Not used until a place is set |
 
 ---
 
@@ -259,6 +277,8 @@ All three are the app's own estimates, since Health Connect stores none. A part 
 | **Day score** | Movement **40**, sleep **35**, resting heart rate **15**, water **10** | Your goals, last night's sleep score and your usual resting heart rate |
 | **Sleep score** | Time asleep **40**, deep and REM **25**, efficiency **20**, bedtime **15** | The sleep goal, typical stage shares and your bedtime of the week before |
 
+Two smaller rules belong to the morning. A reading of the night **stands out** when it lies more than **1.5 standard deviations** from your average of the 30 days before. The **effort** of the day is easy on a red recovery, or on a yellow one after two days of training in a row; demanding on a green one unless you trained on each of the last three days; and normal otherwise.
+
 ### Data Storage & Disk Paths
 
 Everything is kept in the app's private directory, **`/data/data/at.haiden.pulse/files/`**. Uninstalling the app deletes it, which is what the backup file is for.
@@ -271,6 +291,8 @@ Everything is kept in the app's private directory, **`/data/data/at.haiden.pulse
 | **`workouts.json`** | Every workout the app has seen, and the ones removed by hand |
 | **`settings.json`** | Goals, profile, theme, look switches, tile order and sizes |
 | **`sync.json`** | When the last background refresh ran and how long it took |
+| **`weather.json`** | The last forecast of today, so the service is asked at most once an hour |
+| **`morning.json`** | The day the morning's notification was last sent |
 
 ---
 
@@ -290,6 +312,7 @@ Everything is kept in the app's private directory, **`/data/data/at.haiden.pulse
 - **Other Apps' Records:** Pulse can edit and delete only its own entries; Health Connect does not let an app change another app's records.
 - **Heart Rate Samples:** Single samples are kept for the last **8 days**; older days keep their resting heart rate and daily values.
 - **Not Read:** Elevation gained, power, **VO2 max**, bone mass and mindfulness sessions, because the **`health`** plugin cannot read them on Android. Cycle tracking and medical records are deliberately not requested.
+- **Weather:** Forecast and place search come from [Open-Meteo](https://open-meteo.com). A request carries the coordinates of the place you picked and nothing else; the place is one you type, not your location.
 - **Orientation:** Portrait only.
 
 ---

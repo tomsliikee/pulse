@@ -404,7 +404,7 @@ void main() {
       final store = MemoryJsonStore();
       await store.write(StoreKeys.settings, {
         'todayTiles': ['water', 'unicorns', 7, 'water', 'workout'],
-        'todayTilesVersion': 2,
+        'todayTilesVersion': 3,
         'largeTiles': ['water', 'unicorns'],
       });
       final settings = SettingsController(store);
@@ -414,6 +414,42 @@ void main() {
       expect(settings.todayTiles, ['water', 'workout']);
       expect(settings.isLargeTile('water'), isTrue);
       expect(settings.isLargeTile('unicorns'), isFalse);
+    });
+
+    test('a list saved before the morning tile gets it once, below the '
+        'day or at the top', () async {
+      Future<SettingsController> loadedWith(List<String> tiles) async {
+        final store = MemoryJsonStore();
+        await store.write(StoreKeys.settings, {
+          'todayTiles': tiles,
+          'todayTilesVersion': 2,
+        });
+        final settings = SettingsController(store);
+        await settings.load();
+        return settings;
+      }
+
+      expect((await loadedWith([dayTileId, 'water'])).todayTiles, [
+        dayTileId,
+        morningTileId,
+        'water',
+      ]);
+      expect((await loadedWith(['water', dayTileId])).todayTiles, [
+        morningTileId,
+        'water',
+        dayTileId,
+      ]);
+      expect((await loadedWith([])).todayTiles, [morningTileId]);
+
+      // Removed and saved, it stays away.
+      final store = MemoryJsonStore();
+      final settings = SettingsController(store);
+      await settings.load();
+      settings.removeTodayTile(morningTileId);
+      await pumpEventQueue();
+      final again = SettingsController(store);
+      await again.load();
+      expect(again.todayTiles, isNot(contains(morningTileId)));
     });
 
     test(
@@ -429,6 +465,7 @@ void main() {
 
         expect(settings.todayTiles, [
           dayTileId,
+          morningTileId,
           tipsTileId,
           nightTileId,
           goalsTileId,

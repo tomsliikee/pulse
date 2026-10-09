@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 
 import 'goals.dart';
+import 'health_history.dart' show dayKey;
 import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
+import 'weather.dart';
 
 /// The Today tile that shows the latest workout instead of a measurement.
 const String workoutTileId = 'workout';
@@ -18,6 +20,9 @@ const String nightTileId = 'lastNight';
 const String goalsTileId = 'goals';
 const String daysTileId = 'recentDays';
 
+/// The Today tile that says good morning and opens the morning's cards.
+const String morningTileId = 'morning';
+
 /// The tiles that came with the reworked Today page, and where they go on a
 /// page that was arranged before: these to the top, in this order.
 const List<String> _dayTilesOnTop = [
@@ -29,13 +34,14 @@ const List<String> _dayTilesOnTop = [
 
 /// Counts the changes to what a saved [SettingsController.todayTiles]
 /// means; see [SettingsController.load].
-const int _todayTilesVersion = 2;
+const int _todayTilesVersion = 3;
 
 /// A tile of the Today page is named by its metric, or is one of the tiles
 /// that show no single measurement.
 bool isTodayTileId(String id) =>
     id == workoutTileId ||
     id == daysTileId ||
+    id == morningTileId ||
     _dayTilesOnTop.contains(id) ||
     Metric.byName(id) != null;
 
@@ -50,7 +56,11 @@ bool _isPageTileId(String id) {
 
 /// What the Today page shows until the user changes it.
 final List<String> defaultTodayTiles = List.unmodifiable([
-  ..._dayTilesOnTop,
+  // Below the day's tile: only as the first one does that give its scene to
+  // the page.
+  dayTileId,
+  morningTileId,
+  ..._dayTilesOnTop.skip(1),
   workoutTileId,
   Metric.steps.name,
   Metric.heartRate.name,
@@ -88,6 +98,28 @@ bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
   return date.year >= 1900 && date.isBefore(today);
 }
 
+/// The longest name the profile accepts.
+const int maxNameLength = 30;
+
+/// What the background task needs to say good morning, from the saved
+/// settings [json]: whether it may, the name and the language.
+({bool on, String? name, String? language}) savedMorning(Object? json) {
+  if (json is! Map<String, Object?>) {
+    return (on: true, name: null, language: null);
+  }
+  return (
+    on: json['morningBrief'] != false,
+    name: switch (json['name']) {
+      final String name when name.isNotEmpty => name,
+      _ => null,
+    },
+    language: switch (json['language']) {
+      final String language when appLanguages.contains(language) => language,
+      _ => null,
+    },
+  );
+}
+
 /// The heights the profile accepts, in cm.
 const int minHeightCm = 100;
 const int maxHeightCm = 250;
@@ -105,6 +137,10 @@ class SettingsController extends ChangeNotifier {
 
   final JsonStore _store;
   bool _disposed = false;
+  bool _loaded = false;
+
+  /// Whether the saved settings have been read.
+  bool get loaded => _loaded;
 
   int _stepGoal = 10000;
   double _sleepGoalHours = 8;
@@ -113,6 +149,10 @@ class SettingsController extends ChangeNotifier {
   DateTime? _birthDate;
   Sex? _sex;
   int? _heightCm;
+  String? _name;
+  Place? _place;
+  bool _morningBrief = true;
+  int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
   bool _showAllData = false;
@@ -144,6 +184,18 @@ class SettingsController extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
 
   /// Whether colours follow the system palette when the system offers one.
+  /// What the app calls the user; null when none was given.
+  String? get name => _name;
+
+  /// Where the weather is asked for; null means no weather and no network.
+  Place? get place => _place;
+
+  /// Whether the app says good morning by itself.
+  bool get morningBrief => _morningBrief;
+
+  /// The day (as a day key) the morning's cards last opened by themselves.
+  int? get morningSeen => _morningSeen;
+
   bool get dynamicColor => _dynamicColor;
 
   /// Whether the list of every measurement is appended to the Today page.
@@ -195,7 +247,12 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> load() async {
     final json = await _store.read(StoreKeys.settings);
-    if (_disposed || json is! Map<String, Object?>) return;
+    if (_disposed) return;
+    _loaded = true;
+    if (json is! Map<String, Object?>) {
+      notifyListeners();
+      return;
+    }
     if (json['stepGoal'] case final int v when v >= 1000 && v <= 100000) {
       _stepGoal = v;
     }
@@ -218,6 +275,13 @@ class SettingsController extends ChangeNotifier {
         when v >= minHeightCm && v <= maxHeightCm) {
       _heightCm = v;
     }
+    if (json['name'] case final String v
+        when v.isNotEmpty && v.length <= maxNameLength) {
+      _name = v;
+    }
+    _place = Place.fromJson(json['place']) ?? _place;
+    if (json['morningBrief'] case final bool v) _morningBrief = v;
+    if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
         if (mode.name == v) _themeMode = mode;
@@ -247,8 +311,15 @@ class SettingsController extends ChangeNotifier {
       // A list saved before the page was reworked does not know the tiles
       // about the day; it gets them once, and keeps everything it had.
       final version = json['todayTilesVersion'];
-      if (version is! int || version < _todayTilesVersion) {
+      if (version is! int || version < 2) {
         _todayTiles = {..._dayTilesOnTop, ..._todayTiles, daysTileId}.toList();
+      }
+      // The morning's tile came later still. It goes below the day's,
+      // which only as the first tile gives its scene to the page.
+      if ((version is! int || version < 3) &&
+          !_todayTiles.contains(morningTileId)) {
+        final at = _todayTiles.firstOrNull == dayTileId ? 1 : 0;
+        _todayTiles = [..._todayTiles]..insert(at, morningTileId);
       }
     }
     if (json['largeTiles'] case final List<Object?> ids) {
@@ -330,6 +401,20 @@ class SettingsController extends ChangeNotifier {
     _update(() => _heightCm = value);
   }
 
+  void setName(String? value) {
+    final name = value?.trim();
+    if (name != null && name.length > maxNameLength) return;
+    _update(() => _name = name == null || name.isEmpty ? null : name);
+  }
+
+  void setPlace(Place? value) => _update(() => _place = value);
+
+  void setMorningBrief(bool value) => _update(() => _morningBrief = value);
+
+  /// Remembers that the morning's cards opened by themselves on [day].
+  void setMorningSeen(DateTime day) =>
+      _update(() => _morningSeen = dayKey(day));
+
   void setThemeMode(ThemeMode value) => _update(() => _themeMode = value);
 
   void setDynamicColor(bool value) => _update(() => _dynamicColor = value);
@@ -401,6 +486,10 @@ class SettingsController extends ChangeNotifier {
             'birthDate': ?_isoDate(_birthDate),
             'sex': ?_sex?.name,
             'heightCm': ?_heightCm,
+            'name': ?_name,
+            'place': ?_place?.toJson(),
+            'morningBrief': _morningBrief,
+            'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,
             'showAllData': _showAllData,

@@ -32,13 +32,14 @@ class AddTilesSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final shown = settings.todayTiles.toSet();
     bool open(String id) =>
-        !shown.contains(id) && todayTileAvailable(id, health);
+        !shown.contains(id) && todayTileAvailable(id, health, settings);
 
     final groups = [
       (
         l10n.navToday,
         [
           for (final id in const [
+            morningTileId,
             dayTileId,
             tipsTileId,
             nightTileId,

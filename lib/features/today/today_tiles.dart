@@ -26,6 +26,7 @@ import '../sleep/night_tiles.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
+import '../morning/morning_tile.dart';
 import 'day_format.dart';
 import 'day_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -38,10 +39,16 @@ const int _moreDays = 5;
 
 /// Whether the tile [id] has something to show: data in the store, or a
 /// measurement the user can record here.
-bool todayTileAvailable(String id, HealthController health) {
+bool todayTileAvailable(
+  String id,
+  HealthController health,
+  SettingsController settings,
+) {
   switch (id) {
     case dayTileId || tipsTileId || goalsTileId:
       return true;
+    case morningTileId:
+      return settings.morningBrief;
     case nightTileId:
       return health.latestNight != null;
     case workoutTileId:
@@ -60,6 +67,7 @@ String todayTileTitle(AppLocalizations l10n, String id) =>
     switch (Metric.byName(id)) {
       null => switch (id) {
         dayTileId => l10n.dayTileTitle,
+        morningTileId => l10n.morningTitle,
         tipsTileId => l10n.dayTipsTitle,
         nightTileId => l10n.lastNight,
         goalsTileId => l10n.goals,
@@ -85,7 +93,7 @@ BoardTile? buildTodayTile(
   required HealthController health,
   required SettingsController settings,
 }) {
-  if (!todayTileAvailable(id, health)) return null;
+  if (!todayTileAvailable(id, health, settings)) return null;
   void remove() => settings.removeTodayTile(id);
 
   final metric = Metric.byName(id);
@@ -98,6 +106,14 @@ BoardTile? buildTodayTile(
       child: child,
     );
     switch (id) {
+      case morningTileId:
+        return BoardTile(
+          id: id,
+          height: MorningTile.height,
+          entersInPlace: true,
+          onRemove: remove,
+          child: const MorningTile(),
+        );
       case dayTileId:
         return BoardTile(
           id: id,

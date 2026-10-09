@@ -57,7 +57,8 @@ void main() {
             );
             await tester.tap(find.byIcon(Icons.person_rounded).first);
             await advance(tester);
-            expect(find.text(missing), findsNWidgets(2));
+            // Name, birth date, height and place.
+            expect(find.text(missing), findsNWidgets(4));
 
             await tester.tap(find.text(title));
             await advance(tester);

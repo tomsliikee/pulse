@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/health_controller.dart';
 import '../data/settings_controller.dart';
+import '../data/weather_controller.dart';
 import '../theme/system_palette.dart';
 import 'app_language.dart';
 import 'backup_files.dart';
@@ -14,6 +15,7 @@ class AppScope extends InheritedWidget {
     required this.health,
     required this.settings,
     required this.language,
+    required this.weather,
     required this.systemPalette,
     this.files = const SystemBackupFiles(),
     required super.child,
@@ -22,6 +24,7 @@ class AppScope extends InheritedWidget {
   final HealthController health;
   final SettingsController settings;
   final LanguageController language;
+  final WeatherController weather;
   final ValueListenable<SystemPalette?> systemPalette;
 
   /// Where a backup is kept and picked from.
@@ -38,6 +41,7 @@ class AppScope extends InheritedWidget {
       health != oldWidget.health ||
       settings != oldWidget.settings ||
       language != oldWidget.language ||
+      weather != oldWidget.weather ||
       systemPalette != oldWidget.systemPalette ||
       files != oldWidget.files;
 }

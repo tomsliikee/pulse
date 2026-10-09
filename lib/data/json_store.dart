@@ -25,6 +25,11 @@ abstract final class StoreKeys {
   static const String workoutBackfill = 'workoutBackfill';
   static const String nightBackfill = 'nightBackfill';
   static const String sync = 'sync';
+  static const String weather = 'weather';
+  static const String morning = 'morning';
+
+  /// Read and removed by the platform, which shows what it says.
+  static const String morningNotice = 'morningNotice';
 }
 
 class FileJsonStore implements JsonStore {

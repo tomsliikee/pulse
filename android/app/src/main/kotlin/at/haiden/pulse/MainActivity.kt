@@ -1,10 +1,12 @@
 package at.haiden.pulse
 
+import android.Manifest
 import android.app.LocaleManager
 import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -32,6 +34,15 @@ class MainActivity : FlutterFragmentActivity() {
             answer(uri) { source ->
                 contentResolver.openInputStream(source)!!.use { it.readBytes().decodeToString() }
             }
+        }
+
+    // The answer to the question whether notifications may be shown.
+    private var pendingConsent: MethodChannel.Result? = null
+
+    private val askConsent =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            pendingConsent?.success(granted)
+            pendingConsent = null
         }
 
     /** Works on the chosen file off the main thread; no file is no answer but null. */
@@ -73,6 +84,24 @@ class MainActivity : FlutterFragmentActivity() {
                         openFile.launch(arrayOf("application/json", "application/octet-stream", "text/*"))
                     }
                     else -> result.notImplemented()
+                }
+            }
+        // The consent to the morning's notification. Android asks from 13 on;
+        // before that an app may notify unless the user switched it off.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/morning")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "allow") {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                val enabled = NotificationManagerCompat.from(this).areNotificationsEnabled()
+                if (enabled || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                    pendingConsent != null
+                ) {
+                    result.success(enabled)
+                } else {
+                    pendingConsent = result
+                    askConsent.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         // The language Android keeps for this app, so the profile and the

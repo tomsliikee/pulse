@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/data/weather.dart';
 import 'package:pulse/app/formatters.dart';
 import 'package:pulse/app/backup_files.dart';
 import 'package:pulse/app/pulse_app.dart';
@@ -43,6 +44,56 @@ class MemoryJsonStore implements JsonStore {
 
   @override
   Future<List<String>> names() async => documents.keys.toList();
+}
+
+const Place fixturePlace = Place(
+  name: 'Wien',
+  region: 'Wien, Österreich',
+  latitude: 48.21,
+  longitude: 16.37,
+);
+
+/// The weather of a mild day with rain in the afternoon, and one place to
+/// find. Counts what it is asked.
+class FixtureWeather implements WeatherSource {
+  FixtureWeather({this.sky = Sky.partlyCloudy, this.reachable = true});
+
+  Sky sky;
+  bool reachable;
+  int asked = 0;
+  final List<String> searches = [];
+
+  @override
+  Future<Weather?> today(Place place, DateTime now) async {
+    asked++;
+    if (!reachable) return null;
+    return Weather(
+      place: place,
+      fetchedAt: now,
+      temperature: 12.4,
+      sky: sky,
+      high: 17.6,
+      low: 8.2,
+      rainChance: 60,
+      hours: [
+        for (var hour = 0; hour < 24; hour++)
+          WeatherHour(
+            hour: hour,
+            temperature: 8 + 9 * (1 - ((hour - 14).abs() / 14)),
+            rainChance: hour >= 14 && hour <= 18 ? 60 : 5,
+            sky: hour >= 14 && hour <= 18 ? Sky.rain : sky,
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<List<Place>> search(String query, String language) async {
+    searches.add(query);
+    return reachable && query.toLowerCase().startsWith('wi')
+        ? const [fixturePlace]
+        : const [];
+  }
 }
 
 /// A health store in memory with fixed, hand-written readings.
@@ -450,6 +501,7 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   Locale locale = const Locale('de'),
   DateTime? now,
   BackupFiles files = const SystemBackupFiles(),
+  WeatherSource? weather,
 }) async {
   // The system's language; the tests read German unless they ask otherwise.
   tester.platformDispatcher.localesTestValue = [locale];
@@ -466,6 +518,8 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
       paletteLoader: () async => null,
       clock: () => now ?? fixtureNow,
       files: files,
+      // No test asks the network.
+      weatherSource: weather ?? FixtureWeather(),
     ),
   );
   await advance(tester);

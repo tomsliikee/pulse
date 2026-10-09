@@ -5,6 +5,7 @@ import '../../app/app_scope.dart';
 import '../../data/backup.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
+import '../../app/morning_notices.dart';
 import '../../data/health_controller.dart';
 import '../../data/models.dart';
 import '../../widgets/segment_group.dart';
@@ -17,6 +18,8 @@ import '../goals/goals_page.dart';
 import 'birth_date_sheet.dart';
 import 'height_sheet.dart';
 import 'language_sheet.dart';
+import 'name_sheet.dart';
+import 'place_sheet.dart';
 
 /// Goals, appearance and background refresh.
 class ProfilePage extends StatelessWidget {
@@ -139,6 +142,11 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   for (final (label, value, open) in [
                     (
+                      l10n.nameLabel,
+                      settings.name ?? l10n.notGiven,
+                      showNameSheet,
+                    ),
+                    (
                       l10n.birthDate,
                       switch (settings.birthDate) {
                         final date? => formats.birthDate(date),
@@ -154,6 +162,11 @@ class ProfilePage extends StatelessWidget {
                       },
                       showHeightSheet,
                     ),
+                    (
+                      l10n.placeLabel,
+                      settings.place?.name ?? l10n.notGiven,
+                      showPlaceSheet,
+                    ),
                   ])
                     InkWell(
                       onTap: () => open(context),
@@ -167,10 +180,16 @@ class ProfilePage extends StatelessWidget {
                                 style: theme.textTheme.titleMedium,
                               ),
                             ),
-                            Text(
-                              value,
-                              style: context.emphasizedTextTheme.titleMedium
-                                  ?.copyWith(color: scheme.primary),
+                            const SizedBox(width: 12),
+                            // A long name or place gives way to its label.
+                            Flexible(
+                              child: Text(
+                                value,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.emphasizedTextTheme.titleMedium
+                                    ?.copyWith(color: scheme.primary),
+                              ),
                             ),
                           ],
                         ),
@@ -215,6 +234,35 @@ class ProfilePage extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: const Icon(Icons.chevron_right_rounded),
+                  ),
+                ],
+              ),
+              SectionTitle(l10n.morningTitle),
+              SegmentGroup(
+                padding: EdgeInsets.zero,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.morningSwitchNote,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.morningBrief,
+                          onChanged: (value) {
+                            Haptics.selection();
+                            settings.setMorningBrief(value);
+                            // The notification needs the system's consent.
+                            if (value) MorningNotices.allow();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

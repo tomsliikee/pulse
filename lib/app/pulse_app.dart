@@ -5,6 +5,8 @@ import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
 import '../data/settings_controller.dart';
+import '../data/weather.dart';
+import '../data/weather_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_type.dart';
@@ -24,6 +26,7 @@ class PulseApp extends StatefulWidget {
     this.paletteLoader = loadSystemPalette,
     this.clock = DateTime.now,
     this.files = const SystemBackupFiles(),
+    this.weatherSource = const OpenMeteoWeather(),
   });
 
   final HealthRepository repository;
@@ -33,6 +36,9 @@ class PulseApp extends StatefulWidget {
   /// Tests pass a fixed time.
   final DateTime Function() clock;
   final BackupFiles files;
+
+  /// Asked only once the profile has a place.
+  final WeatherSource weatherSource;
 
   @override
   State<PulseApp> createState() => _PulseAppState();
@@ -46,6 +52,11 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   );
   late final SettingsController _settings = SettingsController(widget.store);
   late final LanguageController _language = LanguageController(_settings);
+  late final WeatherController _weather = WeatherController(
+    store: widget.store,
+    source: widget.weatherSource,
+    clock: widget.clock,
+  );
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
   final FrameLog _frames = FrameLog();
 
@@ -58,6 +69,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _health.addListener(() => _frames.mark('health'));
     _settings.addListener(() => _frames.mark('settings'));
     _settings.addListener(() => _health.birthDate = _settings.birthDate);
+    _settings.addListener(() => _weather.place = _settings.place);
     _palette.addListener(() => _frames.mark('palette'));
     _settings.load();
     _language.refresh();
@@ -73,6 +85,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       _frames.mark('resumed');
       _language.refresh();
       _health.refreshIfStale();
+      _weather.refresh();
       _loadPalette();
     }
   }
@@ -94,6 +107,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _frames.stop();
     _health.dispose();
     _language.dispose();
+    _weather.dispose();
     _settings.dispose();
     _palette.dispose();
     super.dispose();
@@ -105,6 +119,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       health: _health,
       settings: _settings,
       language: _language,
+      weather: _weather,
       systemPalette: _palette,
       files: widget.files,
       child: ListenableBuilder(

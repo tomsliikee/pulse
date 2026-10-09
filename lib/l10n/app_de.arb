@@ -1369,5 +1369,89 @@
         "type": "String"
       }
     }
+  },
+  "morningTitle": "Guten Morgen",
+  "morningGreetingName": "Guten Morgen, {name}",
+  "@morningGreetingName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "morningOpen": "Übersicht ansehen",
+  "morningNext": "Weiter",
+  "morningDone": "Los geht's",
+  "morningEffortEasy": "Heute lieber locker: gönn deinem Körper Erholung.",
+  "morningEffortNormal": "Ein normaler Tag: Bewegung ja, ein Rekord muss nicht sein.",
+  "morningEffortPush": "Gut erholt: heute darf es fordernd sein.",
+  "morningEffortNote": "Eine Faustregel von Pulse aus der Erholung und den Trainingstagen der letzten drei Tage, keine Trainingsberatung.",
+  "morningNoNight": "Die Nacht ist noch nicht da",
+  "morningNoNightBody": "Sobald deine Uhr synchronisiert hat, steht sie hier.",
+  "morningVitals": "Nachtwerte",
+  "morningVitalsFine": "Alles im üblichen Rahmen.",
+  "morningVitalAbove": "{metric} höher als üblich",
+  "@morningVitalAbove": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "morningVitalBelow": "{metric} niedriger als üblich",
+  "@morningVitalBelow": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
+  "morningVitalsNote": "Auffällig ist ein Wert, der mehr als 1,5 Standardabweichungen von deinem Schnitt der letzten 30 Tage liegt. Kein Befund.",
+  "weather": "Wetter",
+  "weatherDegrees": "{value}°",
+  "@weatherDegrees": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherRainChance": "Regenrisiko",
+  "weatherPercent": "{value} %",
+  "@weatherPercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "weatherNoPlace": "Lege im Profil einen Ort fest, um das Wetter zu sehen.",
+  "weatherUnavailable": "Das Wetter ist gerade nicht erreichbar.",
+  "weatherSource": "Wetter von Open-Meteo.com",
+  "skyClear": "Klar",
+  "skyPartlyCloudy": "Leicht bewölkt",
+  "skyCloudy": "Bewölkt",
+  "skyFog": "Nebel",
+  "skyRain": "Regen",
+  "skySnow": "Schnee",
+  "skyThunder": "Gewitter",
+  "nameLabel": "Name",
+  "nameInvalid": "Höchstens 30 Zeichen.",
+  "placeLabel": "Ort",
+  "placeSearch": "Ort suchen",
+  "placeNoResults": "Nichts gefunden.",
+  "placeRemove": "Ort entfernen",
+  "placeNote": "Suche und Wetter kommen von Open-Meteo.com. Erst mit einem Ort nutzt Pulse das Internet, und nur dafür.",
+  "morningSwitchNote": "Eine Übersicht am Morgen: beim ersten Öffnen und als Benachrichtigung, sobald die Nacht da ist.",
+  "morningNoticeBody": "{duration} geschlafen · Schlaf-Score {score}",
+  "@morningNoticeBody": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
   }
 }
