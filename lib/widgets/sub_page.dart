@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
@@ -93,6 +94,26 @@ class _SubPageState extends State<SubPage> {
     final theme = Theme.of(context);
     final top = MediaQuery.paddingOf(context).top + SubPage.buttonTop;
     final overlay = widget.overlay;
+    // The page beneath stays painted and may ask for light icons over its
+    // scene, so this page names the style of its own surface.
+    final icons = theme.brightness == Brightness.dark
+        ? SystemUiOverlayStyle.light
+        : SystemUiOverlayStyle.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: icons.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: Colors.transparent,
+      ),
+      child: _page(context, theme, top, overlay),
+    );
+  }
+
+  Widget _page(
+    BuildContext context,
+    ThemeData theme,
+    double top,
+    Widget? overlay,
+  ) {
     return Scaffold(
       body: Stack(
         children: [

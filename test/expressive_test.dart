@@ -237,6 +237,20 @@ void main() {
         SystemChrome.latestStyle?.statusBarIconBrightness,
         Brightness.light,
       );
+      // A page opened over the dark sky has a light surface of its own.
+      await tester.tap(find.byType(DayCard));
+      await advance(tester);
+      expect(find.byType(DayDetailPage), findsOneWidget);
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.dark,
+      );
+      await tester.tap(find.byType(BackButton));
+      await advance(tester);
+      expect(
+        SystemChrome.latestStyle?.statusBarIconBrightness,
+        Brightness.light,
+      );
       await tester.drag(find.byType(ListView).first, const Offset(0, -600));
       await advance(tester);
       expect(

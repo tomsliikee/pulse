@@ -1333,6 +1333,7 @@
   "edgeHero": "Szene randlos",
   "flexFont": "Flex-Schrift",
   "dayScoreParts": "So setzt sich der Tageswert zusammen",
+  "sleepScoreParts": "So setzt sich der Schlaf-Score zusammen",
   "dayNumbers": "Der Tag in Zahlen",
   "nightNumbers": "Die Nacht in Zahlen",
   "workoutNumbers": "Die Aktivität in Zahlen",

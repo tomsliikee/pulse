@@ -460,6 +460,7 @@
   "edgeHero": "Edge-to-edge scene",
   "flexFont": "Flex font",
   "dayScoreParts": "What the day score is made of",
+  "sleepScoreParts": "What the sleep score is made of",
   "dayNumbers": "The day in numbers",
   "nightNumbers": "The night in numbers",
   "workoutNumbers": "The activity in numbers",

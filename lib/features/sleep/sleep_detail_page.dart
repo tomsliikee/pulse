@@ -410,7 +410,7 @@ class _ScoreCard extends StatelessWidget {
     final type = AppType.of(context);
     final accent = PageAccent.colorsOf(context);
     return TitledSection(
-      title: l10n.dayScoreParts,
+      title: l10n.sleepScoreParts,
       note: l10n.scoreNote,
       child: SegmentGroup(
         children: [
