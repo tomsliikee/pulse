@@ -1,12 +1,14 @@
 import 'package:flutter/widgets.dart';
 import 'package:workmanager/workmanager.dart';
 
+import '../data/body_age.dart';
 import '../data/health_connect_repository.dart';
 import '../data/health_history.dart';
 import '../data/health_repository.dart';
 import '../data/health_snapshot.dart';
 import '../data/json_store.dart';
 import '../data/night_archive.dart';
+import '../data/settings_controller.dart';
 import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
 
@@ -59,8 +61,13 @@ Future<void> syncOnce(
   // The first read of a day is a full one, as in the app.
   final previous = saved != null && saved.today == today ? saved : null;
   final workouts = WorkoutArchive(store);
+  final birthDate = savedBirthDate(await store.read(StoreKeys.settings));
   final snapshot = withoutWorkouts(
-    await repository.load(now, previous: previous),
+    await repository.load(
+      now,
+      previous: previous,
+      maxHeartRate: birthDate == null ? null : maxHeartRateOn(birthDate, now),
+    ),
     await workouts.loadRemoved(),
   );
   await store.write(StoreKeys.snapshot, snapshot.toJson());

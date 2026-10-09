@@ -38,7 +38,13 @@ abstract interface class HealthRepository {
 
   /// Reads the window ending at [now]. With [previous], what cannot have
   /// changed since it was loaded may be taken from it instead of read again.
-  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous});
+  /// With [maxHeartRate], days without recorded intensity minutes get the
+  /// ones estimated from their heart rate.
+  Future<HealthSnapshot> load(
+    DateTime now, {
+    HealthSnapshot? previous,
+    int? maxHeartRate,
+  });
 
   Future<void> add(EntryDraft draft);
 
@@ -86,8 +92,11 @@ class UnsupportedHealthRepository implements HealthRepository {
   Future<void> installStore() async {}
 
   @override
-  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) =>
-      throw StateError('No health store on this platform.');
+  Future<HealthSnapshot> load(
+    DateTime now, {
+    HealthSnapshot? previous,
+    int? maxHeartRate,
+  }) => throw StateError('No health store on this platform.');
 
   @override
   Future<void> add(EntryDraft draft) =>

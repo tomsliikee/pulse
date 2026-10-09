@@ -82,6 +82,7 @@ class FixtureRepository implements HealthRepository {
 
   /// What each [load] was given as the snapshot to build on.
   final List<HealthSnapshot?> loadedWith = [];
+  final List<int?> maxHeartRates = [];
 
   final List<EntryDraft> added = [];
   final List<HealthEntry> deleted = [];
@@ -101,10 +102,15 @@ class FixtureRepository implements HealthRepository {
   Future<void> installStore() async {}
 
   @override
-  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) async {
+  Future<HealthSnapshot> load(
+    DateTime now, {
+    HealthSnapshot? previous,
+    int? maxHeartRate,
+  }) async {
     if (failLoads) throw const FormatException('store unavailable');
     loadedWith.add(previous);
-    return buildSnapshot(now: now, raw: readings);
+    maxHeartRates.add(maxHeartRate);
+    return buildSnapshot(now: now, raw: readings, maxHeartRate: maxHeartRate);
   }
 
   @override

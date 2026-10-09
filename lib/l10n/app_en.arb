@@ -22,6 +22,7 @@
   "metricActiveEnergy": "Active calories",
   "metricTotalEnergy": "Total calories",
   "metricIntensityMinutes": "Active minutes",
+  "intensityNote": "Estimated by Pulse from the heart rate when no source writes minutes: a minute in the moderate zone counts once, in the vigorous zone twice. The maximum heart rate is 220 minus your age.",
   "metricSpeed": "Speed",
   "metricHeartRate": "Heart rate",
   "metricRestingHeartRate": "Resting heart rate",

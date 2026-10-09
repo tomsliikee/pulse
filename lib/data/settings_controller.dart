@@ -71,6 +71,18 @@ final Set<String> defaultLargeTiles = Set.unmodifiable({
 const List<String> appLanguages = ['en', 'de', 'pl'];
 
 /// Whether [date] can be a living user's date of birth.
+/// The birth date in the saved settings [json], if there is a plausible one.
+DateTime? savedBirthDate(Object? json) {
+  if (json is! Map<String, Object?>) return null;
+  if (json['birthDate'] case final String v) {
+    final date = DateTime.tryParse(v);
+    if (date != null && isPlausibleBirthDate(date)) {
+      return DateTime(date.year, date.month, date.day);
+    }
+  }
+  return null;
+}
+
 bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
   final today = now ?? DateTime.now();
   return date.year >= 1900 && date.isBefore(today);
@@ -196,12 +208,7 @@ class SettingsController extends ChangeNotifier {
     if (json['activeEnergyGoal'] case final int v when v >= 100 && v <= 3000) {
       _activeEnergyGoal = v;
     }
-    if (json['birthDate'] case final String v) {
-      final date = DateTime.tryParse(v);
-      if (date != null && isPlausibleBirthDate(date)) {
-        _birthDate = DateTime(date.year, date.month, date.day);
-      }
-    }
+    _birthDate = savedBirthDate(json) ?? _birthDate;
     if (json['sex'] case final String v) {
       for (final sex in Sex.values) {
         if (sex.name == v) _sex = sex;

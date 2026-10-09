@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import 'backup.dart';
+import 'body_age.dart';
 import 'health_history.dart';
 import 'health_repository.dart';
 import 'health_snapshot.dart';
@@ -8,6 +11,7 @@ import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'night_archive.dart';
+import 'settings_controller.dart';
 import 'sync_report.dart';
 import 'workout_archive.dart';
 
@@ -65,6 +69,11 @@ class HealthController extends ChangeNotifier {
   bool _backfillingNights = false;
   List<SleepNight> _nights = const [];
   SyncReport? _backgroundSync;
+  DateTime? _birthDate;
+
+  /// The maximum heart rate the snapshot on screen was read with.
+  int? _readWith;
+  bool _refreshAgain = false;
   bool _disposed = false;
   int _revision = 0;
 
@@ -77,6 +86,25 @@ class HealthController extends ChangeNotifier {
     _revision++;
     super.notifyListeners();
   }
+
+  /// The birth date of the profile. The intensity minutes are estimated
+  /// from the heart rate with it, so a change reads again.
+  set birthDate(DateTime? value) {
+    if (value == _birthDate) return;
+    _birthDate = value;
+    // Before the first read there is nothing to read again.
+    if (_snapshot == null && !_refreshing) return;
+    if (_refreshing) {
+      _refreshAgain = true;
+    } else {
+      unawaited(refresh());
+    }
+  }
+
+  int? get _maxHeartRate => switch (_birthDate) {
+    final birthDate? => maxHeartRateOn(birthDate, _clock()),
+    null => null,
+  };
 
   HealthStatus get status => _status;
   bool get refreshing => _refreshing;
@@ -166,8 +194,13 @@ class HealthController extends ChangeNotifier {
       await _store.read(StoreKeys.snapshot),
     );
     await _loadArchives();
+    // The profile may not be loaded yet, and the first read needs it.
+    _birthDate ??= savedBirthDate(await _store.read(StoreKeys.settings));
     if (_disposed) return;
-    if (saved != null) _show(saved);
+    if (saved != null) {
+      _show(saved);
+      _readWith = _maxHeartRate;
+    }
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
     await _backfill();
@@ -235,11 +268,21 @@ class HealthController extends ChangeNotifier {
         return;
       }
       final shown = _snapshot;
+      final maxHeartRate = _maxHeartRate;
       final read = await _repository.load(
         _clock(),
-        // The first read of a day is a full one as well.
-        previous: full || shown == null || shown.today != today ? null : shown,
+        // The first read of a day is a full one as well, and so is the one
+        // after the profile's age changed what the heart rate means.
+        previous:
+            full ||
+                shown == null ||
+                shown.today != today ||
+                maxHeartRate != _readWith
+            ? null
+            : shown,
+        maxHeartRate: maxHeartRate,
       );
+      _readWith = maxHeartRate;
       final fresh = withoutWorkouts(read, _removedWorkouts);
       final background = await _repository.backgroundAccessGranted();
       final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
@@ -264,6 +307,10 @@ class HealthController extends ChangeNotifier {
     } finally {
       _refreshing = false;
       if (!_disposed) notifyListeners();
+    }
+    if (_refreshAgain && !_disposed) {
+      _refreshAgain = false;
+      await refresh();
     }
   }
 

@@ -189,7 +189,11 @@ class HealthConnectRepository implements HealthRepository {
     RootIsolateToken token,
     DateTime now,
     HealthSnapshot? previous,
-  ) => _inWorker(token, (repository) => repository._load(now, previous));
+    int? maxHeartRate,
+  ) => _inWorker(
+    token,
+    (repository) => repository._load(now, previous, maxHeartRate),
+  );
 
   static Future<DailyValues> _loadHistoryInWorker(
     RootIsolateToken token,
@@ -375,11 +379,15 @@ class HealthConnectRepository implements HealthRepository {
   }
 
   @override
-  Future<HealthSnapshot> load(DateTime now, {HealthSnapshot? previous}) {
+  Future<HealthSnapshot> load(
+    DateTime now, {
+    HealthSnapshot? previous,
+    int? maxHeartRate,
+  }) {
     final token = RootIsolateToken.instance;
     return token == null
-        ? _load(now, previous)
-        : _loadInWorker(token, now, previous);
+        ? _load(now, previous, maxHeartRate)
+        : _loadInWorker(token, now, previous, maxHeartRate);
   }
 
   @override
@@ -390,7 +398,11 @@ class HealthConnectRepository implements HealthRepository {
         : _loadHistoryInWorker(token, from, to);
   }
 
-  Future<HealthSnapshot> _load(DateTime now, HealthSnapshot? previous) async {
+  Future<HealthSnapshot> _load(
+    DateTime now,
+    HealthSnapshot? previous,
+    int? maxHeartRate,
+  ) async {
     await _configure();
     const dayCount = HealthSnapshot.defaultDayCount;
     final today = DateTime(now.year, now.month, now.day);
@@ -426,6 +438,7 @@ class HealthConnectRepository implements HealthRepository {
     final fresh = buildSnapshot(
       now: now,
       dayCount: dayCount,
+      maxHeartRate: maxHeartRate,
       raw: await _readRaw(
         start,
         now,

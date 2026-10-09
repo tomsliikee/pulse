@@ -417,6 +417,18 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
             ],
           ),
         ),
+        if (metric.note(l10n) case final note?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
+            child: Text(
+              note,
+              style: type.aside(
+                theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
         if (kind != null && dayIndex != null) ...[
           SectionTitle(l10n.entries),
           Entrance(

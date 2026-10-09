@@ -147,6 +147,12 @@ extension MetricPresentation on Metric {
     ),
   };
 
+  /// What has to be said about where the values come from.
+  String? note(AppLocalizations l10n) => switch (this) {
+    Metric.intensityMinutes => l10n.intensityNote,
+    _ => null,
+  };
+
   String title(AppLocalizations l10n) => switch (this) {
     Metric.steps => l10n.metricSteps,
     Metric.distance => l10n.metricDistance,

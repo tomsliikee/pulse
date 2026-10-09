@@ -29,6 +29,17 @@ void main() {
       },
     );
 
+    test('reads with the maximum heart rate of the saved profile', () async {
+      final repository = FixtureRepository();
+      final store = MemoryJsonStore();
+
+      await syncOnce(repository, store, fixtureNow);
+      await store.write(StoreKeys.settings, {'birthDate': '1992-03-07'});
+      await syncOnce(repository, store, fixtureNow);
+
+      expect(repository.maxHeartRates, [null, 185]);
+    });
+
     test('builds on a snapshot saved earlier the same day', () async {
       final repository = FixtureRepository();
       final store = MemoryJsonStore();

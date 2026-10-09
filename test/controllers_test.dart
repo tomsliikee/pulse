@@ -37,6 +37,32 @@ void main() {
       expect(store.documents, contains(StoreKeys.snapshot));
     });
 
+    test('reads with the maximum heart rate of the profile\'s age, and '
+        'in full again once the birth date changes', () async {
+      final store = MemoryJsonStore();
+      // 34 and a good half on the day of the fixture.
+      await store.write(StoreKeys.settings, {'birthDate': '1992-03-07'});
+      final repository = FixtureRepository();
+      final controller = _controller(repository, store);
+
+      await controller.start();
+      await controller.refresh();
+      expect(repository.maxHeartRates, [185, 185]);
+      expect(repository.loadedWith.last, isNotNull);
+
+      // The same date again is no change.
+      controller.birthDate = DateTime(1992, 3, 7);
+      controller.birthDate = DateTime(1972, 3, 7);
+      await pumpEventQueue();
+      expect(repository.maxHeartRates, [185, 185, 165]);
+      expect(repository.loadedWith.last, isNull);
+
+      controller.birthDate = null;
+      await pumpEventQueue();
+      expect(repository.maxHeartRates.last, isNull);
+      expect(repository.loadedWith.last, isNull);
+    });
+
     test('keeps what the background task stored in the meantime', () async {
       final store = MemoryJsonStore();
       final repository = FixtureRepository();

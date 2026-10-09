@@ -587,6 +587,13 @@ void main() {
     const dayKey = ValueKey('dayScore');
     Finder inside(Finder of, Key key) =>
         find.descendant(of: of, matching: find.byKey(key));
+    Finder scoreParts(Finder page) => find.descendant(
+      of: page,
+      matching: find.text(
+        'So setzt sich der Tageswert zusammen',
+        skipOffstage: false,
+      ),
+    );
 
     testWidgets('by day the recovery stands alone, on the left and in the '
         'colour of its zone', (tester) async {
@@ -667,6 +674,7 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(scoreParts(page), findsNothing);
 
       final bar = find.descendant(of: page, matching: find.byType(DaySwitcher));
       await tester.tap(
@@ -675,7 +683,25 @@ void main() {
       await advance(tester);
       expect(inside(page, recoveryKey), findsOneWidget);
       expect(inside(page, dayKey), findsOneWidget);
+      expect(scoreParts(page), findsOneWidget);
     });
+
+    for (final (now, shown) in [
+      (DateTime(2026, 10, 6, 20, 59), false),
+      (DateTime(2026, 10, 6, 21), true),
+    ]) {
+      testWidgets('the parts of the day score come with it: '
+          '${shown ? 'shown' : 'hidden'} at ${now.hour}:${now.minute}', (
+        tester,
+      ) async {
+        await pumpApp(tester, repository: _withTwoYears(), now: now);
+        await tester.tap(find.text('Recovery'));
+        await advance(tester);
+        final page = find.byType(DayDetailPage);
+        expect(inside(page, dayKey), shown ? findsOneWidget : findsNothing);
+        expect(scoreParts(page), shown ? findsOneWidget : findsNothing);
+      });
+    }
   });
 
   test('the sky is dark until the morning and from the evening on', () {

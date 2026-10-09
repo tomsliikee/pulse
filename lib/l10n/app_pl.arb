@@ -22,6 +22,7 @@
   "metricActiveEnergy": "Aktywne kalorie",
   "metricTotalEnergy": "Kalorie łącznie",
   "metricIntensityMinutes": "Aktywne minuty",
+  "intensityNote": "Szacowane przez Pulse na podstawie tętna, gdy żadne źródło nie zapisuje minut: minuta w strefie umiarkowanej liczy się raz, w intensywnej podwójnie. Tętno maksymalne to 220 minus twój wiek.",
   "metricSpeed": "Prędkość",
   "metricHeartRate": "Tętno",
   "metricRestingHeartRate": "Tętno spoczynkowe",

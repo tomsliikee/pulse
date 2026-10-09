@@ -253,6 +253,160 @@ void main() {
     expect(merged.loadedAt, now);
   });
 
+  group('intensity minutes from the heart rate', () {
+    // Resting 60 and a maximum of 185 leave a reserve of 125: moderate from
+    // 110, vigorous from 135.
+    RawSample beat(DateTime time, double bpm) =>
+        RawSample(Metric.heartRate, time, bpm);
+    RawSample resting(int daysAgo, double bpm) =>
+        RawSample(Metric.restingHeartRate, at(daysAgo, 6), bpm);
+
+    test('a moderate minute counts once, a vigorous one twice, and what '
+        'lies below not at all', () {
+      final minutes = zoneMinutesByHour(
+        [
+          (at(0, 9, 0), 109),
+          (at(0, 9, 1), 110),
+          (at(0, 9, 2), 134),
+          (at(0, 9, 3), 135),
+        ],
+        resting: 60,
+        max: 185,
+      );
+
+      expect(minutes, {at(0, 9): 4});
+    });
+
+    test('the beats of a minute are averaged, minutes without one do not '
+        'count, and an hour ends where it ends', () {
+      final minutes = zoneMinutesByHour(
+        [
+          // 100 and 130 make 115: moderate, once.
+          (at(0, 9, 58).add(const Duration(seconds: 5)), 100),
+          (at(0, 9, 58).add(const Duration(seconds: 40)), 130),
+          // Nothing at 9:59.
+          (at(0, 10, 0), 150),
+        ],
+        resting: 60,
+        max: 185,
+      );
+
+      expect(minutes, {at(0, 9): 1, at(0, 10): 2});
+    });
+
+    test('a maximum at or below the resting heart rate gives nothing', () {
+      expect(
+        zoneMinutesByHour([(at(0, 9), 150)], resting: 60, max: 60),
+        isEmpty,
+      );
+    });
+
+    test('a day gets its minutes by day and by hour; the resting heart '
+        'rate of an earlier day holds until the next one is written', () {
+      final snapshot = buildSnapshot(
+        now: now,
+        maxHeartRate: 185,
+        raw: RawReadings(
+          samples: [
+            resting(1, 60),
+            for (var minute = 0; minute < 20; minute++)
+              beat(at(1, 18, minute), 120),
+            for (var minute = 0; minute < 5; minute++)
+              beat(at(0, 9, minute), 140),
+            beat(at(0, 12), 70),
+          ],
+        ),
+      );
+      final today = snapshot.dayCount - 1;
+
+      expect(snapshot.value(Metric.intensityMinutes, today - 1), 20);
+      expect(snapshot.value(Metric.intensityMinutes, today), 10);
+      // A day before the first resting heart rate cannot be judged.
+      expect(snapshot.value(Metric.intensityMinutes, today - 2), isNull);
+      final hours = snapshot.hourly[Metric.intensityMinutes]!;
+      expect(hours[18], 20);
+      expect(hours[HealthSnapshot.hoursPerDay + 9], 10);
+    });
+
+    test('a day with its heart rate read and nothing in a zone has none', () {
+      final snapshot = buildSnapshot(
+        now: now,
+        maxHeartRate: 185,
+        raw: RawReadings(samples: [resting(0, 60), beat(at(0, 9), 70)]),
+      );
+
+      expect(snapshot.value(Metric.intensityMinutes, snapshot.dayCount - 1), 0);
+    });
+
+    test('recorded minutes win over the estimate', () {
+      final snapshot = buildSnapshot(
+        now: now,
+        maxHeartRate: 185,
+        raw: RawReadings(
+          samples: [resting(1, 60), beat(at(1, 9), 140), beat(at(0, 9), 140)],
+          dailyTotals: {
+            Metric.intensityMinutes: {at(1, 0): 33},
+          },
+        ),
+      );
+      final today = snapshot.dayCount - 1;
+
+      expect(snapshot.value(Metric.intensityMinutes, today - 1), 33);
+      expect(snapshot.value(Metric.intensityMinutes, today), 2);
+    });
+
+    test('without a maximum, or without a resting heart rate, nothing is '
+        'estimated', () {
+      final beats = [beat(at(0, 9), 140)];
+      final noMaximum = buildSnapshot(
+        now: now,
+        raw: RawReadings(samples: [resting(0, 60), ...beats]),
+      );
+      final noResting = buildSnapshot(
+        now: now,
+        maxHeartRate: 185,
+        raw: RawReadings(samples: beats),
+      );
+
+      expect(noMaximum.has(Metric.intensityMinutes), isFalse);
+      expect(noResting.has(Metric.intensityMinutes), isFalse);
+    });
+
+    test('the minutes of days that were not read again are kept', () {
+      final previous = buildSnapshot(
+        now: at(0, 8),
+        maxHeartRate: 185,
+        raw: RawReadings(
+          samples: [resting(3, 60), beat(at(3, 9), 140), beat(at(1, 9), 120)],
+        ),
+      );
+      final fresh = buildSnapshot(
+        now: now,
+        maxHeartRate: 185,
+        raw: RawReadings(
+          samples: [
+            resting(3, 60),
+            beat(at(1, 9), 120),
+            beat(at(1, 9, 1), 120),
+            beat(at(0, 9), 140),
+          ],
+        ),
+      );
+
+      final merged = keepHeartBefore(
+        at(1, 0),
+        fresh: fresh,
+        previous: previous,
+      );
+      final today = merged.dayCount - 1;
+
+      expect(merged.value(Metric.intensityMinutes, today - 3), 2);
+      // Days that were read win over what was kept.
+      expect(merged.value(Metric.intensityMinutes, today - 1), 2);
+      expect(merged.value(Metric.intensityMinutes, today), 2);
+    });
+  });
+
   group('minutesByHour', () {
     test('an interval is split where an hour ends', () {
       expect(minutesByHour([(at(0, 9, 50), at(0, 10, 20))]), {

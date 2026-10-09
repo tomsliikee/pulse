@@ -164,7 +164,9 @@ class _DayDetailPageState extends State<DayDetailPage> {
         soFar: today ? stepsSoFar(health.snapshot, health.now) : null,
       ),
       _RecoveryParts(recovery: insights.recovery),
-      _ScoreParts(score: insights.score),
+      // The parts come with the score: in the evening, or once the day is over.
+      if (showsDayScore(insights.day, health.now))
+        _ScoreParts(score: insights.score),
       _Measures(insights: insights),
       // A day that is still running is not set against whole days.
       if (!today) _Comparison(insights: insights),

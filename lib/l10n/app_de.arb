@@ -273,6 +273,7 @@
       }
     }
   },
+  "intensityNote": "Von Pulse aus dem Puls geschätzt, wenn keine Quelle Minuten schreibt: Eine Minute im moderaten Bereich zählt einmal, im intensiven doppelt. Der Maximalpuls ist 220 minus dein Alter.",
   "latestValue": "Letzter Wert",
   "earlier": "Früher",
   "later": "Später",

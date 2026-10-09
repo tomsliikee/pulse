@@ -57,12 +57,18 @@ class RawReadings {
 
 const int _heartBucketMinutes = 10;
 
+/// The share of the heart rate reserve (maximum minus resting) from which a
+/// minute counts as moderate, and from which it counts twice as vigorous.
+const double moderateReserveShare = 0.4;
+const double vigorousReserveShare = 0.6;
+
 /// Turns raw readings into the snapshot the app shows. Pure, so it can be
 /// tested without a device.
 HealthSnapshot buildSnapshot({
   required DateTime now,
   required RawReadings raw,
   int dayCount = HealthSnapshot.defaultDayCount,
+  int? maxHeartRate,
 }) {
   final today = DateTime(now.year, now.month, now.day);
   // Only used for its date arithmetic while the real lists are built.
@@ -105,6 +111,11 @@ HealthSnapshot buildSnapshot({
     series[metric] = values;
   }
 
+  final hourlyTotals = {...raw.hourlyTotals};
+  if (maxHeartRate != null) {
+    _addZoneMinutes(frame, sorted, series, hourlyTotals, maxHeartRate);
+  }
+
   final nights = _nights(frame, raw);
   series[Metric.sleep] = [
     for (final night in nights) night == null ? null : night.asleepMinutes / 60,
@@ -130,8 +141,85 @@ HealthSnapshot buildSnapshot({
     heart: _heart(frame, sorted),
     workouts: workouts,
     entries: entries,
-    hourly: _hourly(today, raw.hourlyTotals),
+    hourly: _hourly(today, hourlyTotals),
   );
+}
+
+/// Gives every day without recorded intensity minutes the ones estimated
+/// from its heart rate. A day whose resting heart rate is not written yet is
+/// judged by the latest one before it.
+void _addZoneMinutes(
+  HealthSnapshot frame,
+  List<RawSample> sorted,
+  Map<Metric, List<double?>> series,
+  Map<Metric, Map<DateTime, double>> hourlyTotals,
+  int maxHeartRate,
+) {
+  final beats = List.generate(frame.dayCount, (_) => <(DateTime, double)>[]);
+  for (final sample in sorted) {
+    if (sample.metric != Metric.heartRate) continue;
+    final index = frame.indexOf(sample.time);
+    if (index == null || !Metric.heartRate.accepts(sample.value)) continue;
+    beats[index].add((sample.time, sample.value));
+  }
+  final resting = series[Metric.restingHeartRate];
+  final recorded = series[Metric.intensityMinutes];
+  final days = [...?recorded];
+  if (days.isEmpty) days.addAll(List<double?>.filled(frame.dayCount, null));
+  final hours = {...?hourlyTotals[Metric.intensityMinutes]};
+  double? rest;
+  var estimated = false;
+  for (var i = 0; i < frame.dayCount; i++) {
+    rest = resting?[i] ?? rest;
+    if (rest == null || days[i] != null || beats[i].isEmpty) continue;
+    final byHour = zoneMinutesByHour(
+      beats[i],
+      resting: rest,
+      max: maxHeartRate.toDouble(),
+    );
+    // A day with its heart rate read and nothing in a zone has none.
+    days[i] = byHour.values.fold<double>(0, (sum, minutes) => sum + minutes);
+    hours.addAll(byHour);
+    estimated = true;
+  }
+  if (!estimated) return;
+  series[Metric.intensityMinutes] = days;
+  if (hours.isNotEmpty) hourlyTotals[Metric.intensityMinutes] = hours;
+}
+
+/// The intensity minutes in [beats] (time and beats per minute), per hour and
+/// keyed by the start of the hour. The beats of a minute are averaged; a
+/// minute in the moderate zone counts once, one in the vigorous zone twice,
+/// and a minute without a reading does not count.
+Map<DateTime, double> zoneMinutesByHour(
+  Iterable<(DateTime, double)> beats, {
+  required double resting,
+  required double max,
+}) {
+  final reserve = max - resting;
+  if (reserve <= 0) return const {};
+  final moderate = resting + moderateReserveShare * reserve;
+  final vigorous = resting + vigorousReserveShare * reserve;
+  final sums = <DateTime, (double, int)>{};
+  for (final (time, bpm) in beats) {
+    final minute = DateTime(
+      time.year,
+      time.month,
+      time.day,
+      time.hour,
+      time.minute,
+    );
+    final (sum, count) = sums[minute] ?? (0.0, 0);
+    sums[minute] = (sum + bpm, count + 1);
+  }
+  final minutes = <DateTime, double>{};
+  for (final MapEntry(key: minute, value: (sum, count)) in sums.entries) {
+    final mean = sum / count;
+    if (mean < moderate) continue;
+    final hour = DateTime(minute.year, minute.month, minute.day, minute.hour);
+    minutes[hour] = (minutes[hour] ?? 0) + (mean >= vigorous ? 2 : 1);
+  }
+  return minutes;
 }
 
 Map<Metric, List<double?>> _hourly(
@@ -278,8 +366,9 @@ Map<DateTime, double> minutesByHour(List<(DateTime, DateTime)> intervals) {
 }
 
 /// [fresh] with the heart rate of the days before [from] taken from
-/// [previous]. Those days were not read again: their samples cannot change
-/// any more, and a wearable writes thousands per day.
+/// [previous], and with it the intensity minutes estimated from it. Those
+/// days were not read again: their samples cannot change any more, and a
+/// wearable writes thousands per day.
 HealthSnapshot keepHeartBefore(
   DateTime from, {
   required HealthSnapshot fresh,
@@ -287,6 +376,7 @@ HealthSnapshot keepHeartBefore(
 }) {
   final heart = [...fresh.heart];
   final average = [...fresh.valuesOf(Metric.heartRate)];
+  final intensity = [...fresh.valuesOf(Metric.intensityMinutes)];
   for (var i = 0; i < fresh.dayCount; i++) {
     final day = fresh.dateAt(i);
     if (!day.isBefore(from)) break;
@@ -294,6 +384,7 @@ HealthSnapshot keepHeartBefore(
     if (kept == null) continue;
     heart[i] = previous.heart[kept];
     average[i] = previous.value(Metric.heartRate, kept);
+    intensity[i] ??= previous.value(Metric.intensityMinutes, kept);
   }
   return HealthSnapshot(
     today: fresh.today,
@@ -302,6 +393,7 @@ HealthSnapshot keepHeartBefore(
     series: {
       ...fresh.series,
       if (average.any((v) => v != null)) Metric.heartRate: average,
+      if (intensity.any((v) => v != null)) Metric.intensityMinutes: intensity,
     },
     nights: fresh.nights,
     heart: heart,

@@ -177,6 +177,11 @@ class BodyAge {
   return null;
 }
 
+/// The maximum heart rate taken for someone born on [birthDate]: 220 less
+/// the age, the common rule of thumb.
+int maxHeartRateOn(DateTime birthDate, DateTime today) =>
+    (220 - ageOn(birthDate, today)).round();
+
 double ageOn(DateTime birthDate, DateTime today) {
   var years = today.year - birthDate.year;
   var last = DateTime(today.year, birthDate.month, birthDate.day);
