@@ -155,6 +155,14 @@ Three switches in the profile change the look further, all **off by default**:
 
 ## Getting Started
 
+### Download
+
+Signed APKs are on the [**Releases**](https://github.com/tomsliikee/pulse/releases) page. Pulse is in **beta**: download the latest `pulse-v….apk`, open it on the phone and allow your browser or file manager to install apps once. You need **Android 8.0** or newer and **Health Connect**.
+
+An APK you built yourself is signed with another key, so Android will not update it with a release. Save a backup in **Profile → Backup**, uninstall, install the release and read the backup again.
+
+### Build from Source
+
 You need the **Flutter SDK** 3.47 or newer, the **Android SDK** with platform tools, and a phone with **Health Connect** (built into **Android 14** and newer, an app from the Play Store before that).
 
 **1. Clone and fetch dependencies:**
@@ -174,6 +182,8 @@ flutter run -d android
 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
+
+Without `android/key.properties` the release build is signed with the debug key; [`docs/releasing.md`](docs/releasing.md) describes the release key and how a release is made.
 
 On first start the app asks for access to Health Connect, then once for older data. Both dialogs belong to the system, and the app works with whatever you allow.
 

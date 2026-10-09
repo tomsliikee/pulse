@@ -1,0 +1,113 @@
+name: Android
+
+# Every push to main and every pull request is analysed, tested and built.
+# A tag `v*` builds the APK with the release key and opens a draft release
+# on GitHub with it, ready to be checked and published by hand.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      # The release key lives in four repository secrets; see
+      # docs/releasing.md. Only tags need it.
+      - name: Write the release key
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          missing=0
+          for secret in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!secret}" ]; then
+              echo "::error::The secret $secret is not set; a release must not be signed with the debug key."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ] || exit 1
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          printf '%s\n' \
+            "storeFile=$RUNNER_TEMP/release.jks" \
+            "storePassword=$KEYSTORE_PASSWORD" \
+            "keyAlias=$KEY_ALIAS" \
+            "keyPassword=$KEY_PASSWORD" > android/key.properties
+
+      - run: flutter build apk --release
+
+      - name: Check the signature
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n 1)
+          certs=$("$apksigner" verify --print-certs build/app/outputs/flutter-apk/app-release.apk)
+          echo "$certs"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && grep -q "CN=Android Debug" <<< "$certs"; then
+            echo "::error::The release APK is signed with the debug key."
+            exit 1
+          fi
+
+      # A tag's APK carries the tag in its name and comes with a checksum.
+      - name: Collect the APK
+        run: |
+          mkdir dist
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            name="pulse-$GITHUB_REF_NAME.apk"
+            cp build/app/outputs/flutter-apk/app-release.apk "dist/$name"
+            (cd dist && sha256sum "$name" > "$name.sha256")
+          else
+            cp build/app/outputs/flutter-apk/app-release.apk dist/
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pulse-apk
+          path: dist/
+          if-no-files-found: error
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: pulse-apk
+          path: dist
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          name: Pulse ${{ github.ref_name }}
+          body_path: docs/release-notes/${{ github.ref_name }}.md
+          files: dist/*
+          fail_on_unmatched_files: true
