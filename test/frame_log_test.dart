@@ -45,6 +45,17 @@ void main() {
     });
   });
 
+  test('the list of every frame gives each one its build, its drawing and '
+      'when it began', () {
+    expect(
+      FrameLog.list([
+        _frame(start: 5000000, build: 3),
+        _frame(start: 5008333, build: 12, raster: 4),
+      ], 120),
+      'frames 120.0 Hz from 5000000: 3.0/2.0@0.0 12.0/4.0@8.3',
+    );
+  });
+
   test('the same palette loaded again changes nothing', () {
     SystemPalette load(Color seed) => SystemPalette(
       light: ColorScheme.fromSeed(seedColor: seed),

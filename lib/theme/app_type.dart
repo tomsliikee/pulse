@@ -72,9 +72,23 @@ class AppType {
     final weight = weightOf(style);
     return _vary(
       style,
-      weight: lerpDouble(weight * 0.55, weight, settled.clamp(0, 1)),
-      grade: 100 * pressed.clamp(0, 1),
+      weight: _stepped(
+        lerpDouble(weight * 0.55, weight, settled.clamp(0, 1))!,
+        20,
+        end: weight,
+      ),
+      grade: _stepped(100 * pressed.clamp(0, 1), 20),
     );
+  }
+
+  /// [value] on a grid of [step], or [end] where that is nearer than a
+  /// step. Every value of an axis is a font of its own to the engine, which
+  /// shapes and draws it from nothing; an axis that moved freely would ask
+  /// for a new font with every frame, and that is what a page stuttered on.
+  /// On a grid this fine no step is seen, and the fonts are met again.
+  static double _stepped(double value, double step, {double? end}) {
+    if (end != null && (end - value).abs() < step) return end;
+    return (value / step).round() * step;
   }
 
   /// The label of a tab: the nearer it is to [selected] = 1, the heavier
@@ -83,8 +97,8 @@ class AppType {
     final t = selected.clamp(0.0, 1.0);
     return _vary(
       style,
-      weight: lerpDouble(500, 800, t),
-      width: lerpDouble(96, 112, t),
+      weight: _stepped(lerpDouble(500, 800, t)!, 20),
+      width: _stepped(lerpDouble(96, 112, t)!, 2),
     );
   }
 

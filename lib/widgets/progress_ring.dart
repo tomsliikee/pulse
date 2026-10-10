@@ -69,29 +69,32 @@ class _ProgressRingState extends State<ProgressRing>
 
   @override
   Widget build(BuildContext context) {
-    return SingleMotionBuilder(
-      from: 0,
-      value: widget.value.clamp(0, 1).toDouble(),
-      motion: AppMotion.spatialSlow,
-      builder: (context, current, _) {
-        final value = current.clamp(0, 1).toDouble();
-        return CustomPaint(
-          painter: RingPainter(
-            value: value,
-            // The wave rises over the last of the way, so nothing jumps.
-            wave: _full
-                ? Curves.easeInOut.transform(
-                    ((value - 0.94) / 0.06).clamp(0.0, 1.0),
-                  )
-                : 0,
-            travel: _travel,
-            color: widget.color,
-            trackColor: widget.trackColor,
-            strokeWidth: widget.strokeWidth,
-          ),
-          child: const SizedBox.expand(),
-        );
-      },
+    // A layer of its own, so the travelling wave redraws the ring alone.
+    return RepaintBoundary(
+      child: SingleMotionBuilder(
+        from: 0,
+        value: widget.value.clamp(0, 1).toDouble(),
+        motion: AppMotion.spatialSlow,
+        builder: (context, current, _) {
+          final value = current.clamp(0, 1).toDouble();
+          return CustomPaint(
+            painter: RingPainter(
+              value: value,
+              // The wave rises over the last of the way, so nothing jumps.
+              wave: _full
+                  ? Curves.easeInOut.transform(
+                      ((value - 0.94) / 0.06).clamp(0.0, 1.0),
+                    )
+                  : 0,
+              travel: _travel,
+              color: widget.color,
+              trackColor: widget.trackColor,
+              strokeWidth: widget.strokeWidth,
+            ),
+            child: const SizedBox.expand(),
+          );
+        },
+      ),
     );
   }
 }

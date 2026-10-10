@@ -373,7 +373,12 @@ class _Slot extends StatelessWidget {
         fit: BoxFit.fill,
         child: SizedBox.fromSize(
           size: rect.size,
-          child: Entrance(order: enterOrder, child: tile.child),
+          // A layer of its own, so what moves in one tile leaves the others
+          // as they were drawn.
+          child: Entrance(
+            order: enterOrder,
+            child: RepaintBoundary(child: tile.child),
+          ),
         ),
       ),
     );

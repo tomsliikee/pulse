@@ -21,6 +21,38 @@ class ContainerRoute<T> extends PageRoute<T> with BackGestureRoute<T> {
   final Color originColor;
   final double originRadius;
 
+  /// How many of these pages lie open over all of the page they grew out
+  /// of. That page stays in the tree beneath, since this route is not
+  /// opaque, and reads the number to rest what moves on it unseen.
+  static final ValueNotifier<int> covering = ValueNotifier(0);
+
+  bool _covers = false;
+
+  /// Open and at rest, the page hides what is beneath. While it opens,
+  /// closes or follows a back swipe, that shows.
+  void _tellCovering() {
+    final covers =
+        animation?.status == AnimationStatus.completed &&
+        backProgress.value == 0;
+    if (covers == _covers) return;
+    _covers = covers;
+    covering.value += covers ? 1 : -1;
+  }
+
+  @override
+  void install() {
+    super.install();
+    animation?.addStatusListener((_) => _tellCovering());
+    backProgress.addListener(_tellCovering);
+  }
+
+  @override
+  void dispose() {
+    if (_covers) covering.value--;
+    _covers = false;
+    super.dispose();
+  }
+
   @override
   bool get opaque => false;
 

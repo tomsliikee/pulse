@@ -386,13 +386,16 @@ class _BeatingHeartState extends State<_BeatingHeart>
       TweenSequenceItem(tween: Tween(begin: 1.07, end: 1), weight: 18),
       TweenSequenceItem(tween: ConstantTween(1), weight: 50),
     ]).animate(_beat);
-    return ScaleTransition(
-      scale: scale,
-      child: M3EShape(
-        Shapes.heart,
-        width: widget.size,
-        height: widget.size,
-        color: widget.color,
+    // In a layer of its own, so a beat redraws the heart alone.
+    return RepaintBoundary(
+      child: ScaleTransition(
+        scale: scale,
+        child: M3EShape(
+          Shapes.heart,
+          width: widget.size,
+          height: widget.size,
+          color: widget.color,
+        ),
       ),
     );
   }

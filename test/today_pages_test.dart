@@ -524,7 +524,7 @@ void main() {
       for (var i = 0; i < 14; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
-      expect(tester.hasRunningAnimations, isTrue);
+      expect(await moves(tester), isTrue);
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(
@@ -538,7 +538,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(seconds: 1));
-    expect(tester.hasRunningAnimations, isFalse);
+    expect(await moves(tester), isFalse);
     expect(tester.takeException(), isNull);
   });
 
@@ -577,7 +577,7 @@ void main() {
         if (i == 0 || i == 5) expect(await sky(), first);
       }
       // What is in the scene still moves.
-      expect(tester.hasRunningAnimations, isTrue);
+      expect(await moves(tester), isTrue);
       await tester.pumpWidget(const SizedBox());
     }
   });

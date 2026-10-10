@@ -27,14 +27,22 @@ class MorphingShape extends StatefulWidget {
 }
 
 class _MorphingShapeState extends State<MorphingShape> {
-  late Morph _morph = Morph(widget.shape.polygon, widget.shape.polygon);
+  /// Matching the curves of two shapes takes long enough to be felt in the
+  /// first frame of a page that shows several, and the result never
+  /// changes, so each pair is matched once.
+  static final Map<(Shapes, Shapes), Morph> _morphs = {};
+
+  static Morph _between(Shapes from, Shapes to) =>
+      _morphs[(from, to)] ??= Morph(from.polygon, to.polygon);
+
+  late Morph _morph = _between(widget.shape, widget.shape);
   int _generation = 0;
 
   @override
   void didUpdateWidget(MorphingShape oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.shape != widget.shape) {
-      _morph = Morph(oldWidget.shape.polygon, widget.shape.polygon);
+      _morph = _between(oldWidget.shape, widget.shape);
       _generation++;
     }
   }

@@ -757,10 +757,12 @@ class _StageComparison extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 8),
-      M3ELinearWavyProgressIndicator(
-        value: (share / _scale).clamp(0, 1).toDouble(),
-        color: color,
-        backgroundColor: color.withValues(alpha: 0.2),
+      RepaintBoundary(
+        child: M3ELinearWavyProgressIndicator(
+          value: (share / _scale).clamp(0, 1).toDouble(),
+          color: color,
+          backgroundColor: color.withValues(alpha: 0.2),
+        ),
       ),
       const SizedBox(height: 6),
       Text(verdict, style: quiet),

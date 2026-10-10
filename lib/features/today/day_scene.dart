@@ -51,6 +51,8 @@ class DayScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SceneClock(
+    // Clouds, stars and a breath: nothing here moves fast.
+    rate: 30,
     builder: (context, seconds) => CustomPaint(
       size: Size(double.infinity, height),
       painter: _DayPainter(

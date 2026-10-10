@@ -21,15 +21,18 @@ class WavyBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return SingleMotionBuilder(
-      from: 0,
-      value: value.clamp(0, 1).toDouble(),
-      // An effects spring: a bar that overshoots would show more than is.
-      motion: AppMotion.effectsSlow,
-      builder: (context, current, _) => M3ELinearWavyProgressIndicator(
-        value: current.clamp(0, 1).toDouble(),
-        color: color ?? scheme.primary,
-        backgroundColor: trackColor ?? scheme.surfaceContainerHighest,
+    // The wave never rests; in a layer of its own it redraws only itself.
+    return RepaintBoundary(
+      child: SingleMotionBuilder(
+        from: 0,
+        value: value.clamp(0, 1).toDouble(),
+        // An effects spring: a bar that overshoots would show more than is.
+        motion: AppMotion.effectsSlow,
+        builder: (context, current, _) => M3ELinearWavyProgressIndicator(
+          value: current.clamp(0, 1).toDouble(),
+          color: color ?? scheme.primary,
+          backgroundColor: trackColor ?? scheme.surfaceContainerHighest,
+        ),
       ),
     );
   }

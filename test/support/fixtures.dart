@@ -573,3 +573,11 @@ Future<void> tapInView(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
   await advance(tester);
 }
+
+/// Whether something on screen moves by itself: an animation runs, or the
+/// clock of a scene asks for its next picture.
+Future<bool> moves(WidgetTester tester) async {
+  if (tester.hasRunningAnimations) return true;
+  await tester.binding.delayed(const Duration(milliseconds: 50));
+  return tester.binding.hasScheduledFrame;
+}

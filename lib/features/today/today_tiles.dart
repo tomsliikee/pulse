@@ -242,12 +242,14 @@ class _SmallTile extends StatelessWidget {
         ),
         color: colors.onContainer,
       ),
-      Metric.water => M3ELinearWavyProgressIndicator(
-        value: ((value ?? 0) * 1000 / settings.waterGoalMl)
-            .clamp(0, 1)
-            .toDouble(),
-        color: scheme.primary,
-        backgroundColor: scheme.secondaryContainer,
+      Metric.water => RepaintBoundary(
+        child: M3ELinearWavyProgressIndicator(
+          value: ((value ?? 0) * 1000 / settings.waterGoalMl)
+              .clamp(0, 1)
+              .toDouble(),
+          color: scheme.primary,
+          backgroundColor: scheme.secondaryContainer,
+        ),
       ),
       Metric.heartRate => null,
       _ when note != null => _Caption(note, color: colors.onContainer),

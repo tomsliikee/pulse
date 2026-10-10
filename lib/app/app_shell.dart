@@ -13,6 +13,7 @@ import '../features/today/today_page.dart';
 import '../theme/app_motion.dart';
 import '../widgets/glass_scope.dart';
 import 'app_scope.dart';
+import 'container_route.dart';
 import 'floating_nav_bar.dart';
 import 'glass_fab_menu.dart';
 import 'haptics.dart';
@@ -95,7 +96,9 @@ class _AppShellState extends State<AppShell> {
                       child: child,
                     ),
                   ),
-                  child: glass ? GlassScope(child: page) : page,
+                  child: _RestsBeneath(
+                    child: glass ? GlassScope(child: page) : page,
+                  ),
                 ),
               ),
               Positioned(
@@ -156,4 +159,21 @@ class _AppShellState extends State<AppShell> {
       ),
     );
   }
+}
+
+/// Stops what moves by itself on [child] for as long as another page lies
+/// over all of it. A page that grows out of a tile leaves this one in the
+/// tree beneath it, where it would go on drawing unseen.
+class _RestsBeneath extends StatelessWidget {
+  const _RestsBeneath({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder(
+    valueListenable: ContainerRoute.covering,
+    builder: (context, covering, child) =>
+        TickerMode(enabled: covering == 0, child: child!),
+    child: child,
+  );
 }

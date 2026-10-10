@@ -320,14 +320,36 @@ class FadingBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.dstIn,
-      shaderCallback: (bounds) => const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
-        stops: [0, 0.82, 1],
-      ).createShader(bounds),
+    const stops = [0.0, 0.82, 1.0];
+    if (GlassScope.isOn(context)) {
+      // Glass has colour fields behind the page, so the scene itself has
+      // to become clear.
+      return ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF), Color(0x00FFFFFF)],
+          stops: stops,
+        ).createShader(bounds),
+        child: child,
+      );
+    }
+    // The page behind is of one colour. That colour laid over the scene's
+    // end gives the same picture as a mask, without the layer a mask is
+    // drawn into for every frame.
+    final ground = Theme.of(context).scaffoldBackgroundColor;
+    final clear = ground.withValues(alpha: 0);
+    return DecoratedBox(
+      position: DecorationPosition.foreground,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [clear, clear, ground],
+          stops: stops,
+        ),
+      ),
       child: child,
     );
   }
