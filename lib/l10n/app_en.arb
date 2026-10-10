@@ -537,5 +537,19 @@
   "morningSwitchNote": "An overview in the morning: when you first open the app and as a notification around the time you usually get up.",
   "morningSyncing": "Loading your night …",
   "morningNoticePlain": "Your morning is ready. Tap to open.",
-  "morningNoticeBody": "Slept {duration} · sleep score {score}"
+  "morningNoticeBody": "Slept {duration} · sleep score {score}",
+  "heartInDetail": "Heart rate in detail",
+  "hourByHour": "Hour by hour",
+  "heartAverage": "Average",
+  "pulseAtTime": "{bpm} bpm · {time}",
+  "@pulseAtTime": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

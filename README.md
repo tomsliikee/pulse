@@ -93,7 +93,7 @@ Afterwards the **Good morning** tile on Today opens the cards again. One switch 
 ### Heart
 
 - **A Heart That Beats at Your Rate:** The heart on the page swells at the last measured rate, and a monitor line passes behind the figure with one spike per beat.
-- **Over the Day:** The day's heart rate as a curve.
+- **Over the Day:** The day's heart rate as a curve from the first measurement to the last, true to time. Hold it and drag: a bar follows your finger and a pill says the rate and the time there. Tap it for the day in detail, with lowest, average and highest, the zones, and the day hour by hour.
 - **Vitals:** Resting heart rate, variability, blood pressure, oxygen saturation, respiratory rate and skin temperature, where your devices record them.
 - **Time in Zones:** Rest, light, cardio and peak.
 
@@ -209,7 +209,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **685** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **705** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

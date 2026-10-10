@@ -1455,5 +1455,19 @@
         "type": "String"
       }
     }
+  },
+  "heartInDetail": "Puls im Detail",
+  "hourByHour": "Stunde für Stunde",
+  "heartAverage": "Durchschnitt",
+  "pulseAtTime": "{bpm} bpm · {time}",
+  "@pulseAtTime": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
   }
 }

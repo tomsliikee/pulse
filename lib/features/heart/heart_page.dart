@@ -1,26 +1,25 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:motor/motor.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
+import '../../data/heart_day.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
-import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
-import '../../widgets/segment_group.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/board_page.dart';
-import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
 import '../detail/metric_spec.dart';
 import '../detail/page_tiles.dart';
+import 'heart_curve.dart';
 import 'heart_scene.dart';
+import 'heart_tiles.dart';
 
 /// Heart rate over the selected day, vitals and time in zones.
 class HeartPage extends StatelessWidget {
@@ -40,12 +39,7 @@ class HeartPage extends StatelessWidget {
           final snapshot = health.snapshot;
           final samples = health.heartSamples;
           final current = samples.isEmpty ? null : samples.last;
-          var low = current?.bpm ?? 0;
-          var high = low;
-          for (final sample in samples) {
-            if (sample.bpm < low) low = sample.bpm;
-            if (sample.bpm > high) high = sample.bpm;
-          }
+          final summary = heartSummary(samples);
           final systolic = health.value(Metric.systolic);
           final diastolic = health.value(Metric.diastolic);
 
@@ -54,7 +48,11 @@ class HeartPage extends StatelessWidget {
               id: 'hero',
               title: l10n.shortHeartRate,
               height: _Hero.height,
-              child: _Hero(samples: samples, low: low, high: high),
+              child: _Hero(
+                samples: samples,
+                low: summary?.low ?? 0,
+                high: summary?.high ?? 0,
+              ),
             ),
             BoardTile(
               id: 'day',
@@ -125,8 +123,11 @@ class HeartPage extends StatelessWidget {
               BoardTile(
                 id: 'zones',
                 title: l10n.heartRateZones,
-                height: _Zones.height,
-                child: _Zones(samples: samples),
+                height: HeartZones.tileHeight,
+                child: TitledTile(
+                  title: l10n.timeInZones,
+                  child: HeartZones(samples: samples),
+                ),
               ),
           ];
           final bleeds = BoardBackdrop.wanted(
@@ -269,7 +270,8 @@ class _Hero extends StatelessWidget {
   }
 }
 
-/// The heart rate over the day, alone on its surface under a free title.
+/// The heart rate over the day, alone on its surface under a free title and
+/// reaching its edges. Tapped, it opens the day's pulse in detail.
 class _DayCurve extends StatelessWidget {
   const _DayCurve({required this.samples, required this.day});
 
@@ -283,40 +285,17 @@ class _DayCurve extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final l10n = Formats.of(context).l10n;
-    final labelStyle = AppType.of(context).label(
-      theme.textTheme.labelMedium?.copyWith(color: scheme.onSurfaceVariant),
-    );
     return TitledTile(
       title: l10n.dayCurve,
       child: TileSurface(
         color: scheme.surfaceBright,
         radius: AppRadii.extraLargeIncreased,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
         child: samples.length < 2
             ? EmptyNote(l10n.noHeartCurve)
-            : Column(
-                children: [
-                  Expanded(
-                    child: LineChart(
-                      // Draw the line again for every day.
-                      key: ValueKey(day),
-                      values: [for (final s in samples) s.bpm.toDouble()],
-                      color: PageAccent.colorsOf(context).accent,
-                      height: null,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      for (final minute in [
-                        samples.first.minuteOfDay,
-                        samples.last.minuteOfDay,
-                      ])
-                        Text(formatClock(minute), style: labelStyle),
-                    ],
-                  ),
-                ],
+            : HeartCurve(
+                samples: samples,
+                day: day,
+                onTap: (origin) => openHeartDay(context, origin),
               ),
       ),
     );
@@ -395,128 +374,6 @@ class _BeatingHeartState extends State<_BeatingHeart>
           width: widget.size,
           height: widget.size,
           color: widget.color,
-        ),
-      ),
-    );
-  }
-}
-
-class _Zones extends StatelessWidget {
-  const _Zones({required this.samples});
-
-  final List<HeartSample> samples;
-
-  static const _minutesPerSample = 10;
-
-  static const double _row = 68;
-  static const double height =
-      TitledTile.titleHeight + 4 * _row + 3 * SegmentGroup.gap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final formats = Formats.of(context);
-    final l10n = formats.l10n;
-    final zones = [
-      (label: l10n.zoneRest, from: 0, color: scheme.secondary),
-      (label: l10n.zoneLight, from: 70, color: scheme.primary),
-      (label: l10n.zoneCardio, from: 115, color: scheme.tertiary),
-      (label: l10n.zonePeak, from: 140, color: scheme.error),
-    ];
-    final minutes = List<int>.filled(zones.length, 0);
-    for (final sample in samples) {
-      final zone = zones.lastIndexWhere((z) => sample.bpm >= z.from);
-      minutes[zone] += _minutesPerSample;
-    }
-    var longest = 1;
-    for (final value in minutes) {
-      if (value > longest) longest = value;
-    }
-
-    final type = AppType.of(context);
-    // The zone most of the day was spent in is the loud one.
-    final most = minutes.indexOf(longest);
-    return TitledTile(
-      title: l10n.timeInZones,
-      child: SegmentGroup(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        loud: most < 0 ? null : most,
-        children: [
-          for (var i = 0; i < zones.length; i++)
-            SizedBox(
-              height: _row,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          zones[i].label,
-                          style: type.strong(theme.textTheme.titleSmall),
-                        ),
-                      ),
-                      Text(
-                        formats.duration(minutes[i]),
-                        style: type.figure(
-                          context.emphasizedTextTheme.labelLarge,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _ZoneBar(
-                    fraction: minutes[i] / longest,
-                    color: zones[i].color,
-                    trackColor: scheme.onSurface.withValues(alpha: 0.08),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ZoneBar extends StatelessWidget {
-  const _ZoneBar({
-    required this.fraction,
-    required this.color,
-    required this.trackColor,
-  });
-
-  final double fraction;
-  final Color color;
-  final Color trackColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 12,
-      child: DecoratedBox(
-        decoration: ShapeDecoration(
-          color: trackColor,
-          shape: const StadiumBorder(),
-        ),
-        child: SingleMotionBuilder(
-          from: 0,
-          value: fraction,
-          motion: AppMotion.spatial,
-          builder: (context, current, _) => Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: current.clamp(0, 1).toDouble(),
-              heightFactor: 1,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: color,
-                  shape: const StadiumBorder(),
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );

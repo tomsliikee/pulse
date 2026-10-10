@@ -1,4 +1,5 @@
 import 'health_snapshot.dart';
+import 'heart_day.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 
@@ -54,8 +55,6 @@ class RawReadings {
   /// today are used.
   final Map<Metric, Map<DateTime, double>> hourlyTotals;
 }
-
-const int _heartBucketMinutes = 10;
 
 /// The share of the heart rate reserve (maximum minus resting) from which a
 /// minute counts as moderate, and from which it counts twice as vigorous.
@@ -253,7 +252,7 @@ List<List<HeartSample>> _heart(HealthSnapshot frame, List<RawSample> sorted) {
     final index = frame.indexOf(sample.time);
     if (index == null || !Metric.heartRate.accepts(sample.value)) continue;
     final minute = sample.time.hour * 60 + sample.time.minute;
-    final bucket = minute - minute % _heartBucketMinutes;
+    final bucket = minute - minute % heartBucketMinutes;
     buckets[index].putIfAbsent(bucket, () => []).add(sample.value);
   }
   return [

@@ -9,16 +9,35 @@ class LineChart extends StatelessWidget {
     super.key,
     required this.values,
     required this.color,
+    this.positions,
     this.height = 160,
     this.strokeWidth = 4,
   });
 
   final List<double> values;
+
+  /// Where each value sits across the width, from 0 to 1. Null spaces them
+  /// evenly.
+  final List<double>? positions;
   final Color color;
 
   /// Null lets the chart fill the height it is given.
   final double? height;
   final double strokeWidth;
+
+  /// How far down [value] is drawn in a chart of [height] whose values run
+  /// from [low] to [high], for what is laid over the line.
+  static double yOf(
+    double value, {
+    required double low,
+    required double high,
+    required double height,
+    double strokeWidth = 4,
+  }) {
+    final range = high - low == 0 ? 1.0 : high - low;
+    final inset = strokeWidth * 2;
+    return inset + (height - inset * 2) * (1 - (value - low) / range);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +51,7 @@ class LineChart extends StatelessWidget {
         builder: (context, reveal, _) => CustomPaint(
           painter: _LinePainter(
             values: values,
+            positions: positions,
             color: color,
             strokeWidth: strokeWidth,
             reveal: reveal.clamp(0, 1).toDouble(),
@@ -45,12 +65,14 @@ class LineChart extends StatelessWidget {
 class _LinePainter extends CustomPainter {
   const _LinePainter({
     required this.values,
+    required this.positions,
     required this.color,
     required this.strokeWidth,
     required this.reveal,
   });
 
   final List<double> values;
+  final List<double>? positions;
   final Color color;
   final double strokeWidth;
   final double reveal;
@@ -64,13 +86,17 @@ class _LinePainter extends CustomPainter {
       if (value < low) low = value;
       if (value > high) high = value;
     }
-    final range = high - low == 0 ? 1.0 : high - low;
-    final inset = strokeWidth * 2;
-    final drawHeight = size.height - inset * 2;
+    final positions = this.positions;
 
     Offset point(int i) => Offset(
-      size.width * i / (values.length - 1),
-      inset + drawHeight * (1 - (values[i] - low) / range),
+      size.width * (positions?[i] ?? i / (values.length - 1)),
+      LineChart.yOf(
+        values[i],
+        low: low,
+        high: high,
+        height: size.height,
+        strokeWidth: strokeWidth,
+      ),
     );
 
     final line = Path()..moveTo(point(0).dx, point(0).dy);
@@ -119,6 +145,7 @@ class _LinePainter extends CustomPainter {
   @override
   bool shouldRepaint(_LinePainter oldDelegate) =>
       oldDelegate.values != values ||
+      oldDelegate.positions != positions ||
       oldDelegate.color != color ||
       oldDelegate.strokeWidth != strokeWidth ||
       oldDelegate.reveal != reveal;

@@ -537,5 +537,19 @@
   "morningSwitchNote": "Przegląd rano: przy pierwszym otwarciu i jako powiadomienie o porze, o której zwykle wstajesz.",
   "morningSyncing": "Wczytywanie nocy …",
   "morningNoticePlain": "Twój poranek czeka. Dotknij, aby otworzyć.",
-  "morningNoticeBody": "Sen {duration} · wynik snu {score}"
+  "morningNoticeBody": "Sen {duration} · wynik snu {score}",
+  "heartInDetail": "Tętno w szczegółach",
+  "hourByHour": "Godzina po godzinie",
+  "heartAverage": "Średnia",
+  "pulseAtTime": "{bpm} bpm · {time}",
+  "@pulseAtTime": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

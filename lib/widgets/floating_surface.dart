@@ -12,6 +12,7 @@ class FloatingSurface extends StatelessWidget {
     this.glass = false,
     this.color,
     this.glassTint,
+    this.elevation = 3,
     required this.child,
   });
 
@@ -23,6 +24,10 @@ class FloatingSurface extends StatelessWidget {
 
   /// The colour of the glass; the light veil of a bar when null.
   final Color? glassTint;
+
+  /// How far the pill without glass is lifted off the page; the glass one
+  /// has its own shadow.
+  final double elevation;
 
   final Widget child;
 
@@ -38,7 +43,7 @@ class FloatingSurface extends StatelessWidget {
         child: Material(
           color: color ?? scheme.surfaceContainerHighest,
           shape: const StadiumBorder(),
-          elevation: 3,
+          elevation: elevation,
           clipBehavior: Clip.antiAlias,
           child: child,
         ),
