@@ -84,11 +84,15 @@ Future<void> syncOnce(
   // Oldest first, as the snapshot holds its days.
   final nights = nightSummaries(snapshot);
   await NightArchive(store).mergeIntoStore(nights);
-  await leaveMorningNotice(
+  final language = PlatformDispatcher.instance.locale.languageCode;
+  await leaveMorningNotice(store, nights, now, language);
+  // The platform sets its alarm by it once this run has ended.
+  await leaveMorningAlarm(
     store,
-    nights,
-    now,
-    PlatformDispatcher.instance.locale.languageCode,
+    settings: await store.read(StoreKeys.settings),
+    nights: nights,
+    now: now,
+    language: language,
   );
   await store.write(
     StoreKeys.sync,

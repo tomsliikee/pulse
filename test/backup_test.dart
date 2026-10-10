@@ -72,7 +72,14 @@ void main() {
       expect(result.workouts, (await WorkoutArchive(used).load()).length);
       expect(result.settings, isTrue);
       for (final name in await used.names()) {
-        if (name == StoreKeys.snapshot || name == StoreKeys.sync) continue;
+        // What a read makes anew is not kept.
+        if (const {
+          StoreKeys.snapshot,
+          StoreKeys.sync,
+          StoreKeys.morningAlarm,
+        }.contains(name)) {
+          continue;
+        }
         expect(await empty.read(name), await used.read(name), reason: name);
       }
     });

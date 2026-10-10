@@ -86,10 +86,16 @@ class MainActivity : FlutterFragmentActivity() {
                     else -> result.notImplemented()
                 }
             }
-        // The consent to the morning's notification. Android asks from 13 on;
+        // The morning's alarm, and the consent to its notification. Android asks from 13 on;
         // before that an app may notify unless the user switched it off.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/morning")
             .setMethodCallHandler { call, result ->
+                if (call.method == "schedule") {
+                    // The app left a new time or text for the morning's alarm.
+                    MorningAlarm.schedule(this)
+                    result.success(null)
+                    return@setMethodCallHandler
+                }
                 if (call.method != "allow") {
                     result.notImplemented()
                     return@setMethodCallHandler

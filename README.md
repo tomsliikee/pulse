@@ -58,7 +58,7 @@ The screenshots on this page show sample data.
 
 ### Good Morning
 
-Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. They begin with a **sunrise**, behind which Pulse reads what your watch wrote since, so the night is there when the cards come. Around the time you usually get up, the hourly refresh also sends a **notification**; it tells of the night where it has already arrived.
+Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. They begin with a **sunrise**, behind which Pulse reads what your watch wrote since, so the night is there when the cards come. Around the time you usually get up, an alarm of the app sends a **notification**; where the hourly refresh found the night before that, it tells of it.
 
 - **Greeting:** A morning scene whose sky shows the weather, your name, and one sentence on how hard the day should be: **easy**, **normal** or **demanding**.
 - **Last Night:** Sleep score, time asleep and the stages. While the watch has not synced, the card says so.
@@ -202,13 +202,14 @@ flutter test
 | **`READ_HEALTH_DATA_HISTORY`** | Loading data older than 30 days once. If declined, history grows from today |
 | **`READ_HEALTH_DATA_IN_BACKGROUND`** | The hourly refresh. If declined, data is refreshed when the app is opened |
 | **`POST_NOTIFICATIONS`** | The notification that says good morning. Asked for after the cards first opened by themselves; if declined, they still open in the app |
+| **`RECEIVE_BOOT_COMPLETED`** | Sets the alarm for that notification again after the phone restarted |
 | **`INTERNET`** | The weather and the search for a place, both from **Open-Meteo**. Not used until a place is set |
 
 ---
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **675** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **679** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

@@ -29,39 +29,43 @@ object MorningNotice {
         try {
             val notice = JSONObject(file.readText())
             file.delete()
-            val manager = NotificationManagerCompat.from(context)
-            if (!manager.areNotificationsEnabled()) return
-            val title = notice.getString("title")
-            context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-                // Named by the greeting itself, in the app's language.
-                NotificationChannel(
-                    CHANNEL,
-                    title.substringBefore(","),
-                    NotificationManager.IMPORTANCE_DEFAULT,
-                )
-            )
-            val open = PendingIntent.getActivity(
-                context,
-                0,
-                context.packageManager.getLaunchIntentForPackage(context.packageName),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-            manager.notify(
-                ID,
-                NotificationCompat.Builder(context, CHANNEL)
-                    .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                    .setContentTitle(title)
-                    .setContentText(notice.getString("body"))
-                    .setContentIntent(open)
-                    .setAutoCancel(true)
-                    // Gone by itself when the morning is over.
-                    .setTimeoutAfter(3 * 60 * 60 * 1000L)
-                    .build(),
-            )
+            show(context, notice.getString("title"), notice.getString("body"))
         } catch (error: Exception) {
             // SecurityException included: the consent can go at any moment.
             Log.w("Pulse", "The morning's notification failed", error)
             file.delete()
         }
+    }
+
+    /** Shows the greeting. Without the consent to notifications it is dropped. */
+    fun show(context: Context, title: String, body: String) {
+        val manager = NotificationManagerCompat.from(context)
+        if (!manager.areNotificationsEnabled()) return
+        context.getSystemService(NotificationManager::class.java).createNotificationChannel(
+            // Named by the greeting itself, in the app's language.
+            NotificationChannel(
+                CHANNEL,
+                title.substringBefore(","),
+                NotificationManager.IMPORTANCE_DEFAULT,
+            )
+        )
+        val open = PendingIntent.getActivity(
+            context,
+            0,
+            context.packageManager.getLaunchIntentForPackage(context.packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        manager.notify(
+            ID,
+            NotificationCompat.Builder(context, CHANNEL)
+                .setSmallIcon(R.drawable.ic_launcher_monochrome)
+                .setContentTitle(title)
+                .setContentText(body)
+                .setContentIntent(open)
+                .setAutoCancel(true)
+                // Gone by itself when the morning is over.
+                .setTimeoutAfter(3 * 60 * 60 * 1000L)
+                .build(),
+        )
     }
 }

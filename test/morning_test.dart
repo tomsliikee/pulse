@@ -362,4 +362,82 @@ void main() {
       expect(await store.read(StoreKeys.morningNotice), isNull);
     });
   });
+
+  group('the alarm', () {
+    List<SleepNight> ending(int wake) => [
+      for (var back = 3; back >= 1; back--)
+        _night(
+          wakeMinute: wake,
+          date: DateTime(_day.year, _day.month, _day.day - back),
+        ),
+    ];
+
+    MorningAlarm? alarm({
+      Object? settings = const <String, Object?>{},
+      List<SleepNight> nights = const [],
+      String language = 'de',
+    }) => morningAlarmFor(
+      settings: settings,
+      nights: nights,
+      now: _at(15),
+      language: language,
+    );
+
+    test('greets at seven where the nights tell no time', () {
+      expect(alarm(), (
+        minute: 7 * 60,
+        title: 'Guten Morgen',
+        body: 'Dein Morgen wartet. Tippen zum Öffnen.',
+      ));
+    });
+
+    test('greets at the usual time, by name and in the language', () {
+      final usual = alarm(
+        settings: {'name': 'Thomas', 'language': 'en'},
+        nights: ending(6 * 60 + 20),
+      )!;
+      expect(usual.minute, 6 * 60 + 20);
+      expect(usual.title, 'Good morning, Thomas');
+      expect(alarm(language: 'pl')!.title, 'Dzień dobry');
+      expect(alarm(language: 'fr')!.title, 'Good morning');
+    });
+
+    test('is none when switched off or outside the plain morning', () {
+      expect(alarm(settings: {'morningBrief': false}), isNull);
+      expect(alarm(nights: ending(3 * 60 + 59)), isNull);
+      expect(alarm(nights: ending(4 * 60)), isNotNull);
+      expect(alarm(nights: ending(11 * 60 + 59)), isNotNull);
+      expect(alarm(nights: ending(12 * 60)), isNull);
+    });
+
+    test('is left for the platform, and says when it changed', () async {
+      final store = MemoryJsonStore();
+      Future<bool> leave({Object? settings, int wake = 6 * 60 + 20}) =>
+          leaveMorningAlarm(
+            store,
+            settings: settings,
+            nights: ending(wake),
+            now: _at(15),
+            language: 'de',
+          );
+
+      expect(await leave(), isTrue);
+      expect(await store.read(StoreKeys.morningAlarm), {
+        'minute': 6 * 60 + 20,
+        'title': 'Guten Morgen',
+        'body': 'Dein Morgen wartet. Tippen zum Öffnen.',
+      });
+      expect(await leave(), isFalse);
+      expect(await leave(wake: 6 * 60 + 30), isTrue);
+      expect(
+        await leave(settings: {'name': 'Thomas'}, wake: 6 * 60 + 30),
+        isTrue,
+      );
+
+      // Switched off: taken away, once.
+      expect(await leave(settings: {'morningBrief': false}), isTrue);
+      expect(await store.read(StoreKeys.morningAlarm), isNull);
+      expect(await leave(settings: {'morningBrief': false}), isFalse);
+    });
+  });
 }

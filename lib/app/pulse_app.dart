@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../background/morning_notice.dart';
 import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
@@ -17,6 +20,7 @@ import 'app_shell.dart';
 import 'backup_files.dart';
 import 'frame_log.dart';
 import 'layout.dart';
+import 'morning_notices.dart';
 
 class PulseApp extends StatefulWidget {
   const PulseApp({
@@ -71,6 +75,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _settings.addListener(() => _health.birthDate = _settings.birthDate);
     _settings.addListener(() => _weather.place = _settings.place);
     _palette.addListener(() => _frames.mark('palette'));
+    _health.addListener(_keepMorningAlarm);
+    _settings.addListener(_keepMorningAlarm);
     _settings.load();
     _language.refresh();
     _health.start();
@@ -94,6 +100,45 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   void didChangeLocales(List<Locale>? locales) {
     // The system's settings may just have set another language for the app.
     _language.refresh();
+  }
+
+  bool _alarmBusy = false;
+  bool _alarmAgain = false;
+  bool _alarmSet = false;
+
+  /// Keeps the alarm for the morning in step with the nights, the name, the
+  /// language and the switch. One at a time: both listeners call often.
+  Future<void> _keepMorningAlarm() async {
+    if (!_settings.loaded || _health.refreshing) return;
+    if (_alarmBusy) {
+      _alarmAgain = true;
+      return;
+    }
+    _alarmBusy = true;
+    try {
+      final changed = await leaveMorningAlarm(
+        widget.store,
+        settings: {
+          'morningBrief': _settings.morningBrief,
+          'name': _settings.name,
+          'language': _settings.language,
+        },
+        nights: _health.nights,
+        now: widget.clock(),
+        language:
+            WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+      );
+      // Once in every start as well: an alarm does not outlive everything
+      // that can happen to the app while it is closed.
+      if (changed || !_alarmSet) await MorningNotices.schedule();
+      _alarmSet = true;
+    } finally {
+      _alarmBusy = false;
+    }
+    if (_alarmAgain && mounted) {
+      _alarmAgain = false;
+      unawaited(_keepMorningAlarm());
+    }
   }
 
   Future<void> _loadPalette() async {

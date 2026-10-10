@@ -20,7 +20,10 @@ class PulseApplication : Application() {
                 status: TaskStatus,
                 result: TaskResult?,
             ) {
-                if (status == TaskStatus.COMPLETED) MorningNotice.showPending(context)
+                if (status == TaskStatus.COMPLETED) {
+                    MorningNotice.showPending(context)
+                    MorningAlarm.schedule(context)
+                }
             }
         })
     }

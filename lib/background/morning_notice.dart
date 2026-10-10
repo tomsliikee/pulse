@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart' show mapEquals;
+
 import '../data/day_insights.dart';
 import '../data/health_history.dart' show dayKey;
 import '../data/json_store.dart';
@@ -50,15 +52,9 @@ MorningNotice? morningNoticeFor({
       hours.toDouble(),
     _ => 8.0,
   };
-  final code = saved.language ?? language;
-  final l10n = lookupAppLocalizations(
-    Locale(appLanguages.contains(code) ? code : appLanguages.first),
-  );
+  final l10n = _l10n(saved.language ?? language);
   return (
-    title: switch (saved.name) {
-      final name? => l10n.morningGreetingName(name),
-      null => l10n.morningTitle,
-    },
+    title: _greeting(l10n, saved.name),
     body: night == null
         ? l10n.morningNoticePlain
         : l10n.morningNoticeBody(
@@ -66,6 +62,74 @@ MorningNotice? morningNoticeFor({
             '${sleepScore(night, goal, nights).total}',
           ),
   );
+}
+
+AppLocalizations _l10n(String code) => lookupAppLocalizations(
+  Locale(appLanguages.contains(code) ? code : appLanguages.first),
+);
+
+String _greeting(AppLocalizations l10n, String? name) =>
+    name == null ? l10n.morningTitle : l10n.morningGreetingName(name);
+
+/// What the platform's alarm says and at which minute of the day.
+typedef MorningAlarm = ({int minute, String title, String body});
+
+/// The alarm that greets at the time the nights before usually ended, for
+/// the mornings on which no background run comes in time: the system gives
+/// a seldom opened app few of them. Null when the morning is switched off
+/// or that time lies outside the plain morning. Whether it has been said or
+/// seen on its day is the platform's to check when the alarm goes off.
+MorningAlarm? morningAlarmFor({
+  required Object? settings,
+  required List<SleepNight> nights,
+  required DateTime now,
+  required String language,
+}) {
+  final saved = savedMorning(settings);
+  if (!saved.on) return null;
+  final minute = usualWakeMinute(nights, now) ?? _plainWakeMinute;
+  final at = DateTime(now.year, now.month, now.day, 0, minute);
+  if (!morningWindow(const [], now).holds(at)) return null;
+  final l10n = _l10n(saved.language ?? language);
+  return (
+    minute: minute,
+    title: _greeting(l10n, saved.name),
+    body: l10n.morningNoticePlain,
+  );
+}
+
+/// Leaves the alarm of [morningAlarmFor] for the platform to set, or takes
+/// it away. Says whether that changed what is stored, so the platform need
+/// only be told then. [settings] is the stored document or its like.
+Future<bool> leaveMorningAlarm(
+  JsonStore store, {
+  required Object? settings,
+  required List<SleepNight> nights,
+  required DateTime now,
+  required String language,
+}) async {
+  final alarm = morningAlarmFor(
+    settings: settings,
+    nights: nights,
+    now: now,
+    language: language,
+  );
+  final stored = await store.read(StoreKeys.morningAlarm);
+  if (alarm == null) {
+    if (stored == null) return false;
+    await store.delete(StoreKeys.morningAlarm);
+    return true;
+  }
+  final document = <String, Object?>{
+    'minute': alarm.minute,
+    'title': alarm.title,
+    'body': alarm.body,
+  };
+  if (stored is Map<String, Object?> && mapEquals(stored, document)) {
+    return false;
+  }
+  await store.write(StoreKeys.morningAlarm, document);
+  return true;
 }
 
 /// 444 becomes "7 h 24 min". Not through the app's formats: they need the

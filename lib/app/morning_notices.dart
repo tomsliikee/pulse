@@ -20,4 +20,15 @@ abstract final class MorningNotices {
       return false;
     }
   }
+
+  /// Has the platform set its alarm anew by what the app left for it.
+  static Future<void> schedule() async {
+    try {
+      await _channel.invokeMethod<void>('schedule');
+    } on MissingPluginException {
+      // No such thing on the desktop and in tests.
+    } on PlatformException catch (error) {
+      debugPrint('Setting the morning alarm failed: $error');
+    }
+  }
 }

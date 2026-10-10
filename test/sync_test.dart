@@ -26,6 +26,11 @@ void main() {
         expect(report.full, isTrue);
         expect(report.error, isNull);
         expect(report.at.isBefore(fixtureNow), isFalse);
+        // And what the platform sets its alarm for the morning by.
+        expect(
+          await store.read(StoreKeys.morningAlarm),
+          containsPair('minute', inInclusiveRange(4 * 60, 12 * 60 - 1)),
+        );
       },
     );
 
