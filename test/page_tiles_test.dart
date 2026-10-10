@@ -27,9 +27,11 @@ void main() {
     expect(find.text('Ruhepuls'), findsOneWidget);
     await _edit(tester);
 
-    // The first minus belongs to the hero, the second to the curve of the
-    // day, the third to the resting heart rate.
-    await tester.tap(find.byTooltip('Entfernen').hitTestable().at(2));
+    // The first four belong to the hero, the curve of the day, the days
+    // before and the note; then comes the resting heart rate.
+    final minus = find.byTooltip('Entfernen', skipOffstage: false).at(4);
+    await bringIntoView(tester, minus);
+    await tester.tap(minus);
     await advance(tester);
     expect(
       app.store.documents['settings'],

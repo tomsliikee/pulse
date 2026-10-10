@@ -551,5 +551,105 @@
         "type": "String"
       }
     }
+  },
+  "heartDayAverage": "Day's average",
+  "measuredFromTo": "Measured from {a} to {b}",
+  "@measuredFromTo": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "heartFirst": "No earlier day to compare with",
+  "heartCalmer": "{bpm} bpm calmer than the days before",
+  "@heartCalmer": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartLivelier": "{bpm} bpm higher than the days before",
+  "@heartLivelier": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartUsual": "Like the days before",
+  "heartActive": "Cardio and above",
+  "atTime": "at {time}",
+  "@atTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "partsOfDay": "Parts of the day",
+  "partNight": "Night",
+  "partMorning": "Morning",
+  "partAfternoon": "Afternoon",
+  "partEvening": "Evening",
+  "compareDaysBefore": "Avg. days before",
+  "heartLastDays": "The last days",
+  "heartValues": "Values of the day",
+  "heartValuesNote": "Daily values from Health Connect, compared with your last 30 days.",
+  "noValueThisDay": "No value for this day",
+  "heartTipsTitle": "Notes for your heart",
+  "heartTipResting": "At {bpm} bpm your resting heart rate is above your usual range. Take it a little easier.",
+  "@heartTipResting": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeak": "{duration} in the peak zone. Give yourself time to recover.",
+  "@heartTipPeak": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "heartTipNoCardio": "Your pulse has not reached the cardio zone for {days} days. A brisk walk is enough.",
+  "@heartTipNoCardio": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeakNoWorkout": "Your pulse rose to {bpm} bpm with no workout recorded.",
+  "@heartTipPeakNoWorkout": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipFew": "Little was measured on this day. Wear the watch longer and the curve says more.",
+  "heartTipKeepGoing": "Your pulse is within its usual range. Keep it up.",
+  "zoneBelow": "below {bpm} bpm",
+  "@zoneBelow": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneFrom": "from {bpm} bpm",
+  "@zoneFrom": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
   }
 }

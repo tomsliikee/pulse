@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
@@ -149,6 +150,72 @@ void main() {
     await advance(tester);
     expect(_onPage(find.text('120 min')), findsOneWidget);
     expect(app.store.documents['settings'], contains('"intensityMinutes":120'));
+  });
+
+  testWidgets('the slider is felt a step at a time, firmer the further up, '
+      'and not at all while it is only held', (tester) async {
+    await pumpApp(tester);
+    await _openGoals(tester);
+    await tapInView(
+      tester,
+      find.descendant(
+        of: _onPage(find.bySemanticsLabel('Aktive Minuten')),
+        matching: find.byType(Switch),
+      ),
+    );
+    final slider = find
+        .descendant(
+          of: find.ancestor(
+            of: _onPage(find.text('30 min')),
+            matching: find.byType(Column),
+          ),
+          matching: find.byType(M3ESlider),
+        )
+        .first;
+    await bringIntoView(tester, slider);
+
+    const channel = MethodChannel('m3e_haptics/haptics');
+    final ticks = <double>[];
+    final clicks = <String>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      ticks.add((call.arguments as Map)['amplitude'] as double);
+      return null;
+    });
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        clicks.add(call.arguments as String);
+      }
+      return null;
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(channel, null);
+      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+    });
+
+    final rect = tester.getRect(slider);
+    final gesture = await tester.startGesture(
+      rect.centerLeft + const Offset(40, 0),
+    );
+    await tester.pump();
+    for (var i = 0; i < 6; i++) {
+      await gesture.moveBy(const Offset(40, 0));
+      await tester.pump();
+    }
+    expect(ticks.length, greaterThan(3));
+    expect(ticks.last, greaterThan(ticks.first));
+    expect([...ticks]..sort(), ticks);
+
+    // A finger that rests trembles; that is not a step.
+    final felt = ticks.length;
+    for (final tremor in const [0.3, -0.3, 0.2, -0.2]) {
+      await gesture.moveBy(Offset(tremor, 0));
+      await tester.pump(const Duration(milliseconds: 300));
+    }
+    expect(ticks, hasLength(felt));
+    await gesture.up();
+    await advance(tester);
+    expect(clicks, isEmpty);
   });
 
   testWidgets('with every goal switched off the tile and the page say so', (

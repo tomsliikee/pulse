@@ -93,9 +93,11 @@ Afterwards the **Good morning** tile on Today opens the cards again. One switch 
 ### Heart
 
 - **A Heart That Beats at Your Rate:** The heart on the page swells at the last measured rate, and a monitor line passes behind the figure with one spike per beat.
-- **Over the Day:** The day's heart rate as a curve from the first measurement to the last, true to time. Hold it and drag: a bar follows your finger and a pill says the rate and the time there. Tap it for the day in detail, with lowest, average and highest, the zones, and the day hour by hour.
+- **Over the Day:** The day's heart rate as a curve from the first measurement to the last, true to time. Tap it and a bar stays at that measurement, with a pill that says the rate and the time; hold and drag, and the bar follows your finger. Each step is felt, fainter for a low rate and firmer for a high one.
+- **The Day in Detail:** Tap the top of the page for the day's own page: lowest, average and highest with their times, the zones, the parts of the day, each number against the days before, hints from your own numbers, and the day hour by hour. A bar at the bottom leads to the other days that have a curve.
+- **The Days Before and the Week:** Earlier days as cards to swipe and the week's averages as bars; each opens its day.
 - **Vitals:** Resting heart rate, variability, blood pressure, oxygen saturation, respiratory rate and skin temperature, where your devices record them.
-- **Time in Zones:** Rest, light, cardio and peak.
+- **Time in Zones:** Rest, light, cardio and peak, each as its share of the measured time.
 
 ![Vitals and time in zones, a metric by week, the tiles on Today, and edit mode](readmestuff/heart.png)
 
@@ -209,7 +211,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **705** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **722** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

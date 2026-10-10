@@ -1469,5 +1469,105 @@
         "type": "String"
       }
     }
+  },
+  "heartDayAverage": "Ø Puls des Tages",
+  "measuredFromTo": "Gemessen von {a} bis {b}",
+  "@measuredFromTo": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "heartFirst": "Kein Tag davor zum Vergleichen",
+  "heartCalmer": "{bpm} bpm ruhiger als die Tage davor",
+  "@heartCalmer": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartLivelier": "{bpm} bpm höher als die Tage davor",
+  "@heartLivelier": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartUsual": "Wie an den Tagen davor",
+  "heartActive": "Cardio und mehr",
+  "atTime": "um {time}",
+  "@atTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "partsOfDay": "Tagesabschnitte",
+  "partNight": "Nacht",
+  "partMorning": "Vormittag",
+  "partAfternoon": "Nachmittag",
+  "partEvening": "Abend",
+  "compareDaysBefore": "Ø Tage davor",
+  "heartLastDays": "Die letzten Tage",
+  "heartValues": "Werte des Tages",
+  "heartValuesNote": "Tageswerte aus Health Connect, verglichen mit deinen letzten 30 Tagen.",
+  "noValueThisDay": "Kein Wert für diesen Tag",
+  "heartTipsTitle": "Hinweise für dein Herz",
+  "heartTipResting": "Dein Ruhepuls liegt mit {bpm} bpm über deinem üblichen Bereich. Nimm dir etwas Ruhe.",
+  "@heartTipResting": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeak": "{duration} in der Spitzenzone. Gönn dir danach Erholung.",
+  "@heartTipPeak": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "heartTipNoCardio": "Seit {days} Tagen kam dein Puls nicht in die Cardio-Zone. Ein zügiger Spaziergang reicht schon.",
+  "@heartTipNoCardio": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeakNoWorkout": "Dein Puls stieg auf {bpm} bpm, ohne dass ein Training aufgezeichnet ist.",
+  "@heartTipPeakNoWorkout": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipFew": "An diesem Tag wurde nur wenig gemessen. Trag die Uhr länger, dann sagt der Verlauf mehr.",
+  "heartTipKeepGoing": "Dein Puls liegt im gewohnten Rahmen. Bleib dabei.",
+  "zoneBelow": "unter {bpm} bpm",
+  "@zoneBelow": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneFrom": "ab {bpm} bpm",
+  "@zoneFrom": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
   }
 }

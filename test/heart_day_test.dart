@@ -52,7 +52,15 @@ void main() {
   });
 
   test('the summary is the lowest, the highest and the rounded mean', () {
-    expect(heartSummary(day), (low: 60, high: 150, average: 97));
+    expect(heartSummary(day), (
+      low: 60,
+      high: 150,
+      average: 97,
+      lowMinute: 420,
+      highMinute: 720,
+    ));
+    // The first time an extreme was measured counts.
+    expect(heartSummary([_at(0, 70), _at(10, 70)])?.lowMinute, 0);
     expect(heartSummary(const []), isNull);
   });
 
@@ -72,5 +80,23 @@ void main() {
     expect(hours.first.low, 60);
     expect(hours.first.high, 64);
     expect(hours.first.average, 62);
+  });
+
+  test('the quarters of the day that were measured, each with its range', () {
+    final parts = heartParts(day);
+    expect(
+      [for (final part in parts) part.part],
+      [DayPart.morning, DayPart.afternoon],
+    );
+    expect(parts.first.low, 60);
+    expect(parts.first.high, 120);
+    expect(parts.first.average, 84);
+    expect(parts.last.average, 150);
+    expect(heartParts(const []), isEmpty);
+  });
+
+  test('active are the minutes in cardio and above', () {
+    expect(activeMinutes(day), 20);
+    expect(activeMinutes([_at(0, 114)]), 0);
   });
 }

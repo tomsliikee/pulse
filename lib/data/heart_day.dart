@@ -59,18 +59,27 @@ List<int> hourMarks(int firstMinute, int lastMinute, {double edge = 0.08}) {
   return marks;
 }
 
-/// The lowest, highest and mean rate of [samples]; null without any.
-({int low, int high, int average})? heartSummary(List<HeartSample> samples) {
+/// The lowest, highest and mean rate of [samples] and the minutes of the day
+/// the extremes were first measured at; null without any.
+({int low, int high, int average, int lowMinute, int highMinute})? heartSummary(
+  List<HeartSample> samples,
+) {
   if (samples.isEmpty) return null;
-  var low = samples.first.bpm;
+  var low = samples.first;
   var high = low;
   var sum = 0;
   for (final sample in samples) {
-    if (sample.bpm < low) low = sample.bpm;
-    if (sample.bpm > high) high = sample.bpm;
+    if (sample.bpm < low.bpm) low = sample;
+    if (sample.bpm > high.bpm) high = sample;
     sum += sample.bpm;
   }
-  return (low: low, high: high, average: (sum / samples.length).round());
+  return (
+    low: low.bpm,
+    high: high.bpm,
+    average: (sum / samples.length).round(),
+    lowMinute: low.minuteOfDay,
+    highMinute: high.minuteOfDay,
+  );
 }
 
 /// The minutes spent in each zone of [heartZoneFloors].
@@ -116,3 +125,53 @@ List<HeartHour> heartHours(List<HeartSample> samples) {
         ),
   ];
 }
+
+/// The minutes at or above the rate cardio starts at.
+int activeMinutes(List<HeartSample> samples) {
+  final minutes = zoneMinutes(samples);
+  return minutes[2] + minutes[3];
+}
+
+/// The quarters of a day.
+enum DayPart {
+  night(0),
+  morning(6),
+  afternoon(12),
+  evening(18);
+
+  const DayPart(this.fromHour);
+
+  /// The hour it starts at; it lasts six.
+  final int fromHour;
+}
+
+/// One quarter of a day's heart rate.
+class HeartPart {
+  const HeartPart({
+    required this.part,
+    required this.low,
+    required this.high,
+    required this.average,
+  });
+
+  final DayPart part;
+  final int low;
+  final int high;
+  final int average;
+}
+
+/// The quarters of the day that have samples, in order.
+List<HeartPart> heartParts(List<HeartSample> samples) => [
+  for (final part in DayPart.values)
+    if (heartSummary([
+          for (final sample in samples)
+            if (sample.minuteOfDay ~/ 360 == part.index) sample,
+        ])
+        case final summary?)
+      HeartPart(
+        part: part,
+        low: summary.low,
+        high: summary.high,
+        average: summary.average,
+      ),
+];

@@ -21,9 +21,9 @@ class DaySwitcher extends StatefulWidget {
     required this.today,
     required this.selected,
     required this.earlier,
-    required this.allLabel,
     required this.onSelected,
-    required this.onAll,
+    this.allLabel,
+    this.onAll,
     this.glass = false,
   });
 
@@ -33,10 +33,11 @@ class DaySwitcher extends StatefulWidget {
   /// The days before yesterday that the pills offer, newest first.
   final List<DateTime> earlier;
 
-  /// The last pill, which leads to every day.
-  final String allLabel;
+  /// The last pill, which leads to every day. Left out, like [onAll], where
+  /// there is no list of them.
+  final String? allLabel;
   final ValueChanged<DateTime> onSelected;
-  final VoidCallback onAll;
+  final VoidCallback? onAll;
   final bool glass;
 
   /// How many days the pills list.
@@ -187,22 +188,24 @@ class _DaySwitcherState extends State<DaySwitcher> {
             ],
           ],
         ),
-      _Pill(
-        glass: widget.glass,
-        color: scheme.primary,
-        onTap: () {
-          _close();
-          widget.onAll();
-        },
-        children: [
-          Text(
-            widget.allLabel,
-            style: style?.copyWith(color: scheme.onPrimary),
-          ),
-          const SizedBox(width: 4),
-          Icon(Icons.chevron_right_rounded, size: 18, color: scheme.onPrimary),
-        ],
-      ),
+      if ((widget.allLabel, widget.onAll) case (final allLabel?, final onAll?))
+        _Pill(
+          glass: widget.glass,
+          color: scheme.primary,
+          onTap: () {
+            _close();
+            onAll();
+          },
+          children: [
+            Text(allLabel, style: style?.copyWith(color: scheme.onPrimary)),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: scheme.onPrimary,
+            ),
+          ],
+        ),
     ];
     final still = MediaQuery.disableAnimationsOf(context);
     return IgnorePointer(

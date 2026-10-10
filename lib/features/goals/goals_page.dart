@@ -674,10 +674,14 @@ class _GoalSetting extends StatelessWidget {
               min: goal.min,
               max: goal.max,
               divisions: ((goal.max - goal.min) / goal.step).round(),
-              onChanged: (next) {
-                if (next != target) Haptics.selection();
-                settings.setGoalTarget(goal, next);
-              },
+              // The slider ticks itself, a step at a time and firmer the
+              // further up it is; the value it reports changes with every
+              // tremor of a resting finger.
+              decoration: const M3ESliderDecoration(
+                haptic: M3EHapticFeedback.light,
+                hapticConfig: Haptics.slider,
+              ),
+              onChanged: (next) => settings.setGoalTarget(goal, next),
             ),
           ),
         ),

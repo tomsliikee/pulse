@@ -6,6 +6,8 @@ import 'package:pulse/features/activity/workout_detail_page.dart';
 import 'package:pulse/features/activity/workout_scene.dart';
 import 'package:pulse/features/activity/workout_tiles.dart';
 import 'package:pulse/features/heart/heart_scene.dart';
+import 'package:pulse/widgets/board_page.dart';
+import 'package:pulse/features/heart/heart_tiles.dart';
 import 'package:pulse/features/sleep/night_tiles.dart';
 import 'package:pulse/features/sleep/sleep_scene.dart';
 import 'package:pulse/features/today/day_detail_page.dart';
@@ -359,7 +361,10 @@ void main() {
     testWidgets('Herz has a scene in its first tile, and gives it to the '
         'page when asked', (tester) async {
       Finder inCard() => find.descendant(
-        of: find.byType(TileSurface),
+        of: find.descendant(
+          of: find.byType(HeartDayCard),
+          matching: find.byType(TileSurface),
+        ),
         matching: find.byType(HeartScene),
       );
       await pumpApp(tester);
@@ -371,7 +376,12 @@ void main() {
       await pumpApp(tester, store: _settings('{"edgeToEdgeHero":true}'));
       await open(tester, 'Herz');
       expect(inCard(), findsNothing);
-      final rect = tester.getRect(find.byType(HeartScene));
+      final rect = tester.getRect(
+        find.descendant(
+          of: find.byType(FadingBackdrop),
+          matching: find.byType(HeartScene),
+        ),
+      );
       expect(rect.top, 0);
       expect(rect.width, 412);
 
@@ -387,11 +397,25 @@ void main() {
       expect(find.text('Tagesverlauf'), findsOneWidget);
       expect(find.byType(LineChart), findsOneWidget);
       expect(find.text('75'), findsOneWidget);
-      expect(find.text('55 bis 86 bpm'), findsOneWidget);
-      expect(find.text('Zuletzt um 15:00'), findsOneWidget);
+      final hero = find.byType(HeartDayCard);
+      Finder inHero(String text) =>
+          find.descendant(of: hero, matching: find.text(text));
+      expect(inHero('55 bis 86 bpm'), findsOneWidget);
+      expect(inHero('Zuletzt um 15:00'), findsOneWidget);
+      expect(inHero('Gemessen von 00:00 bis 15:00'), findsOneWidget);
       // The zones are segments, the one with the most time the loud one.
-      final zones = find.byType(SegmentGroup, skipOffstage: false);
-      expect(tester.widget<SegmentGroup>(zones).loud, 1);
+      final zones = find.byType(HeartZones, skipOffstage: false);
+      expect(
+        tester
+            .widget<SegmentGroup>(
+              find.descendant(
+                of: zones,
+                matching: find.byType(SegmentGroup, skipOffstage: false),
+              ),
+            )
+            .loud,
+        1,
+      );
     });
 
     testWidgets('Aktivität has the workouts before the latest as cards to '

@@ -551,5 +551,105 @@
         "type": "String"
       }
     }
+  },
+  "heartDayAverage": "Średnia dnia",
+  "measuredFromTo": "Pomiary od {a} do {b}",
+  "@measuredFromTo": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
+  "heartFirst": "Brak wcześniejszego dnia do porównania",
+  "heartCalmer": "O {bpm} bpm spokojniej niż w poprzednich dniach",
+  "@heartCalmer": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartLivelier": "O {bpm} bpm wyżej niż w poprzednich dniach",
+  "@heartLivelier": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartUsual": "Jak w poprzednich dniach",
+  "heartActive": "Cardio i wyżej",
+  "atTime": "o {time}",
+  "@atTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "partsOfDay": "Pory dnia",
+  "partNight": "Noc",
+  "partMorning": "Przedpołudnie",
+  "partAfternoon": "Popołudnie",
+  "partEvening": "Wieczór",
+  "compareDaysBefore": "Ø dni wcześniej",
+  "heartLastDays": "Ostatnie dni",
+  "heartValues": "Wartości dnia",
+  "heartValuesNote": "Wartości dzienne z Health Connect, porównane z ostatnimi 30 dniami.",
+  "noValueThisDay": "Brak wartości dla tego dnia",
+  "heartTipsTitle": "Wskazówki dla serca",
+  "heartTipResting": "Tętno spoczynkowe {bpm} bpm jest powyżej twojego zwykłego zakresu. Daj sobie trochę odpoczynku.",
+  "@heartTipResting": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeak": "{duration} w strefie szczytowej. Daj sobie czas na regenerację.",
+  "@heartTipPeak": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "heartTipNoCardio": "Od {days} dni tętno nie weszło w strefę cardio. Wystarczy szybki spacer.",
+  "@heartTipNoCardio": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipPeakNoWorkout": "Tętno wzrosło do {bpm} bpm, a nie zapisano treningu.",
+  "@heartTipPeakNoWorkout": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "heartTipFew": "Tego dnia zmierzono niewiele. Noś zegarek dłużej, a wykres powie więcej.",
+  "heartTipKeepGoing": "Tętno mieści się w zwykłym zakresie. Tak trzymaj.",
+  "zoneBelow": "poniżej {bpm} bpm",
+  "@zoneBelow": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
+  },
+  "zoneFrom": "od {bpm} bpm",
+  "@zoneFrom": {
+    "placeholders": {
+      "bpm": {
+        "type": "int"
+      }
+    }
   }
 }
