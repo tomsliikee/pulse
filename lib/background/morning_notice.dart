@@ -12,10 +12,17 @@ import '../l10n/generated/app_localizations.dart';
 /// What the morning's notification says.
 typedef MorningNotice = ({String title, String body});
 
+/// When the morning is said without a night, where the nights before do not
+/// tell when this person gets up.
+const int _plainWakeMinute = 7 * 60;
+
 /// The notification for the morning of [now], or null when none is due:
-/// switched off, no night for today yet, the morning over, already said
-/// today, or the cards already seen in the app. [settings] and [state] are
-/// the stored documents; [language] is the system's.
+/// switched off, the morning not begun or over, already said today, or the
+/// cards already seen in the app. With the night of today it tells of it;
+/// without, it only greets, from the time the nights before usually ended:
+/// the watch may write the night long after getting up, and the cards read
+/// it when they open. [settings] and [state] are the stored documents;
+/// [language] is the system's.
 MorningNotice? morningNoticeFor({
   required Object? settings,
   required Object? state,
@@ -31,9 +38,13 @@ MorningNotice? morningNoticeFor({
     return null;
   }
   final window = morningWindow(nights, now);
-  // Without the night there is nothing to say yet; the next run looks again.
-  if (!window.fromNight || !window.holds(now)) return null;
-  final night = nightOn(nights, DateTime(now.year, now.month, now.day))!;
+  if (!window.holds(now)) return null;
+  final night = nightOn(nights, DateTime(now.year, now.month, now.day));
+  if (night == null) {
+    final usual = usualWakeMinute(nights, now) ?? _plainWakeMinute;
+    // Still asleep, as far as anyone knows; the next run looks again.
+    if (now.hour * 60 + now.minute < usual) return null;
+  }
   final goal = switch (settings) {
     {'sleepGoalHours': final num hours} when hours >= 1 && hours <= 16 =>
       hours.toDouble(),
@@ -48,10 +59,12 @@ MorningNotice? morningNoticeFor({
       final name? => l10n.morningGreetingName(name),
       null => l10n.morningTitle,
     },
-    body: l10n.morningNoticeBody(
-      _duration(l10n, night.asleepMinutes),
-      '${sleepScore(night, goal, nights).total}',
-    ),
+    body: night == null
+        ? l10n.morningNoticePlain
+        : l10n.morningNoticeBody(
+            _duration(l10n, night.asleepMinutes),
+            '${sleepScore(night, goal, nights).total}',
+          ),
   );
 }
 

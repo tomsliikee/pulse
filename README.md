@@ -58,7 +58,7 @@ The screenshots on this page show sample data.
 
 ### Good Morning
 
-Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. Once the night has arrived from your watch, the hourly refresh also sends a **notification**.
+Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. They begin with a **sunrise**, behind which Pulse reads what your watch wrote since, so the night is there when the cards come. Around the time you usually get up, the hourly refresh also sends a **notification**; it tells of the night where it has already arrived.
 
 - **Greeting:** A morning scene whose sky shows the weather, your name, and one sentence on how hard the day should be: **easy**, **normal** or **demanding**.
 - **Last Night:** Sleep score, time asleep and the stages. While the watch has not synced, the card says so.
@@ -208,7 +208,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **595** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **675** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

@@ -1442,7 +1442,9 @@
   "placeNoResults": "Nichts gefunden.",
   "placeRemove": "Ort entfernen",
   "placeNote": "Suche und Wetter kommen von Open-Meteo.com. Erst mit einem Ort nutzt Pulse das Internet, und nur dafür.",
-  "morningSwitchNote": "Eine Übersicht am Morgen: beim ersten Öffnen und als Benachrichtigung, sobald die Nacht da ist.",
+  "morningSwitchNote": "Eine Übersicht am Morgen: beim ersten Öffnen und als Benachrichtigung um die Zeit, zu der du sonst aufstehst.",
+  "morningSyncing": "Deine Nacht wird geladen …",
+  "morningNoticePlain": "Dein Morgen wartet. Tippen zum Öffnen.",
   "morningNoticeBody": "{duration} geschlafen · Schlaf-Score {score}",
   "@morningNoticeBody": {
     "placeholders": {

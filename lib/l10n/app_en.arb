@@ -534,6 +534,8 @@
   "placeNoResults": "Nothing found.",
   "placeRemove": "Remove the place",
   "placeNote": "Search and weather come from Open-Meteo.com. Pulse uses the internet only once a place is set, and only for this.",
-  "morningSwitchNote": "An overview in the morning: when you first open the app and as a notification once the night is there.",
+  "morningSwitchNote": "An overview in the morning: when you first open the app and as a notification around the time you usually get up.",
+  "morningSyncing": "Loading your night …",
+  "morningNoticePlain": "Your morning is ready. Tap to open.",
   "morningNoticeBody": "Slept {duration} · sleep score {score}"
 }

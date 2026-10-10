@@ -6,6 +6,30 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/weather.dart';
 import '../../widgets/scene_kit.dart';
 
+/// What the morning's pictures share: the dawn is warm under any theme; the
+/// theme only tints the land.
+abstract final class Dawn {
+  static const Color high = Color(0xFF8FB8E8);
+  static const Color low = Color(0xFFFFD9A8);
+  static const Color sunlight = Color(0xFFFFC55A);
+
+  /// The far hills over the whole width, from their crest down to the lower
+  /// edge. [ground] is where the land in front begins, [u] the unit.
+  static Path hills(Size size, double ground, double u) {
+    final hills = Path()..moveTo(0, ground);
+    for (var x = 0.0; x <= size.width; x += 6) {
+      hills.lineTo(
+        x,
+        ground - (9 + 6 * math.sin(x / size.width * 2 * math.pi * 1.5 + 1)) * u,
+      );
+    }
+    return hills
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+}
+
 /// The morning: the sun comes up behind the hills and the figure of the
 /// other scenes stretches. The sky shows the weather of the day, where the
 /// app knows it; without it the morning is clear.
@@ -41,10 +65,6 @@ class _MorningPainter extends CustomPainter {
 
   static const double _tau = 2 * math.pi;
 
-  /// The dawn is warm under any theme; the theme only tints the land.
-  static const Color _high = Color(0xFF8FB8E8);
-  static const Color _low = Color(0xFFFFD9A8);
-  static const Color _sunlight = Color(0xFFFFC55A);
   static const Color _grey = Color(0xFF9AA3B2);
 
   /// How much of the sky the clouds take, from 0 to 1.
@@ -64,8 +84,8 @@ class _MorningPainter extends CustomPainter {
     final cover = _cover;
 
     // An overcast morning is greyer from top to bottom.
-    final top = Color.lerp(_high, _grey, cover * 0.7)!;
-    final bottom = Color.lerp(_low, const Color(0xFFD5D9E0), cover * 0.75)!;
+    final top = Color.lerp(Dawn.high, _grey, cover * 0.7)!;
+    final bottom = Color.lerp(Dawn.low, const Color(0xFFD5D9E0), cover * 0.75)!;
     canvas.drawRect(
       Offset.zero & size,
       Paint()
@@ -85,31 +105,20 @@ class _MorningPainter extends CustomPainter {
       ..drawCircle(
         sun,
         30 * u,
-        Paint()..color = _sunlight.withValues(alpha: 0.22 * glow),
+        Paint()..color = Dawn.sunlight.withValues(alpha: 0.22 * glow),
       )
       ..drawCircle(
         sun,
         13 * u,
-        Paint()..color = Color.lerp(_sunlight, Colors.white, cover * 0.6)!,
+        Paint()..color = Color.lerp(Dawn.sunlight, Colors.white, cover * 0.6)!,
       );
 
     _clouds(canvas, size, u, time, cover);
 
     // Far hills, then the ground the figure stands on.
-    final hills = Path()..moveTo(0, ground);
-    for (var x = 0.0; x <= size.width; x += 6) {
-      hills.lineTo(
-        x,
-        ground - (9 + 6 * math.sin(x / size.width * _tau * 1.5 + 1)) * u,
-      );
-    }
-    hills
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
     canvas
       ..drawPath(
-        hills,
+        Dawn.hills(size, ground, u),
         Paint()..color = Color.lerp(scheme.primaryContainer, bottom, 0.35)!,
       )
       ..drawRect(

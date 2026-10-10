@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse/background/morning_notice.dart';
 import 'package:pulse/data/health_history.dart';
@@ -6,6 +8,7 @@ import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/morning.dart';
 import 'package:pulse/data/recovery.dart';
+import 'package:pulse/l10n/generated/app_localizations.dart';
 
 import 'support/fixtures.dart';
 
@@ -212,6 +215,45 @@ void main() {
     });
   });
 
+  group('the usual time of getting up', () {
+    List<SleepNight> ending(List<int> wakes) => [
+      for (final (i, wake) in wakes.indexed)
+        _night(
+          wakeMinute: wake,
+          date: DateTime(_day.year, _day.month, _day.day - wakes.length + i),
+        ),
+    ];
+
+    test('is the median of the nights before', () {
+      expect(usualWakeMinute(ending([400, 700, 420, 410, 430]), _at(5)), 420);
+    });
+
+    test('needs three nights', () {
+      expect(usualWakeMinute(ending([400, 420]), _at(5)), isNull);
+      expect(usualWakeMinute(ending([400, 420, 440]), _at(5)), 420);
+    });
+
+    test('leaves out the night of today and all but the last fourteen', () {
+      expect(
+        usualWakeMinute([
+          ...ending([400, 420, 440]),
+          _night(wakeMinute: 600),
+        ], _at(11)),
+        420,
+      );
+      expect(
+        usualWakeMinute(
+          ending([
+            for (var i = 0; i < 10; i++) 300,
+            for (var i = 0; i < 14; i++) 480,
+          ]),
+          _at(5),
+        ),
+        480,
+      );
+    });
+  });
+
   group('the notification', () {
     MorningNotice? notice({
       Object? settings = const <String, Object?>{},
@@ -244,11 +286,52 @@ void main() {
       expect(notice(language: 'fr')!.title, 'Good morning');
     });
 
-    test('waits for the night and ends with the morning', () {
-      expect(notice(nights: []), isNull);
+    test('begins when the night ended and ends with the morning', () {
       expect(notice(now: _at(6, 30)), isNull);
       expect(notice(now: _at(9, 39)), isNotNull);
       expect(notice(now: _at(9, 40)), isNull);
+    });
+
+    test('without the night it only greets, from seven', () {
+      expect(notice(nights: [], now: _at(6, 59)), isNull);
+      expect(notice(nights: [], now: _at(7)), (
+        title: 'Guten Morgen',
+        body: 'Dein Morgen wartet. Tippen zum Öffnen.',
+      ));
+      expect(notice(nights: [], now: _at(11, 59)), isNotNull);
+      expect(notice(nights: [], now: _at(12)), isNull);
+      for (final language in ['en', 'pl']) {
+        expect(
+          notice(nights: [], language: language)!.body,
+          lookupAppLocalizations(Locale(language)).morningNoticePlain,
+        );
+      }
+    });
+
+    test('without the night it waits for the usual time of getting up', () {
+      final before = [
+        for (final (back, wake) in [(3, 8 * 60), (2, 8 * 60 + 30), (1, 9 * 60)])
+          _night(
+            wakeMinute: wake,
+            date: DateTime(_day.year, _day.month, _day.day - back),
+          ),
+      ];
+      expect(notice(nights: before, now: _at(8, 29)), isNull);
+      expect(notice(nights: before, now: _at(8, 30)), isNotNull);
+      // The night that came in is told of, whenever it ended.
+      expect(
+        notice(nights: [...before, _night()], now: _at(7))!.body,
+        contains('Schlaf-Score'),
+      );
+    });
+
+    test('without the night it is said once, and not after the cards', () {
+      expect(notice(nights: [], state: {'notified': dayKey(_day)}), isNull);
+      expect(
+        notice(nights: [], settings: {'morningSeen': dayKey(_day)}),
+        isNull,
+      );
+      expect(notice(nights: [], settings: {'morningBrief': false}), isNull);
     });
 
     test('is said once a day, and not after the cards were seen', () {

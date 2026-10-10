@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -12,6 +14,7 @@ import '../../theme/page_accent.dart';
 import '../goals/goal_format.dart';
 import '../today/day_format.dart';
 import 'morning_cards.dart';
+import 'morning_sunrise.dart';
 
 /// Opens the morning's cards: out of the tile at [origin], or from below
 /// when the app opens them by itself.
@@ -36,8 +39,9 @@ void openMorning(BuildContext context, {Rect? origin}) {
 class MorningPage extends StatefulWidget {
   const MorningPage({super.key, this.byItself = false});
 
-  /// Whether the app opened the page, and not a tap on the tile. Leaving
-  /// it then asks once for the consent to the morning's notification.
+  /// Whether the app opened the page, and not a tap on the tile. It then
+  /// begins with the sunrise, behind which the night is read, and leaving it
+  /// asks once for the consent to the morning's notification.
   final bool byItself;
 
   @override
@@ -48,8 +52,57 @@ class _MorningPageState extends State<MorningPage> {
   final PageController _pages = PageController();
   int _index = 0;
 
+  /// The longest the cards wait for the read behind the sunrise.
+  static const Duration _waitsAtMost = Duration(seconds: 15);
+
+  bool _risen = false;
+  bool _synced = false;
+  bool _begun = false;
+  Timer? _patience;
+
+  /// Whether the cards show: at once after a tap on the tile, else when the
+  /// sun is up and the night is read.
+  bool get _ready => !widget.byItself || (_risen && _synced);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_begun || !widget.byItself) return;
+    _begun = true;
+    _patience = Timer(_waitsAtMost, () {
+      if (mounted) {
+        setState(() {
+          _risen = true;
+          _synced = true;
+        });
+      }
+    });
+    unawaited(_sync());
+  }
+
+  /// Waits for what the watch wrote since the last read: the morning opens
+  /// on the snapshot of the last run, which seldom holds the night.
+  Future<void> _sync() async {
+    final health = AppScope.of(context).health;
+    if (health.refreshing) {
+      // The read of the start or of the return to the app is on its way.
+      final done = Completer<void>();
+      void listen() {
+        if (!health.refreshing && !done.isCompleted) done.complete();
+      }
+
+      health.addListener(listen);
+      await done.future.timeout(_waitsAtMost, onTimeout: () {});
+      health.removeListener(listen);
+    } else {
+      await health.refreshIfStale();
+    }
+    if (mounted) setState(() => _synced = true);
+  }
+
   @override
   void dispose() {
+    _patience?.cancel();
     if (widget.byItself) MorningNotices.allow();
     _pages.dispose();
     super.dispose();
@@ -111,83 +164,124 @@ class _MorningPageState extends State<MorningPage> {
     return PageAccent.day(
       child: Scaffold(
         backgroundColor: scheme.surfaceContainer,
-        body: SafeArea(
-          child: ListenableBuilder(
-            listenable: Listenable.merge([
-              scope.health,
-              scope.settings,
-              scope.weather,
-            ]),
-            builder: (context, _) {
-              final l10n = Formats.of(context).l10n;
-              final cards = _cards(context);
-              // A card may go while the page is open, such as the weather's.
-              final index = _index.clamp(0, cards.length - 1);
-              final last = index == cards.length - 1;
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Row(
-                            spacing: 6,
-                            children: [
-                              for (var i = 0; i < cards.length; i++)
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 250),
-                                  curve: Curves.easeOutCubic,
-                                  width: i == index ? 24 : 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: i == index
-                                        ? scheme.primary
-                                        : scheme.outlineVariant,
-                                    borderRadius: BorderRadius.circular(4),
+        body: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 500),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: _ready
+              ? SafeArea(
+                  key: const ValueKey('cards'),
+                  child: ListenableBuilder(
+                    listenable: Listenable.merge([
+                      scope.health,
+                      scope.settings,
+                      scope.weather,
+                    ]),
+                    builder: (context, _) {
+                      final l10n = Formats.of(context).l10n;
+                      final cards = _cards(context);
+                      // A card may go while the page is open, such as the weather's.
+                      final index = _index.clamp(0, cards.length - 1);
+                      final last = index == cards.length - 1;
+                      return Column(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Row(
+                                    spacing: 6,
+                                    children: [
+                                      for (var i = 0; i < cards.length; i++)
+                                        AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 250,
+                                          ),
+                                          curve: Curves.easeOutCubic,
+                                          width: i == index ? 24 : 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: i == index
+                                                ? scheme.primary
+                                                : scheme.outlineVariant,
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
-                            ],
+                                IconButton(
+                                  onPressed: () =>
+                                      Navigator.of(context).maybePop(),
+                                  tooltip: l10n.close,
+                                  icon: const Icon(Icons.close_rounded),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: PageView(
+                              controller: _pages,
+                              onPageChanged: (index) {
+                                Haptics.selection();
+                                setState(() => _index = index);
+                              },
+                              children: cards,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: M3EFilledButton(
+                                size: M3EButtonSize.md,
+                                onPressed: last
+                                    ? () => Navigator.of(context).maybePop()
+                                    : () => _pages.nextPage(
+                                        duration: const Duration(
+                                          milliseconds: 350,
+                                        ),
+                                        curve: Curves.easeInOutCubicEmphasized,
+                                      ),
+                                child: Text(
+                                  last ? l10n.morningDone : l10n.morningNext,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                )
+              : Stack(
+                  key: const ValueKey('sunrise'),
+                  fit: StackFit.expand,
+                  children: [
+                    MorningSunrise(
+                      name: scope.settings.name,
+                      syncing: !_synced,
+                      onRisen: () => setState(() => _risen = true),
+                    ),
+                    SafeArea(
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8),
+                          // Filled: the sky behind goes from dark to light.
+                          child: IconButton.filledTonal(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            tooltip: Formats.of(context).l10n.close,
+                            icon: const Icon(Icons.close_rounded),
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).maybePop(),
-                          tooltip: l10n.close,
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: PageView(
-                      controller: _pages,
-                      onPageChanged: (index) {
-                        Haptics.selection();
-                        setState(() => _index = index);
-                      },
-                      children: cards,
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: M3EFilledButton(
-                        size: M3EButtonSize.md,
-                        onPressed: last
-                            ? () => Navigator.of(context).maybePop()
-                            : () => _pages.nextPage(
-                                duration: const Duration(milliseconds: 350),
-                                curve: Curves.easeInOutCubicEmphasized,
-                              ),
-                        child: Text(last ? l10n.morningDone : l10n.morningNext),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
-          ),
+                  ],
+                ),
         ),
       ),
     );

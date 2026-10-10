@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'day_insights.dart';
+import 'health_history.dart' show dayKey;
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'recovery.dart';
@@ -41,6 +42,26 @@ MorningWindow morningWindow(List<SleepNight> nights, DateTime now) {
   }
   final woke = today.add(Duration(minutes: night.wakeMinute));
   return MorningWindow(woke, woke.add(morningLasts), fromNight: true);
+}
+
+/// Nights that say when this person usually gets up.
+const int _wakeNights = 14;
+const int _wakeNightsAtLeast = 3;
+
+/// The minute of the day at which the nights before the day of [now] usually
+/// ended: the median of the last fourteen of [nights] (oldest first). Null
+/// where fewer than three are known.
+int? usualWakeMinute(List<SleepNight> nights, DateTime now) {
+  final today = dayKey(now);
+  final wakes = <int>[];
+  for (final night in nights.reversed) {
+    if (dayKey(night.date) >= today) continue;
+    wakes.add(night.wakeMinute);
+    if (wakes.length == _wakeNights) break;
+  }
+  if (wakes.length < _wakeNightsAtLeast) return null;
+  wakes.sort();
+  return wakes[wakes.length ~/ 2];
 }
 
 /// The readings of a night that are worth a word when they are unusual.

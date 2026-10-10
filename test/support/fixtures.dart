@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -106,6 +107,9 @@ class FixtureRepository implements HealthRepository {
   HealthAccess currentAccess;
   RawReadings readings;
   bool failLoads = false;
+
+  /// Holds every [load] back until it completes, as a slow store does.
+  Completer<void>? gate;
   bool background = false;
 
   /// Whether the store lets older data be read, and what it then returns.
@@ -159,6 +163,7 @@ class FixtureRepository implements HealthRepository {
     int? maxHeartRate,
   }) async {
     if (failLoads) throw const FormatException('store unavailable');
+    await gate?.future;
     loadedWith.add(previous);
     maxHeartRates.add(maxHeartRate);
     return buildSnapshot(now: now, raw: readings, maxHeartRate: maxHeartRate);
