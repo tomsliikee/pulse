@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../background/morning_notice.dart';
+import '../background/week_notice.dart';
 import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
 import '../data/settings_controller.dart';
 import '../data/weather.dart';
 import '../data/weather_controller.dart';
+import '../features/week/week_page.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_type.dart';
@@ -63,6 +65,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   );
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
   final FrameLog _frames = FrameLog();
+  final GlobalKey<NavigatorState> _navigator = GlobalKey();
 
   @override
   void initState() {
@@ -83,10 +86,25 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _palette.addListener(() => _frames.mark('palette'));
     _health.addListener(_keepMorningAlarm);
     _settings.addListener(_keepMorningAlarm);
+    // The alarms speak the app's language, which Android may keep itself.
+    _language.addListener(_keepMorningAlarm);
     _settings.load();
     _language.refresh();
     _health.start();
     _loadPalette();
+    _openNotice();
+  }
+
+  /// Opens the page a tapped notification was about. The morning's needs
+  /// none: its cards open by themselves on the Today page.
+  Future<void> _openNotice() async {
+    if (await MorningNotices.opened() != 'week' || !mounted) return;
+    // Not before the first frame has built the navigator.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _navigator.currentState?.push(
+        MaterialPageRoute<void>(builder: (_) => const WeekPage()),
+      );
+    });
   }
 
   @override
@@ -99,6 +117,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       _health.refreshIfStale();
       _weather.refresh();
       _loadPalette();
+      _openNotice();
     }
   }
 
@@ -112,8 +131,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   bool _alarmAgain = false;
   bool _alarmSet = false;
 
-  /// Keeps the alarm for the morning in step with the nights, the name, the
-  /// language and the switch. One at a time: both listeners call often.
+  /// Keeps the alarms for the morning and for the week's report in step
+  /// with the nights, the name, the language, the goals and the switches. One at a time: both listeners call often.
   Future<void> _keepMorningAlarm() async {
     if (!_settings.loaded || _health.refreshing) return;
     if (_alarmBusy) {
@@ -134,9 +153,27 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         language:
             WidgetsBinding.instance.platformDispatcher.locale.languageCode,
       );
+      final weekChanged = await leaveWeekAlarm(
+        widget.store,
+        settings: {
+          'weekReport': _settings.weekReport,
+          'language': _settings.language,
+          'stepGoal': _settings.stepGoal,
+          'activeEnergyGoal': _settings.activeEnergyGoal,
+          'waterGoalMl': _settings.waterGoalMl,
+          'sleepGoalHours': _settings.sleepGoalHours,
+        },
+        valueOf: _health.valueOn,
+        nights: _health.nights,
+        now: widget.clock(),
+        language:
+            WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+      );
       // Once in every start as well: an alarm does not outlive everything
       // that can happen to the app while it is closed.
-      if (changed || !_alarmSet) await MorningNotices.schedule();
+      if (changed || weekChanged || !_alarmSet) {
+        await MorningNotices.schedule();
+      }
       _alarmSet = true;
     } finally {
       _alarmBusy = false;
@@ -180,6 +217,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
           final style = _settings.colorStyle;
           final language = _language.forced;
           return MaterialApp(
+            navigatorKey: _navigator,
             navigatorObservers: [appRouteObserver],
             onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
             locale: language == null ? null : Locale(language),

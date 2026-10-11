@@ -12,6 +12,7 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/morning.dart';
 import '../../data/settings_controller.dart';
+import '../../data/week_report.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
@@ -27,7 +28,9 @@ import '../sleep/night_tiles.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
+import '../links/links_tile.dart';
 import '../morning/morning_tile.dart';
+import '../week/week_tile.dart';
 import 'day_format.dart';
 import 'day_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -54,6 +57,10 @@ bool todayTileAvailable(
       return settings.morningBrief &&
           (settings.morningTileAllDay ||
               morningWindow(health.nights, health.now).holds(health.now));
+    case weekTileId:
+      return settings.weekReport && weekTileShown(health.now);
+    case linksTileId:
+      return true;
     case nightTileId:
       return health.latestNight != null;
     case workoutTileId:
@@ -73,6 +80,8 @@ String todayTileTitle(AppLocalizations l10n, String id) =>
       null => switch (id) {
         dayTileId => l10n.dayTileTitle,
         morningTileId => l10n.morningTitle,
+        weekTileId => l10n.weekTitle,
+        linksTileId => l10n.linksTitle,
         tipsTileId => l10n.dayTipsTitle,
         nightTileId => l10n.lastNight,
         goalsTileId => l10n.goals,
@@ -118,6 +127,22 @@ BoardTile? buildTodayTile(
           entersInPlace: true,
           onRemove: remove,
           child: const MorningTile(),
+        );
+      case weekTileId:
+        return BoardTile(
+          id: id,
+          height: WeekTile.height,
+          entersInPlace: true,
+          onRemove: remove,
+          child: const WeekTile(),
+        );
+      case linksTileId:
+        return BoardTile(
+          id: id,
+          height: LinksTile.height,
+          entersInPlace: true,
+          onRemove: remove,
+          child: const LinksTile(),
         );
       case dayTileId:
         return BoardTile(

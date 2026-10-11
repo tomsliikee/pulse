@@ -26,6 +26,11 @@ const String daysTileId = 'recentDays';
 /// The Today tile that says good morning and opens the morning's cards.
 const String morningTileId = 'morning';
 
+/// The Today tile that says the week's report is ready, and the one that
+/// leads to what goes together in the user's numbers.
+const String weekTileId = 'week';
+const String linksTileId = 'links';
+
 /// The tiles that came with the reworked Today page, and where they go on a
 /// page that was arranged before: these to the top, in this order.
 const List<String> _dayTilesOnTop = [
@@ -37,7 +42,7 @@ const List<String> _dayTilesOnTop = [
 
 /// Counts the changes to what a saved [SettingsController.todayTiles]
 /// means; see [SettingsController.load].
-const int _todayTilesVersion = 3;
+const int _todayTilesVersion = 4;
 
 /// A tile of the Today page is named by its metric, or is one of the tiles
 /// that show no single measurement.
@@ -45,6 +50,8 @@ bool isTodayTileId(String id) =>
     id == workoutTileId ||
     id == daysTileId ||
     id == morningTileId ||
+    id == weekTileId ||
+    id == linksTileId ||
     _dayTilesOnTop.contains(id) ||
     Metric.byName(id) != null;
 
@@ -63,7 +70,9 @@ final List<String> defaultTodayTiles = List.unmodifiable([
   // the page.
   dayTileId,
   morningTileId,
+  weekTileId,
   ..._dayTilesOnTop.skip(1),
+  linksTileId,
   workoutTileId,
   Metric.steps.name,
   Metric.heartRate.name,
@@ -182,6 +191,7 @@ class SettingsController extends ChangeNotifier {
   Place? _place;
   bool _morningBrief = true;
   bool _morningTileAllDay = false;
+  bool _weekReport = true;
   bool _fineValues = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
@@ -223,6 +233,10 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the app says good morning by itself.
   bool get morningBrief => _morningBrief;
+
+  /// Whether the app says on Sunday evening that the week's report is
+  /// ready: with a tile on the Today page and a notification.
+  bool get weekReport => _weekReport;
 
   /// Whether the Today page keeps the morning's tile after the morning.
   bool get morningTileAllDay => _morningTileAllDay;
@@ -320,6 +334,7 @@ class SettingsController extends ChangeNotifier {
     _place = Place.fromJson(json['place']) ?? _place;
     if (json['morningBrief'] case final bool v) _morningBrief = v;
     if (json['morningTileAllDay'] case final bool v) _morningTileAllDay = v;
+    if (json['weekReport'] case final bool v) _weekReport = v;
     if (json['fineValues'] case final bool v) _fineValues = v;
     if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
@@ -369,6 +384,22 @@ class SettingsController extends ChangeNotifier {
           !_todayTiles.contains(morningTileId)) {
         final at = _todayTiles.firstOrNull == dayTileId ? 1 : 0;
         _todayTiles = [..._todayTiles]..insert(at, morningTileId);
+      }
+      // The week's tile and the connections came after that: the first
+      // below the morning's, the second below the goals or at the end.
+      if (version is! int || version < 4) {
+        if (!_todayTiles.contains(weekTileId)) {
+          final morning = _todayTiles.indexOf(morningTileId);
+          final at = morning >= 0
+              ? morning + 1
+              : (_todayTiles.firstOrNull == dayTileId ? 1 : 0);
+          _todayTiles = [..._todayTiles]..insert(at, weekTileId);
+        }
+        if (!_todayTiles.contains(linksTileId)) {
+          final goals = _todayTiles.indexOf(goalsTileId);
+          _todayTiles = [..._todayTiles]
+            ..insert(goals >= 0 ? goals + 1 : _todayTiles.length, linksTileId);
+        }
       }
     }
     if (json['largeTiles'] case final List<Object?> ids) {
@@ -460,6 +491,8 @@ class SettingsController extends ChangeNotifier {
 
   void setMorningBrief(bool value) => _update(() => _morningBrief = value);
 
+  void setWeekReport(bool value) => _update(() => _weekReport = value);
+
   void setMorningTileAllDay(bool value) =>
       _update(() => _morningTileAllDay = value);
 
@@ -544,6 +577,7 @@ class SettingsController extends ChangeNotifier {
             'place': ?_place?.toJson(),
             'morningBrief': _morningBrief,
             'morningTileAllDay': _morningTileAllDay,
+            'weekReport': _weekReport,
             'fineValues': _fineValues,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,

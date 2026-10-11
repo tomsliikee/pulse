@@ -1056,50 +1056,6 @@
   "nightFirst": "Keine Nacht davor zum Vergleichen",
   "linksTitle": "Zusammenhänge",
   "linksNote": "Beobachtungen aus den letzten drei Monaten. Was zusammen auftritt, muss nicht die Ursache sein.",
-  "linkWorkoutAsleep": "Nach Tagen mit Training schläfst du im Schnitt {diff} {direction, select, more{länger} other{kürzer}}.",
-  "@linkWorkoutAsleep": {
-    "placeholders": {
-      "diff": {
-        "type": "String"
-      },
-      "direction": {
-        "type": "String"
-      }
-    }
-  },
-  "linkWorkoutDeep": "Nach Tagen mit Training hast du im Schnitt {diff} {direction, select, more{mehr} other{weniger}} Tiefschlaf.",
-  "@linkWorkoutDeep": {
-    "placeholders": {
-      "diff": {
-        "type": "String"
-      },
-      "direction": {
-        "type": "String"
-      }
-    }
-  },
-  "linkStepsAsleep": "Nach Tagen über deinem Schrittziel schläfst du im Schnitt {diff} {direction, select, more{länger} other{kürzer}}.",
-  "@linkStepsAsleep": {
-    "placeholders": {
-      "diff": {
-        "type": "String"
-      },
-      "direction": {
-        "type": "String"
-      }
-    }
-  },
-  "linkStepsDeep": "Nach Tagen über deinem Schrittziel hast du im Schnitt {diff} {direction, select, more{mehr} other{weniger}} Tiefschlaf.",
-  "@linkStepsDeep": {
-    "placeholders": {
-      "diff": {
-        "type": "String"
-      },
-      "direction": {
-        "type": "String"
-      }
-    }
-  },
   "sleepTipsTitle": "So schläfst du besser",
   "nightTipFew": "Nach drei Nächten in einer Woche kann Pulse vergleichen und Hinweise geben.",
   "nightTipDebt": "Über die Woche fehlen dir {amount} Schlaf gegen dein Ziel. Geh ein paar Abende etwas früher ins Bett, statt am Wochenende lange auszuschlafen.",
@@ -1603,6 +1559,264 @@
     "placeholders": {
       "bpm": {
         "type": "int"
+      }
+    }
+  },
+  "linkSentence": "{cause} {effect}.",
+  "@linkSentence": {
+    "placeholders": {
+      "cause": {
+        "type": "String"
+      },
+      "effect": {
+        "type": "String"
+      }
+    }
+  },
+  "linkCauseWorkout": "Nach Tagen mit Training",
+  "linkCauseStepsGoal": "Nach Tagen über deinem Schrittziel",
+  "linkCauseStepsUsual": "Nach Tagen mit mehr Schritten als üblich",
+  "linkCauseEnergyGoal": "Nach Tagen über deinem Ziel für aktive Kalorien",
+  "linkCauseEnergyUsual": "Nach Tagen mit mehr aktiven Kalorien als üblich",
+  "linkCauseIntensityGoal": "Nach Tagen über deinem Ziel für aktive Minuten",
+  "linkCauseIntensityUsual": "Nach Tagen mit mehr aktiven Minuten als üblich",
+  "linkCauseWaterGoal": "Nach Tagen über deinem Wasserziel",
+  "linkCauseWaterUsual": "Nach Tagen mit mehr Wasser als üblich",
+  "linkCauseIntake": "Nach Tagen mit mehr gegessenen Kalorien als üblich",
+  "linkCauseAsleepGoal": "Nach Nächten über deinem Schlafziel",
+  "linkCauseAsleepUsual": "Nach längeren Nächten als üblich",
+  "linkCauseEarlyBed": "Nach Nächten mit früherer Bettzeit als üblich",
+  "linkCauseSleepScore": "Nach Nächten mit höherem Schlaf-Score als üblich",
+  "linkCauseWeekday": "{day, select, mon{Am Montag} tue{Am Dienstag} wed{Am Mittwoch} thu{Am Donnerstag} fri{Am Freitag} sat{Am Samstag} other{Am Sonntag}}",
+  "@linkCauseWeekday": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "linkCauseNightTo": "{day, select, mon{In der Nacht auf Montag} tue{In der Nacht auf Dienstag} wed{In der Nacht auf Mittwoch} thu{In der Nacht auf Donnerstag} fri{In der Nacht auf Freitag} sat{In der Nacht auf Samstag} other{In der Nacht auf Sonntag}}",
+  "@linkCauseNightTo": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
+  "linkCauseWeekSteps": "In Wochen mit mehr Schritten als üblich",
+  "linkCauseWeekWorkouts": "In Wochen mit mehr Trainings als üblich",
+  "linkEffectAsleep": "schläfst du im Schnitt {diff} {direction, select, more{länger} other{kürzer}}",
+  "@linkEffectAsleep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectSleepScore": "ist dein Schlaf-Score im Schnitt {diff} Punkte {direction, select, more{höher} other{niedriger}}",
+  "@linkEffectSleepScore": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectDeep": "hast du im Schnitt {diff} {direction, select, more{mehr} other{weniger}} Tiefschlaf",
+  "@linkEffectDeep": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectBedtime": "gehst du im Schnitt {diff} {direction, select, more{später} other{früher}} ins Bett",
+  "@linkEffectBedtime": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectRecovery": "ist deine Recovery im Schnitt {diff} Punkte {direction, select, more{höher} other{niedriger}}",
+  "@linkEffectRecovery": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectRestingPulse": "ist dein Ruhepuls im Schnitt {diff} {direction, select, more{höher} other{niedriger}}",
+  "@linkEffectRestingPulse": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectVariability": "ist deine Herzfrequenzvariabilität im Schnitt {diff} {direction, select, more{höher} other{niedriger}}",
+  "@linkEffectVariability": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectSteps": "gehst du im Schnitt {diff} Schritte {direction, select, more{mehr} other{weniger}}",
+  "@linkEffectSteps": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkEffectWeight": "wiegst du im Schnitt {diff} {direction, select, more{mehr} other{weniger}}",
+  "@linkEffectWeight": {
+    "placeholders": {
+      "diff": {
+        "type": "String"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "linkSuchDays": "Solche Tage",
+  "linkOtherDays": "Andere Tage",
+  "linkSuchNights": "Solche Nächte",
+  "linkOtherNights": "Andere Nächte",
+  "linkSuchWeeks": "Solche Wochen",
+  "linkOtherWeeks": "Andere Wochen",
+  "linkCount": "{n}×",
+  "@linkCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "linkKindDayToNight": "Der Tag und die Nacht danach",
+  "linkKindNightToDay": "Die Nacht und der Tag danach",
+  "linkKindWeekday": "Wochentage",
+  "linkKindWeeks": "Über Wochen",
+  "linksPageNote": "Aus deinen letzten 90 Tagen. Hier steht nur, was auf beiden Seiten mindestens 10 Tage hat und sich deutlich unterscheidet. Was zusammen auftritt, muss nicht die Ursache sein.",
+  "linksWeeksNote": "Aus den letzten 52 Wochen, mindestens 8 Wochen auf jeder Seite.",
+  "linksEmptyFew": "Zusammenhänge brauchen mindestens 20 Nächte in den letzten 90 Tagen. Bisher sind es {n}.",
+  "@linksEmptyFew": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "linksEmptyNone": "In deinen letzten 90 Tagen unterscheidet sich nichts deutlich genug, um es hier zu zeigen.",
+  "linksTileEmpty": "Noch nichts Deutliches gefunden",
+  "linksAll": "Alle Zusammenhänge",
+  "weekTitle": "Wochenbericht",
+  "weekTileReady": "Deine Woche ist fertig",
+  "weekScore": "Wochenwert",
+  "weekScoreNote": "Der Schnitt der Tageswerte von Montag bis Sonntag, von Pulse geschätzt und keine Messung.",
+  "weekRunning": "Die Woche läuft noch; heute zählt bis jetzt.",
+  "weekAgainstLast": "{diff} {direction, select, more{mehr} other{weniger}} als in der Woche davor",
+  "@weekAgainstLast": {
+    "placeholders": {
+      "diff": {
+        "type": "int"
+      },
+      "direction": {
+        "type": "String"
+      }
+    }
+  },
+  "weekSameAsLast": "Wie in der Woche davor",
+  "weekCompareTitle": "Gegen die Wochen davor",
+  "weekHeadLast": "Vorwoche",
+  "weekHeadUsual": "Ø 4 Wochen",
+  "weekSteps": "Schritte pro Tag",
+  "weekEnergy": "Aktive kcal pro Tag",
+  "weekAsleep": "Schlaf pro Nacht",
+  "weekBestTitle": "Das Beste der Woche",
+  "weekBestDay": "Bester Tag",
+  "weekBestNight": "Beste Nacht",
+  "weekGoalReached": "Erreicht",
+  "weekGoalMissed": "Nicht erreicht",
+  "weekGoalOpen": "Offen",
+  "weekGoalDays": "{reached} von {counted} Tagen",
+  "@weekGoalDays": {
+    "placeholders": {
+      "reached": {
+        "type": "int"
+      },
+      "counted": {
+        "type": "int"
+      }
+    }
+  },
+  "weekWorkoutsTitle": "Aktivitäten der Woche",
+  "weekNoWorkouts": "Keine Aktivität in dieser Woche.",
+  "weekSleepTitle": "Schlaf der Woche",
+  "weekBedtime": "Bettzeit im Schnitt",
+  "weekWake": "Aufstehen im Schnitt",
+  "weekSpread": "{time} ± {minutes} min",
+  "@weekSpread": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "weekEmpty": "Für diese Woche gibt es keine Daten.",
+  "weekOlder": "Woche davor",
+  "weekNewer": "Woche danach",
+  "weekSwitchNote": "Am Sonntagabend eine Kachel auf Heute und eine Benachrichtigung mit dem Rückblick auf die Woche.",
+  "weekLatest": "Letzter Wochenbericht",
+  "weekNoticeTitle": "Dein Wochenbericht",
+  "weekNoticePlain": "Der Rückblick auf deine Woche ist da.",
+  "weekNoticeScore": "Wochenwert {score}.",
+  "@weekNoticeScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "weekNoticeScoreDiff": "Wochenwert {score}, {diff} {direction, select, more{mehr} other{weniger}} als in der Woche davor.",
+  "@weekNoticeScoreDiff": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      },
+      "diff": {
+        "type": "int"
+      },
+      "direction": {
+        "type": "String"
       }
     }
   }

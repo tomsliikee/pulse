@@ -8,6 +8,7 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/health_history.dart' show dayKey;
 import '../../data/morning.dart';
+import '../../data/week_report.dart';
 import '../../widgets/floating_surface.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/page_header.dart';
@@ -127,7 +128,8 @@ class TodayPage extends StatelessWidget {
 
 /// Opens the morning's cards by themselves, once a day: the first time the
 /// Today page is in front during the morning. Builds the page again when the
-/// morning begins or ends, so its tile comes and goes with it.
+/// morning begins or ends and when the week's report becomes ready or old,
+/// so their tiles come and go with them.
 class _MorningOpener extends StatefulWidget {
   const _MorningOpener({required this.builder});
 
@@ -161,15 +163,20 @@ class _MorningOpenerState extends State<_MorningOpener> {
     _check();
   }
 
-  /// Waits for the next edge of the morning [window], if one is ahead.
-  void _await(MorningWindow? window, DateTime now) {
-    final at = window == null
+  /// Waits for the next edge of the morning [window], if one is ahead, or
+  /// for the moment the week's tile comes or goes ([week]), whichever is
+  /// first.
+  void _await(MorningWindow? window, DateTime? week, DateTime now) {
+    final morning = window == null
         ? null
         : now.isBefore(window.from)
         ? window.from
         : now.isBefore(window.until)
         ? window.until
         : null;
+    final at = morning == null || (week != null && week.isBefore(morning))
+        ? week
+        : morning;
     if (at == _edgeAt) return;
     _edge?.cancel();
     _edgeAt = at;
@@ -191,7 +198,7 @@ class _MorningOpenerState extends State<_MorningOpener> {
     final window = settings.morningBrief
         ? morningWindow(health.nights, now)
         : null;
-    _await(window, now);
+    _await(window, settings.weekReport ? weekTileEdge(now) : null, now);
     if (_scheduled) return;
     // Settings that are not read yet cannot say whether it opened today.
     if (!settings.loaded || window == null) return;

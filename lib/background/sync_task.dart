@@ -14,6 +14,7 @@ import '../data/settings_controller.dart';
 import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
 import 'morning_notice.dart';
+import 'week_notice.dart';
 
 const String _uniqueName = 'pulse.sync';
 const String _taskName = 'sync';
@@ -98,6 +99,18 @@ Future<void> syncOnce(
   await leaveMorningAlarm(
     store,
     settings: await store.read(StoreKeys.settings),
+    nights: nights,
+    now: now,
+    language: language,
+  );
+  // The week's score as far as the days read tell it.
+  await leaveWeekAlarm(
+    store,
+    settings: settings,
+    valueOf: (metric, day) {
+      final index = snapshot.indexOf(day);
+      return index == null ? null : snapshot.value(metric, index);
+    },
     nights: nights,
     now: now,
     language: language,

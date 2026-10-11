@@ -291,6 +291,35 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
+              SectionTitle(l10n.weekTitle),
+              SegmentGroup(
+                padding: EdgeInsets.zero,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.weekSwitchNote,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.weekReport,
+                          onChanged: (value) {
+                            Haptics.selection();
+                            settings.setWeekReport(value);
+                            // The notification needs the system's consent.
+                            if (value) MorningNotices.allow();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               SectionTitle(l10n.valuesTitle),
               Align(
                 alignment: Alignment.centerLeft,

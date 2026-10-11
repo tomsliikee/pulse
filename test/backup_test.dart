@@ -77,6 +77,7 @@ void main() {
           StoreKeys.snapshot,
           StoreKeys.sync,
           StoreKeys.morningAlarm,
+          StoreKeys.weekAlarm,
         }.contains(name)) {
           continue;
         }

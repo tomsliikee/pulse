@@ -341,87 +341,6 @@ void main() {
     });
   });
 
-  group('sleepLinks', () {
-    // Twelve nights, every other one after a workout and forty minutes
-    // longer.
-    final nights = [
-      for (var n = 1; n <= 12; n++)
-        _night(
-          _day(n),
-          minutes: n.isEven ? 500 : 460,
-          deep: n.isEven ? 100 : 80,
-        ),
-    ];
-    final workouts = [
-      for (var n = 1; n <= 12; n += 2)
-        Workout(
-          type: WorkoutType.run,
-          start: _day(n).add(const Duration(hours: 18)),
-          minutes: 30,
-        ),
-    ];
-
-    test('nights after a workout are set against the others', () {
-      final links = sleepLinks(
-        nights: nights,
-        until: _day(12),
-        workouts: workouts,
-        stepsOn: (_) => null,
-        stepGoal: 10000,
-      );
-      expect(links, hasLength(2));
-      expect(links.every((link) => link.kind == SleepLinkKind.workout), isTrue);
-      final asleep = links.firstWhere((l) => l.measure == NightMeasure.asleep);
-      expect(asleep.minutes, 40);
-      expect(asleep.nightsWith, 6);
-      expect(asleep.nightsWithout, 6);
-      expect(
-        links.firstWhere((l) => l.measure == NightMeasure.deep).minutes,
-        20,
-      );
-    });
-
-    test('with too few nights on one side nothing is said', () {
-      expect(
-        sleepLinks(
-          nights: nights,
-          until: _day(12),
-          workouts: workouts.sublist(0, 4),
-          stepsOn: (_) => null,
-          stepGoal: 10000,
-        ),
-        isEmpty,
-      );
-    });
-
-    test('days above the step goal are set against those below', () {
-      final links = sleepLinks(
-        nights: nights,
-        until: _day(12),
-        workouts: const [],
-        // The day before an even night had many steps.
-        stepsOn: (day) => day.difference(_first).inDays.isOdd ? 12000 : 4000,
-        stepGoal: 10000,
-      );
-      expect(links.map((link) => link.kind).toSet(), {SleepLinkKind.steps});
-      expect(links.first.minutes, 40);
-    });
-
-    test('a small difference is not worth a sentence', () {
-      final even = [for (var n = 1; n <= 12; n++) _night(_day(n))];
-      expect(
-        sleepLinks(
-          nights: even,
-          until: _day(12),
-          workouts: workouts,
-          stepsOn: (_) => null,
-          stepGoal: 10000,
-        ),
-        isEmpty,
-      );
-    });
-  });
-
   group('tonight', () {
     test('needs three nights', () {
       expect(tonight([_night(_day(0)), _night(_day(1))], 8, _day(1)), isNull);
@@ -488,28 +407,6 @@ void main() {
       expect(NightMeasure.efficiency.format(formats, 0.957), '96 %');
       expect(NightMeasure.deep.format(formats, 95), '1 h 35 min');
       expect(NightMeasure.score.format(formats, 91), '91');
-    });
-
-    test('a link reads as a sentence in each language', () {
-      const link = SleepLink(
-        kind: SleepLinkKind.workout,
-        measure: NightMeasure.asleep,
-        minutes: -25,
-        nightsWith: 6,
-        nightsWithout: 9,
-      );
-      expect(
-        sleepLinkText(formatsOf(), link),
-        'Nach Tagen mit Training schläfst du im Schnitt 25 min kürzer.',
-      );
-      expect(
-        sleepLinkText(formatsOf('en'), link),
-        'After days with a workout you sleep 25 min less on average.',
-      );
-      expect(
-        sleepLinkText(formatsOf('pl'), link),
-        'Po dniach z treningiem śpisz średnio o 25 min krócej.',
-      );
     });
   });
 }

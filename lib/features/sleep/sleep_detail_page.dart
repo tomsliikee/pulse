@@ -5,6 +5,7 @@ import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/health_controller.dart';
 import '../../data/health_history.dart';
+import '../../data/links.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/night_insights.dart';
@@ -30,6 +31,9 @@ import '../../widgets/page_header.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/stat_tile.dart';
 import '../detail/usual_value_row.dart';
+import '../goals/goal_format.dart';
+import '../links/link_format.dart';
+import '../links/links_page.dart';
 import 'night_format.dart';
 import 'night_list_page.dart';
 import 'night_tiles.dart';
@@ -199,13 +203,21 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
         if (snapshot.has(metric)) metric,
     ];
     final history = health.history;
-    final links = sleepLinks(
-      nights: all,
-      until: date,
-      workouts: health.workouts,
-      stepsOn: (day) => history?.value(Metric.steps, day),
-      stepGoal: settings.stepGoal,
-    );
+    // What the page of all connections finds, for this night's stretch:
+    // the two this page has always told of.
+    final links = [
+      for (final link in findLinks(
+        data: goalDataOf(health, settings),
+        targetOf: settings.goalTarget,
+        until: date,
+        kinds: const {LinkKind.dayToNight},
+      ))
+        if ((link.cause == LinkCause.workout ||
+                link.cause == LinkCause.steps) &&
+            (link.effect == LinkEffect.asleep ||
+                link.effect == LinkEffect.deep))
+          link,
+    ];
     final before = nightsBefore(all, date, all.length + 1);
     final stageColors = {
       SleepStage.awake: scheme.outlineVariant,
@@ -290,7 +302,14 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
             ],
           ),
         ),
-      if (links.isNotEmpty) _Links(links: links),
+      if (links.isNotEmpty) ...[
+        _Links(links: links),
+        OpenRow(
+          icon: Icons.link_rounded,
+          title: l10n.linksAll,
+          onTap: (origin) => openLinks(context, origin),
+        ),
+      ],
       _Tips(insights: insights),
       if (before.isNotEmpty)
         NightsCard(
@@ -579,7 +598,7 @@ class _Comparison extends StatelessWidget {
 class _Links extends StatelessWidget {
   const _Links({required this.links});
 
-  final List<SleepLink> links;
+  final List<Link> links;
 
   @override
   Widget build(BuildContext context) {
@@ -588,7 +607,7 @@ class _Links extends StatelessWidget {
       title: formats.l10n.linksTitle,
       icon: Icons.link_rounded,
       shape: Shapes.l4LeafClover,
-      sentences: [for (final link in links) sleepLinkText(formats, link)],
+      sentences: [for (final link in links) linkSentence(formats, link)],
       note: formats.l10n.linksNote,
     );
   }

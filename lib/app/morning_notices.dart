@@ -21,7 +21,20 @@ abstract final class MorningNotices {
     }
   }
 
-  /// Has the platform set its alarm anew by what the app left for it.
+  /// What the notification the app was opened from was about ("week"), or
+  /// null when it was opened another way. Told once.
+  static Future<String?> opened() async {
+    try {
+      return await _channel.invokeMethod<String>('opened');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException catch (error) {
+      debugPrint('Asking what was opened failed: $error');
+      return null;
+    }
+  }
+
+  /// Has the platform set its alarms anew by what the app left for them.
   static Future<void> schedule() async {
     try {
       await _channel.invokeMethod<void>('schedule');

@@ -23,6 +23,7 @@ class PulseApplication : Application() {
                 if (status == TaskStatus.COMPLETED) {
                     MorningNotice.showPending(context)
                     MorningAlarm.schedule(context)
+                    WeekAlarm.schedule(context)
                 }
             }
         })

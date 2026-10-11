@@ -68,21 +68,3 @@ String nightTip(Formats formats, NightTip tip) {
     NightTipKind.keepGoing => l10n.nightTipKeepGoing,
   };
 }
-
-/// The sentence of an observation.
-String sleepLinkText(Formats formats, SleepLink link) {
-  final l10n = formats.l10n;
-  final diff = formats.duration(link.minutes.abs());
-  final direction = link.minutes > 0 ? 'more' : 'less';
-  final deep = link.measure == NightMeasure.deep;
-  return switch (link.kind) {
-    SleepLinkKind.workout =>
-      deep
-          ? l10n.linkWorkoutDeep(diff, direction)
-          : l10n.linkWorkoutAsleep(diff, direction),
-    SleepLinkKind.steps =>
-      deep
-          ? l10n.linkStepsDeep(diff, direction)
-          : l10n.linkStepsAsleep(diff, direction),
-  };
-}

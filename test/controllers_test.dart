@@ -405,7 +405,7 @@ void main() {
       final store = MemoryJsonStore();
       await store.write(StoreKeys.settings, {
         'todayTiles': ['water', 'unicorns', 7, 'water', 'workout'],
-        'todayTilesVersion': 3,
+        'todayTilesVersion': 4,
         'largeTiles': ['water', 'unicorns'],
       });
       final settings = SettingsController(store);
@@ -430,17 +430,26 @@ void main() {
         return settings;
       }
 
+      // The week's tile and the connections come with it, see below.
       expect((await loadedWith([dayTileId, 'water'])).todayTiles, [
         dayTileId,
         morningTileId,
+        weekTileId,
         'water',
+        linksTileId,
       ]);
       expect((await loadedWith(['water', dayTileId])).todayTiles, [
         morningTileId,
+        weekTileId,
         'water',
         dayTileId,
+        linksTileId,
       ]);
-      expect((await loadedWith([])).todayTiles, [morningTileId]);
+      expect((await loadedWith([])).todayTiles, [
+        morningTileId,
+        weekTileId,
+        linksTileId,
+      ]);
 
       // Removed and saved, it stays away.
       final store = MemoryJsonStore();
@@ -451,6 +460,61 @@ void main() {
       final again = SettingsController(store);
       await again.load();
       expect(again.todayTiles, isNot(contains(morningTileId)));
+    });
+
+    test('a list saved before the week\'s tile and the connections gets '
+        'them once: below the morning\'s, and below the goals', () async {
+      Future<SettingsController> loadedWith(List<String> tiles) async {
+        final store = MemoryJsonStore();
+        await store.write(StoreKeys.settings, {
+          'todayTiles': tiles,
+          'todayTilesVersion': 3,
+        });
+        final settings = SettingsController(store);
+        await settings.load();
+        return settings;
+      }
+
+      expect(
+        (await loadedWith([dayTileId, morningTileId, goalsTileId, 'water']))
+            .todayTiles,
+        [
+          dayTileId,
+          morningTileId,
+          weekTileId,
+          goalsTileId,
+          linksTileId,
+          'water',
+        ],
+      );
+      // Without the morning's tile below the day's, without the goals last.
+      expect((await loadedWith([dayTileId, 'water'])).todayTiles, [
+        dayTileId,
+        weekTileId,
+        'water',
+        linksTileId,
+      ]);
+      expect((await loadedWith(['water'])).todayTiles, [
+        weekTileId,
+        'water',
+        linksTileId,
+      ]);
+
+      // Removed and saved, they stay away.
+      final store = MemoryJsonStore();
+      final settings = SettingsController(store);
+      await settings.load();
+      expect(settings.weekReport, isTrue);
+      settings
+        ..removeTodayTile(weekTileId)
+        ..removeTodayTile(linksTileId)
+        ..setWeekReport(false);
+      await pumpEventQueue();
+      final again = SettingsController(store);
+      await again.load();
+      expect(again.todayTiles, isNot(contains(weekTileId)));
+      expect(again.todayTiles, isNot(contains(linksTileId)));
+      expect(again.weekReport, isFalse);
     });
 
     test(
@@ -467,9 +531,11 @@ void main() {
         expect(settings.todayTiles, [
           dayTileId,
           morningTileId,
+          weekTileId,
           tipsTileId,
           nightTileId,
           goalsTileId,
+          linksTileId,
           'water',
           'steps',
           daysTileId,

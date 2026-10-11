@@ -31,6 +31,8 @@ The screenshots on this page show sample data.
 
 - **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape.
 - **Good Morning:** A few cards when you get up: last night, your recovery, the weather and your goals.
+- **Weekly Report:** On Sunday evening, the week from Monday to Sunday against the weeks before, with a score of its own.
+- **What Goes Together:** Connections found in your own numbers, such as how you sleep after a day with a workout.
 - **Recovery, Day Score and Sleep Score:** Three scores from 0 to 100, each broken down into the parts it is made of.
 - **Twelve Goals:** By day or by week, with streaks and a view per week, month and year.
 - **Body Age:** Your real age plus or minus the years your last 30 days are worth.
@@ -86,7 +88,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **The Night Played Back:** The latest night runs in twelve seconds. The sky follows the stages, and the figure snores in deep sleep, dreams in REM and sits up when you were awake.
 - **Tonight:** A bedtime counted back from your usual time of getting up, a little earlier while the week is in debt.
 - **A Page per Night:** The score in its four parts, the stages as blocks and against a guide range, bedtime and waking of the last 30 nights, and the sleep debt of seven.
-- **Observations:** How your nights after a workout, or after a day above the step goal, differ from the others.
+- **Observations:** How your nights after a workout, or after a day above the step goal, differ from the others, by the rule of [What Goes Together](#what-goes-together).
 
 ![The bedtime for tonight and the stages, the page about one night, the night in numbers, and the stages against their guide ranges](readmestuff/sleep.png)
 
@@ -100,6 +102,41 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Time in Zones:** Rest, light, cardio and peak, each as its share of the measured time.
 
 ![The day's curve with its bar, vitals and time in zones, the page of the day, and its zones and parts](readmestuff/heart.png)
+
+---
+
+## Weekly Report and What Goes Together
+
+### Weekly Report
+
+From **Sunday at 19:00** until Monday ends, a tile on **Today** says that the week is ready, and an alarm of the app sends a **notification** around that time. The report stays reachable all week from the page of connections, and a bar at its foot pages back through earlier weeks.
+
+- **Week Score:** The mean of the day scores from Monday to Sunday, above a scene of seven hills, one per day and as high as its score. The best day carries a flag.
+- **Against the Weeks Before:** Steps, active calories, sleep, sleep score, recovery and resting heart rate, each against the week before and the mean of the four before.
+- **The Best of the Week:** The best day, the best night, and every day that was the highest ever for steps, active calories or distance.
+- **Goals:** A dot per day for each goal, and its streak.
+- **Activities and Sleep:** The workouts of the week with their sum, the sleep debt, and the mean bedtime and time of getting up with their spread.
+
+### What Goes Together
+
+Pulse sets your days, nights and weeks against each other and shows what differs: one sentence, and two bars for the two sides with the number of days behind each. The strongest connection stands on a tile on **Today**, the strongest three in the weekly report.
+
+| Kind | Split By | What Is Compared | Looks Back |
+| :--- | :--- | :--- | :--- |
+| **A day and the night after** | Workout, steps, active calories, active minutes, water, calories eaten | Sleep duration, sleep score, deep sleep, bedtime | 90 days |
+| **A night and the day after** | Sleep duration, bedtime, sleep score | Recovery, resting heart rate, heart rate variability, steps | 90 days |
+| **Days of the week** | Each day against the other six | Steps, sleep duration, bedtime | 90 days |
+| **Over weeks** | Weeks with more steps or more workouts | Resting heart rate, heart rate variability, weight | 52 weeks |
+
+A day is put on a side at your **goal** where there is one and both sides then hold enough days, otherwise at your own **median**. A connection is shown only when all of this holds:
+
+- **Enough on Both Sides:** At least **10** days or nights, or **8** weeks.
+- **A Clear Difference:** At least half a standard deviation, and at least an amount worth saying: 10 minutes, 3 points, 2 bpm, 3 ms, 500 steps or 0.5 kg.
+- **More Than Chance:** A Welch's t of at least **2.8**. About sixty comparisons are made, and at the usual 2 a few would pass by chance.
+
+So the page can be empty, and it says how many nights are still missing. What goes together need not be the cause.
+
+![The tile on Today, the weekly report with its score and comparison, and the connections with their two sides](readmestuff/week.png)
 
 ---
 
@@ -222,7 +259,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **796** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **851** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

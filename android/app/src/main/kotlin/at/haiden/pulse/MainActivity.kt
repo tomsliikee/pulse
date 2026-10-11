@@ -2,6 +2,7 @@ package at.haiden.pulse
 
 import android.Manifest
 import android.app.LocaleManager
+import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
@@ -44,6 +45,13 @@ class MainActivity : FlutterFragmentActivity() {
             pendingConsent?.success(granted)
             pendingConsent = null
         }
+
+    // A notification tapped while the app is open arrives here; kept so the
+    // app can ask what it was about.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
 
     /** Works on the chosen file off the main thread; no file is no answer but null. */
     private fun answer(uri: Uri?, work: (Uri) -> Any) {
@@ -91,9 +99,18 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/morning")
             .setMethodCallHandler { call, result ->
                 if (call.method == "schedule") {
-                    // The app left a new time or text for the morning's alarm.
+                    // The app left a new time or text for one of its alarms.
                     MorningAlarm.schedule(this)
+                    WeekAlarm.schedule(this)
                     result.success(null)
+                    return@setMethodCallHandler
+                }
+                if (call.method == "opened") {
+                    // What the notification the app was opened from was about,
+                    // told once.
+                    val what = intent?.getStringExtra(WeekAlarm.OPEN)
+                    intent?.removeExtra(WeekAlarm.OPEN)
+                    result.success(what)
                     return@setMethodCallHandler
                 }
                 if (call.method != "allow") {

@@ -40,10 +40,12 @@ class AddTilesSection extends StatelessWidget {
         [
           for (final id in const [
             morningTileId,
+            weekTileId,
             dayTileId,
             tipsTileId,
             nightTileId,
             goalsTileId,
+            linksTileId,
             daysTileId,
           ])
             if (open(id)) id,

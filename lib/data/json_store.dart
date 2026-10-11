@@ -33,6 +33,9 @@ abstract final class StoreKeys {
 
   /// Read by the platform, which sets its alarm for the morning by it.
   static const String morningAlarm = 'morningAlarm';
+
+  /// Read by the platform, which sets its alarm for Sunday evening by it.
+  static const String weekAlarm = 'weekAlarm';
 }
 
 class FileJsonStore implements JsonStore {
