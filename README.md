@@ -88,6 +88,8 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 ![Steps and activity metrics, the page about one run, its comparison and progress, and the list of all activities](readmestuff/activities.png)
 
+![All activities with their routes, a run's route tinted by speed, its kilometres and elevation, and a new meal starting at the foods logged before](readmestuff/routes_foods.png)
+
 ### Sleep
 
 - **The Night Played Back:** The latest night runs in twelve seconds. The sky follows the stages, and the figure snores in deep sleep, dreams in REM and sits up when you were awake.
