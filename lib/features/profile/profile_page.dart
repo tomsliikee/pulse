@@ -16,6 +16,7 @@ import '../../widgets/stat_tile.dart';
 import '../goals/goal_format.dart';
 import '../goals/goals_page.dart';
 import 'birth_date_sheet.dart';
+import 'color_style_row.dart';
 import 'height_sheet.dart';
 import 'language_sheet.dart';
 import 'name_sheet.dart';
@@ -359,14 +360,12 @@ class ProfilePage extends StatelessWidget {
               SegmentGroup(
                 padding: EdgeInsets.zero,
                 children: [
+                  ColorStyleRow(
+                    selected: settings.colorStyle,
+                    system: scope.systemPalette.value,
+                    onSelected: settings.setColorStyle,
+                  ),
                   for (final (label, value, set) in [
-                    // Only offered where the system has a wallpaper palette.
-                    if (scope.systemPalette.value != null)
-                      (
-                        l10n.wallpaperColors,
-                        settings.dynamicColor,
-                        settings.setDynamicColor,
-                      ),
                     (
                       'Liquid Glass',
                       settings.liquidGlass,

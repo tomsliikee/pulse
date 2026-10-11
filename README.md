@@ -37,7 +37,7 @@ The screenshots on this page show sample data.
 - **Ten Years of History:** Every metric by day, week, month, year and in total.
 - **Your Own Layout:** Remove, add, resize and reorder the tiles of every page.
 - **Entries:** Add **water**, **weight** and **meals**; they are written to Health Connect.
-- **Material You, Dark Theme and Liquid Glass:** The colours follow your wallpaper, and the bars can turn into refracting glass.
+- **Colour Styles, Dark Theme and Liquid Glass:** The colours follow your wallpaper or one of seven styles of the app's own, and the bars can turn into refracting glass.
 - **Three Languages:** **German**, **English** and **Polish**.
 - **Private by Construction:** Everything stays in the app's own directory, with a backup file you save yourself.
 
@@ -128,9 +128,20 @@ The **body age** needs your date of birth. Its page lists every factor with your
 - **One Accent per Page:** Each of the four pages has its own tone, and its sub pages keep it.
 - **Navigation You Can Drag:** Drag the selected pill of the floating bar to another page. The period tabs work the same way.
 - **Predictive Back:** A page shrinks under your finger and shows what is beneath before you let go.
-- **Material You:** The colour scheme follows your wallpaper, or the app's own palette. Light, dark or system.
+- **Light, Dark or System:** Every colour style has both.
 
 ![The four main pages in the dark theme](readmestuff/dark.png)
+
+The colours are chosen from a row of dots in the profile:
+
+| Style | Effect |
+| :--- | :--- |
+| **Wallpaper** | The palette Android derives from your wallpaper (Material You). The default where the system has one |
+| **Blue**, **Violet**, **Green**, **Orange**, **Pink** | One family of colours around the chosen one; only Heart stays red. **Blue** is the default without a wallpaper palette |
+| **Colourful pages** | Every page in its own colour, ground and bar included: Today blue, Activity green, Sleep violet, Heart red |
+| **Mixed colours** | The same four colours on every page, one per kind of element |
+
+![Today in green and in pink, Activity in mixed colours, and the row of styles in the profile](readmestuff/colours.png)
 
 Three switches in the profile change the look further, all **off by default**:
 
@@ -211,7 +222,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **780** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **796** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

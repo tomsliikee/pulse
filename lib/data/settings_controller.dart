@@ -10,6 +10,7 @@ import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'weather.dart';
+import '../theme/color_style.dart';
 
 /// The Today tile that shows the latest workout instead of a measurement.
 const String workoutTileId = 'workout';
@@ -184,7 +185,7 @@ class SettingsController extends ChangeNotifier {
   bool _fineValues = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
-  bool _dynamicColor = true;
+  ColorStyle _colorStyle = ColorStyle.wallpaper;
   bool _showAllData = false;
   bool _liquidGlass = false;
   bool _edgeToEdgeHero = false;
@@ -233,7 +234,7 @@ class SettingsController extends ChangeNotifier {
   /// The day (as a day key) the morning's cards last opened by themselves.
   int? get morningSeen => _morningSeen;
 
-  bool get dynamicColor => _dynamicColor;
+  ColorStyle get colorStyle => _colorStyle;
 
   /// Whether the list of every measurement is appended to the Today page.
   bool get showAllData => _showAllData;
@@ -326,7 +327,16 @@ class SettingsController extends ChangeNotifier {
         if (mode.name == v) _themeMode = mode;
       }
     }
-    if (json['dynamicColor'] case final bool v) _dynamicColor = v;
+    // Settings from before the styles knew the wallpaper's colours as a
+    // switch alone.
+    if (json['dynamicColor'] case final bool v) {
+      _colorStyle = v ? ColorStyle.wallpaper : ColorStyle.standard;
+    }
+    if (json['colorStyle'] case final String v) {
+      for (final style in ColorStyle.values) {
+        if (style.name == v) _colorStyle = style;
+      }
+    }
     if (json['showAllData'] case final bool v) _showAllData = v;
     if (json['liquidGlass'] case final bool v) _liquidGlass = v;
     if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
@@ -461,7 +471,7 @@ class SettingsController extends ChangeNotifier {
 
   void setThemeMode(ThemeMode value) => _update(() => _themeMode = value);
 
-  void setDynamicColor(bool value) => _update(() => _dynamicColor = value);
+  void setColorStyle(ColorStyle value) => _update(() => _colorStyle = value);
 
   void setShowAllData(bool value) => _update(() => _showAllData = value);
 
@@ -537,7 +547,7 @@ class SettingsController extends ChangeNotifier {
             'fineValues': _fineValues,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,
-            'dynamicColor': _dynamicColor,
+            'colorStyle': _colorStyle.name,
             'showAllData': _showAllData,
             'liquidGlass': _liquidGlass,
             'edgeToEdgeHero': _edgeToEdgeHero,

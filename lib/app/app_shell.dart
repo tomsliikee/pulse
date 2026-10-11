@@ -11,6 +11,7 @@ import '../features/heart/heart_page.dart';
 import '../features/sleep/sleep_page.dart';
 import '../features/today/today_page.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_theme.dart';
 import '../widgets/glass_scope.dart';
 import 'app_scope.dart';
 import 'container_route.dart';
@@ -56,6 +57,14 @@ class _AppShellState extends State<AppShell> {
     (EntryKind.meal, Icons.restaurant_rounded),
   ];
 
+  /// The tone each destination's page is painted in.
+  static const _tones = [
+    Tone.primary,
+    Tone.secondary,
+    Tone.tertiary,
+    Tone.error,
+  ];
+
   int _index = 0;
 
   Widget _page() => switch (_index) {
@@ -70,92 +79,100 @@ class _AppShellState extends State<AppShell> {
     final media = MediaQuery.of(context);
     final l10n = AppLocalizations.of(context);
     final AppScope(:health, :settings) = AppScope.of(context);
-    return Scaffold(
-      body: ListenableBuilder(
-        listenable: Listenable.merge([health, settings]),
-        builder: (context, _) {
-          if (health.status != HealthStatus.ready) {
-            return SafeArea(child: AccessPage(status: health.status));
-          }
-          final glass = settings.liquidGlass;
-          final page = _page();
-          return Stack(
-            children: [
-              Positioned.fill(
-                // A new key per destination restarts the spring, so every
-                // page fades through and settles into place when opened.
-                child: SingleMotionBuilder(
-                  key: ValueKey(_index),
-                  from: 0,
-                  value: 1,
-                  motion: AppMotion.spatial,
-                  builder: (context, t, child) => Opacity(
-                    opacity: t.clamp(0, 1).toDouble(),
-                    child: Transform.scale(
-                      scale: 0.94 + 0.06 * t,
-                      child: child,
+    // In the colourful style the bar and the ground take the colour of the
+    // page that is open.
+    final theme = Theme.of(context);
+    final own = theme.extension<PageSchemes>()?.of(_tones[_index]);
+    return AnimatedTheme(
+      data: own ?? theme,
+      child: Scaffold(
+        body: ListenableBuilder(
+          listenable: Listenable.merge([health, settings]),
+          builder: (context, _) {
+            if (health.status != HealthStatus.ready) {
+              return SafeArea(child: AccessPage(status: health.status));
+            }
+            final glass = settings.liquidGlass;
+            final page = _page();
+            return Stack(
+              children: [
+                Positioned.fill(
+                  // A new key per destination restarts the spring, so every
+                  // page fades through and settles into place when opened.
+                  child: SingleMotionBuilder(
+                    key: ValueKey(_index),
+                    from: 0,
+                    value: 1,
+                    motion: AppMotion.spatial,
+                    builder: (context, t, child) => Opacity(
+                      opacity: t.clamp(0, 1).toDouble(),
+                      child: Transform.scale(
+                        scale: 0.94 + 0.06 * t,
+                        child: child,
+                      ),
+                    ),
+                    child: _RestsBeneath(
+                      child: glass ? GlassScope(child: page) : page,
                     ),
                   ),
-                  child: _RestsBeneath(
-                    child: glass ? GlassScope(child: page) : page,
-                  ),
                 ),
-              ),
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16 + media.padding.bottom,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Flexible, so the bar learns how much room the add
-                    // button leaves it.
-                    Flexible(
-                      child: LayoutBuilder(
-                        builder: (context, box) => FloatingNavBar(
-                          destinations: _destinations(l10n),
-                          selectedIndex: _index,
-                          showLabel: media.size.width >= 400,
-                          maxWidth: box.maxWidth,
-                          glass: glass,
-                          onSelected: (index) => setState(() => _index = index),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 16 + media.padding.bottom,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Flexible, so the bar learns how much room the add
+                      // button leaves it.
+                      Flexible(
+                        child: LayoutBuilder(
+                          builder: (context, box) => FloatingNavBar(
+                            destinations: _destinations(l10n),
+                            selectedIndex: _index,
+                            showLabel: media.size.width >= 400,
+                            maxWidth: box.maxWidth,
+                            glass: glass,
+                            onSelected: (index) =>
+                                setState(() => _index = index),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    if (glass)
-                      GlassFabMenu(
-                        items: [
-                          for (final (kind, icon) in _entries)
-                            GlassFabMenuItem(
-                              icon: icon,
-                              label: kind.label(l10n),
-                              onPressed: () => showEntrySheet(context, kind),
-                            ),
-                        ],
-                      )
-                    else
-                      M3EFabMenu(
-                        color: M3EFabColor.tertiary,
-                        onOpenChanged: (_) => Haptics.tap(),
-                        items: [
-                          for (final (kind, icon) in _entries)
-                            M3EFabMenuItem(
-                              icon: Icon(icon),
-                              label: kind.label(l10n),
-                              onPressed: () {
-                                Haptics.tap();
-                                showEntrySheet(context, kind);
-                              },
-                            ),
-                        ],
-                      ),
-                  ],
+                      const SizedBox(width: 12),
+                      if (glass)
+                        GlassFabMenu(
+                          items: [
+                            for (final (kind, icon) in _entries)
+                              GlassFabMenuItem(
+                                icon: icon,
+                                label: kind.label(l10n),
+                                onPressed: () => showEntrySheet(context, kind),
+                              ),
+                          ],
+                        )
+                      else
+                        M3EFabMenu(
+                          color: M3EFabColor.tertiary,
+                          onOpenChanged: (_) => Haptics.tap(),
+                          items: [
+                            for (final (kind, icon) in _entries)
+                              M3EFabMenuItem(
+                                icon: Icon(icon),
+                                label: kind.label(l10n),
+                                onPressed: () {
+                                  Haptics.tap();
+                                  showEntrySheet(context, kind);
+                                },
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -176,7 +176,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       child: ListenableBuilder(
         listenable: Listenable.merge([_settings, _language, _palette]),
         builder: (context, _) {
-          final system = _settings.dynamicColor ? _palette.value : null;
+          final system = _palette.value;
+          final style = _settings.colorStyle;
           final language = _language.forced;
           return MaterialApp(
             navigatorObservers: [appRouteObserver],
@@ -191,8 +192,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
               ...GlobalMaterialLocalizations.delegates,
             ],
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(system: system?.light),
-            darkTheme: AppTheme.dark(system: system?.dark),
+            theme: AppTheme.light(style: style, system: system?.light),
+            darkTheme: AppTheme.dark(style: style, system: system?.dark),
             themeMode: _settings.themeMode,
             // No page has an app bar, so the status bar is styled here: clear,
             // with icons that stand out from the theme.

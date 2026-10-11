@@ -11,6 +11,7 @@ import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/settings_controller.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/theme/color_style.dart';
 import 'package:pulse/features/today/day_format.dart';
 
 import 'support/fixtures.dart';
@@ -291,7 +292,7 @@ void main() {
       SettingsController(store)
         ..setStepGoal(12000)
         ..setThemeMode(ThemeMode.dark)
-        ..setDynamicColor(false)
+        ..setColorStyle(ColorStyle.green)
         ..setTileOrder('today', ['water', 'steps']);
       await Future<void>.delayed(Duration.zero);
 
@@ -300,7 +301,7 @@ void main() {
 
       expect(loaded.stepGoal, 12000);
       expect(loaded.themeMode, ThemeMode.dark);
-      expect(loaded.dynamicColor, isFalse);
+      expect(loaded.colorStyle, ColorStyle.green);
       expect(loaded.tileOrder('today'), ['water', 'steps']);
       expect(loaded.tileOrder('sleep'), isEmpty);
     });
