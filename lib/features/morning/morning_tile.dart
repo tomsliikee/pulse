@@ -13,7 +13,7 @@ import 'morning_format.dart';
 import 'morning_page.dart';
 
 /// Says good morning on the Today page and opens the morning's cards: the
-/// way back to them once they have closed.
+/// way back to them once they have closed, for as long as it is morning.
 class MorningTile extends StatelessWidget {
   const MorningTile({super.key});
 

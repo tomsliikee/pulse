@@ -152,6 +152,7 @@ class SettingsController extends ChangeNotifier {
   String? _name;
   Place? _place;
   bool _morningBrief = true;
+  bool _morningTileAllDay = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
@@ -192,6 +193,9 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the app says good morning by itself.
   bool get morningBrief => _morningBrief;
+
+  /// Whether the Today page keeps the morning's tile after the morning.
+  bool get morningTileAllDay => _morningTileAllDay;
 
   /// The day (as a day key) the morning's cards last opened by themselves.
   int? get morningSeen => _morningSeen;
@@ -281,6 +285,7 @@ class SettingsController extends ChangeNotifier {
     }
     _place = Place.fromJson(json['place']) ?? _place;
     if (json['morningBrief'] case final bool v) _morningBrief = v;
+    if (json['morningTileAllDay'] case final bool v) _morningTileAllDay = v;
     if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
@@ -411,6 +416,9 @@ class SettingsController extends ChangeNotifier {
 
   void setMorningBrief(bool value) => _update(() => _morningBrief = value);
 
+  void setMorningTileAllDay(bool value) =>
+      _update(() => _morningTileAllDay = value);
+
   /// Remembers that the morning's cards opened by themselves on [day].
   void setMorningSeen(DateTime day) =>
       _update(() => _morningSeen = dayKey(day));
@@ -489,6 +497,7 @@ class SettingsController extends ChangeNotifier {
             'name': ?_name,
             'place': ?_place?.toJson(),
             'morningBrief': _morningBrief,
+            'morningTileAllDay': _morningTileAllDay,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,

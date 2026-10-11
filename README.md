@@ -67,7 +67,7 @@ Like the morning brief of a watch, on the phone: the first time you open Pulse w
 - **Goals:** Where each goal stands and its streak, and yesterday in numbers.
 - **Tonight:** When to go to bed.
 
-Afterwards the **Good morning** tile on Today opens the cards again. One switch in the profile turns all of it off.
+For the rest of the morning the **Good morning** tile on Today opens the cards again; when the three hours are over it leaves the page until the next day. One switch in the profile turns all of it off; a second one keeps the tile on Today all day.
 
 ![The greeting, last night, the recovery and the weather](readmestuff/morning.png)
 
@@ -211,7 +211,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **722** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **723** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

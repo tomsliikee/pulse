@@ -10,6 +10,7 @@ import '../../data/health_controller.dart';
 import '../../data/health_snapshot.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
+import '../../data/morning.dart';
 import '../../data/settings_controller.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
@@ -48,7 +49,11 @@ bool todayTileAvailable(
     case dayTileId || tipsTileId || goalsTileId:
       return true;
     case morningTileId:
-      return settings.morningBrief;
+      // The way back to the cards, for as long as it is morning unless the
+      // user keeps it.
+      return settings.morningBrief &&
+          (settings.morningTileAllDay ||
+              morningWindow(health.nights, health.now).holds(health.now));
     case nightTileId:
       return health.latestNight != null;
     case workoutTileId:

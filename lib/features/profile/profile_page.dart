@@ -264,6 +264,30 @@ class ProfilePage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.morningTileAllDayNote,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.morningTileAllDay,
+                          // Without the overview there is no tile to keep.
+                          onChanged: !settings.morningBrief
+                              ? null
+                              : (value) {
+                                  Haptics.selection();
+                                  settings.setMorningTileAllDay(value);
+                                },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
               SectionTitle(l10n.appearance),

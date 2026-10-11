@@ -505,6 +505,7 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   MemoryJsonStore? store,
   Locale locale = const Locale('de'),
   DateTime? now,
+  DateTime Function()? clock,
   BackupFiles files = const SystemBackupFiles(),
   WeatherSource? weather,
 }) async {
@@ -521,7 +522,7 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
       repository: repo,
       store: memory,
       paletteLoader: () async => null,
-      clock: () => now ?? fixtureNow,
+      clock: clock ?? () => now ?? fixtureNow,
       files: files,
       // No test asks the network.
       weatherSource: weather ?? FixtureWeather(),

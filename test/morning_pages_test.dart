@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pulse/app/app_scope.dart';
 import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/json_store.dart';
+import 'package:pulse/data/morning.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/data/weather.dart';
 import 'package:pulse/features/morning/morning_cards.dart';
@@ -13,6 +14,7 @@ import 'package:pulse/features/morning/morning_scene.dart';
 import 'package:pulse/features/morning/morning_sunrise.dart';
 import 'package:pulse/features/morning/morning_tile.dart';
 import 'package:pulse/features/profile/profile_page.dart';
+import 'package:pulse/features/today/today_page.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 
 import 'support/fixtures.dart';
@@ -175,8 +177,8 @@ void main() {
     ]) {
       await pumpApp(tester, now: now);
       expect(find.byType(MorningPage), findsNothing, reason: '$now');
-      // The way to it is there all day.
-      expect(find.byType(MorningTile), findsOneWidget, reason: '$now');
+      // The way to it is there in the morning alone.
+      expect(find.byType(MorningTile), findsNothing, reason: '$now');
       await tester.pumpWidget(const SizedBox());
     }
 
@@ -187,6 +189,53 @@ void main() {
     );
     expect(find.byType(MorningPage), findsNothing);
     expect(find.byType(MorningTile), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+
+    // Kept all day by its switch, but not without the overview.
+    await pumpApp(tester, store: await _storeWith({'morningTileAllDay': true}));
+    expect(find.byType(MorningPage), findsNothing);
+    expect(find.byType(MorningTile), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    await pumpApp(
+      tester,
+      store: await _storeWith({
+        'morningTileAllDay': true,
+        'morningBrief': false,
+      }),
+    );
+    expect(find.byType(MorningTile), findsNothing);
+  });
+
+  testWidgets('the tile comes when the night has ended and goes after three '
+      'hours, with the page open', (tester) async {
+    var now = DateTime(2026, 10, 6, 6, 30);
+    final store = await _storeWith({'morningSeen': dayKey(now)});
+    await pumpApp(tester, clock: () => now, store: store);
+    expect(find.byType(MorningTile), findsNothing);
+
+    // The page waits for the end of the night by itself.
+    final window = morningWindow(
+      AppScope.of(tester.element(find.byType(TodayPage))).health.nights,
+      now,
+    );
+    expect(window.fromNight, isTrue);
+    final early = window.from.difference(now);
+    now = window.from;
+    await tester.pump(early);
+    await advance(tester);
+    expect(find.byType(MorningTile), findsOneWidget);
+    expect(find.byType(MorningPage), findsNothing);
+
+    now = window.until.subtract(const Duration(minutes: 1));
+    await tester.pump(morningLasts - const Duration(minutes: 1));
+    await advance(tester);
+    expect(find.byType(MorningTile), findsOneWidget);
+
+    now = window.until;
+    await tester.pump(const Duration(minutes: 1));
+    await advance(tester);
+    expect(find.byType(MorningTile), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('without a night it still opens and says the night is missing', (
@@ -418,9 +467,22 @@ void main() {
           ),
           matching: find.byType(Switch),
         );
-        await tester.tap(toggle);
-        await advance(tester);
+        // The tile stays all day once its own switch is on.
+        final keep = find.descendant(
+          of: find.ancestor(
+            of: find.text(l10n.morningTileAllDayNote),
+            matching: find.byType(Row),
+          ),
+          matching: find.byType(Switch),
+        );
+        await tapInView(tester, keep);
+        expect(settings.morningTileAllDay, isTrue);
+        expect(tester.widget<Switch>(keep).onChanged, isNotNull);
+
+        await tapInView(tester, toggle);
         expect(settings.morningBrief, isFalse);
+        // Nothing to keep without the overview.
+        expect(tester.widget<Switch>(keep).onChanged, isNull);
         expect(tester.takeException(), isNull);
       });
     }

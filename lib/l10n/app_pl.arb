@@ -535,6 +535,7 @@
   "placeRemove": "Usuń miejsce",
   "placeNote": "Wyszukiwanie i pogoda pochodzą z Open-Meteo.com. Pulse korzysta z internetu dopiero po ustawieniu miejsca i tylko do tego.",
   "morningSwitchNote": "Przegląd rano: przy pierwszym otwarciu i jako powiadomienie o porze, o której zwykle wstajesz.",
+  "morningTileAllDayNote": "Kafelek „Dzień dobry” przez cały dzień na stronie Dziś, nie tylko przez trzy godziny po wstaniu.",
   "morningSyncing": "Wczytywanie nocy …",
   "morningNoticePlain": "Twój poranek czeka. Dotknij, aby otworzyć.",
   "morningNoticeBody": "Sen {duration} · wynik snu {score}",

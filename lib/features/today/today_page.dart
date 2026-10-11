@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -39,14 +41,15 @@ class TodayPage extends StatelessWidget {
         final l10n = formats.l10n;
         final snapshot = health.snapshot;
 
-        final shown = [
-          for (final id in settings.todayTiles)
-            if (todayTileAvailable(id, health, settings)) id,
-        ];
         return PageAccent.day(
           child: _MorningOpener(
-            child: Builder(
-              builder: (context) => BoardPage(
+            // Built by the opener, which builds again when the morning ends.
+            builder: (context) {
+              final shown = [
+                for (final id in settings.todayTiles)
+                  if (todayTileAvailable(id, health, settings)) id,
+              ];
+              return BoardPage(
                 pageId: 'today',
                 // The scene stands at this minute, so its sky says whether
                 // the title has to be light.
@@ -113,8 +116,8 @@ class TodayPage extends StatelessWidget {
                       settings: settings,
                     ),
                 ],
-              ),
-            ),
+              );
+            },
           ),
         );
       },
@@ -123,11 +126,12 @@ class TodayPage extends StatelessWidget {
 }
 
 /// Opens the morning's cards by themselves, once a day: the first time the
-/// Today page is in front during the morning.
+/// Today page is in front during the morning. Builds the page again when the
+/// morning begins or ends, so its tile comes and goes with it.
 class _MorningOpener extends StatefulWidget {
-  const _MorningOpener({required this.child});
+  const _MorningOpener({required this.builder});
 
-  final Widget child;
+  final WidgetBuilder builder;
 
   @override
   State<_MorningOpener> createState() => _MorningOpenerState();
@@ -135,6 +139,14 @@ class _MorningOpener extends StatefulWidget {
 
 class _MorningOpenerState extends State<_MorningOpener> {
   bool _scheduled = false;
+  Timer? _edge;
+  DateTime? _edgeAt;
+
+  @override
+  void dispose() {
+    _edge?.cancel();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -149,16 +161,42 @@ class _MorningOpenerState extends State<_MorningOpener> {
     _check();
   }
 
+  /// Waits for the next edge of the morning [window], if one is ahead.
+  void _await(MorningWindow? window, DateTime now) {
+    final at = window == null
+        ? null
+        : now.isBefore(window.from)
+        ? window.from
+        : now.isBefore(window.until)
+        ? window.until
+        : null;
+    if (at == _edgeAt) return;
+    _edge?.cancel();
+    _edgeAt = at;
+    _edge = at == null
+        ? null
+        : Timer(at.difference(now), () {
+            _edgeAt = null;
+            if (!mounted) return;
+            _check();
+            setState(() {});
+          });
+  }
+
   void _check() {
-    if (_scheduled) return;
     final scope = AppScope.of(context);
     final health = scope.health;
     final settings = scope.settings;
-    // Settings that are not read yet cannot say whether it opened today.
-    if (!settings.loaded || !settings.morningBrief) return;
     final now = health.now;
+    final window = settings.morningBrief
+        ? morningWindow(health.nights, now)
+        : null;
+    _await(window, now);
+    if (_scheduled) return;
+    // Settings that are not read yet cannot say whether it opened today.
+    if (!settings.loaded || window == null) return;
     if (settings.morningSeen == dayKey(now)) return;
-    if (!morningWindow(health.nights, now).holds(now)) return;
+    if (!window.holds(now)) return;
     _scheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduled = false;
@@ -169,7 +207,7 @@ class _MorningOpenerState extends State<_MorningOpener> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => widget.builder(context);
 }
 
 class _ProfileButton extends StatelessWidget {
