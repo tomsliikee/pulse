@@ -1,3 +1,4 @@
+import 'fine_values.dart';
 import 'health_history.dart';
 import 'health_snapshot.dart';
 import 'models.dart';
@@ -39,11 +40,13 @@ abstract interface class HealthRepository {
   /// Reads the window ending at [now]. With [previous], what cannot have
   /// changed since it was loaded may be taken from it instead of read again.
   /// With [maxHeartRate], days without recorded intensity minutes get the
-  /// ones estimated from their heart rate.
+  /// ones estimated from their heart rate. With [fine], the days whose heart
+  /// rate is read get their fine values as well.
   Future<HealthSnapshot> load(
     DateTime now, {
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   });
 
   Future<void> add(EntryDraft draft);
@@ -96,6 +99,7 @@ class UnsupportedHealthRepository implements HealthRepository {
     DateTime now, {
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   }) => throw StateError('No health store on this platform.');
 
   @override

@@ -174,6 +174,7 @@ class Workout {
     this.steps,
     this.avgBpm,
     this.maxBpm,
+    this.fineKcal,
   });
 
   final WorkoutType type;
@@ -187,6 +188,11 @@ class Workout {
   /// the day's curve while the app still has it.
   final int? avgBpm;
   final int? maxBpm;
+
+  /// The active energy as the fine values count it: estimated from the heart
+  /// rate, less what the time would have cost at rest. Worked out while the
+  /// app still has the beats of that day.
+  final int? fineKcal;
 
   /// Names the workout across reads of the store.
   String get key => '${type.name}@${start.toIso8601String()}';
@@ -202,6 +208,33 @@ class Workout {
     steps: steps,
     avgBpm: avgBpm,
     maxBpm: maxBpm,
+    fineKcal: fineKcal,
+  );
+
+  /// This workout as the fine values show it: with their energy in place of
+  /// the store's.
+  Workout get fine => Workout(
+    type: type,
+    start: start,
+    minutes: minutes,
+    kcal: fineKcal,
+    distanceKm: distanceKm,
+    steps: steps,
+    avgBpm: avgBpm,
+    maxBpm: maxBpm,
+    fineKcal: fineKcal,
+  );
+
+  Workout withFineKcal(int? fineKcal) => Workout(
+    type: type,
+    start: start,
+    minutes: minutes,
+    kcal: kcal,
+    distanceKm: distanceKm,
+    steps: steps,
+    avgBpm: avgBpm,
+    maxBpm: maxBpm,
+    fineKcal: fineKcal,
   );
 
   Map<String, Object?> toJson() => {
@@ -213,6 +246,7 @@ class Workout {
     'steps': ?steps,
     'avgBpm': ?avgBpm,
     'maxBpm': ?maxBpm,
+    'fineKcal': ?fineKcal,
   };
 
   static Workout? fromJson(Object? json) {
@@ -241,6 +275,7 @@ class Workout {
         steps: positive('steps'),
         avgBpm: positive('avgBpm'),
         maxBpm: positive('maxBpm'),
+        fineKcal: positive('fineKcal'),
       );
     }
     return null;

@@ -64,12 +64,15 @@ Future<void> syncOnce(
   // The first read of a day is a full one, as in the app.
   final previous = saved != null && saved.today == today ? saved : null;
   final workouts = WorkoutArchive(store);
-  final birthDate = savedBirthDate(await store.read(StoreKeys.settings));
+  final settings = await store.read(StoreKeys.settings);
+  final birthDate = savedBirthDate(settings);
   final snapshot = withoutWorkouts(
     await repository.load(
       now,
       previous: previous,
       maxHeartRate: birthDate == null ? null : maxHeartRateOn(birthDate, now),
+      // The weight of days without one comes from the days read.
+      fine: savedFineProfile(settings, now),
     ),
     await workouts.loadRemoved(),
   );

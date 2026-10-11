@@ -211,7 +211,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **723** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **778** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD
@@ -277,6 +277,29 @@ flowchart TD
 | **Nutrition** | Water, calories eaten, carbohydrates, protein, fat, fibre, sugar | **Sum** |
 
 **Workouts** are read as sessions with type and duration; their steps, distance and calories are Health Connect's own totals of that time. **Intensity minutes** are estimated from the heart rate when no source writes them: a minute in the moderate range counts once, a vigorous one twice.
+
+#### Coarse and Fine Values
+
+The profile has a switch **Coarse | Fine** for the three numbers that sources tend to count generously: active calories, total calories and intensity minutes. **Coarse**, the default, shows them as described above. **Fine** shows what Pulse works out itself, meant to be realistic as the day's real burn:
+
+| Number | How the fine value is counted |
+|---|---|
+| **Active calories** | Three parts, each **less what that time would have cost at rest**: workouts, raised stretches and everyday steps |
+| **Workouts** | Running, cycling, walking, hiking and swimming from the heart rate, minute by minute (Keytel et al., 2005, from heart rate, weight, age and sex). **Strength**, **yoga** and unnamed workouts at a fixed rate per minute and kilogram from the Compendium of Physical Activities (3.5, 2.5 and 3.5 MET), because there the heart rate rises further than the energy spent |
+| **Raised stretches** | Outside workouts, at least **10 minutes in a row** at a moderate heart rate or above, from the heart rate. A single minute below does not end a stretch; a short spike on the stairs counts for nothing |
+| **Everyday steps** | The steps of every hour beside what is counted already (100 steps are left out for each counted minute), at 0.5 kcal per kilogram and kilometre and a step of 0.414 times your height |
+| **Total calories** | The source's own base (its total less its active calories) plus the fine active calories |
+| **Intensity minutes** | Minutes of workouts and raised stretches at a moderate heart rate once, at a vigorous one twice. Moderate begins at 40 %, vigorous at 60 % of the heart rate reserve; the maximum is **208 − 0.7 × age** |
+
+Readings up to five minutes apart are joined by the heart rate on the way from one to the other, because a watch does not write every minute. The burn at rest is the source's base of that day where it is plausible, else Mifflin-St Jeor's estimate from weight, height, age and sex. The calories need a **date of birth**, the **sex** and a **weight**; the profile says what is missing.
+
+In the fine mode the page of **active calories** lists what the day is made of (workouts, effort without a recording, everyday steps), and the calories on Today carry the word **Fine**.
+
+Both sets are stored side by side, so the switch takes effect at once. Fine values exist for the days read since they were introduced: the single heart beats are read for the last **8 days** only, so a pull to refresh fills those, and older days show no value in the fine mode rather than the coarse one.
+
+#### What You Really Burn
+
+No estimate from a wrist is exact. The page of **total calories** therefore works the burn out backwards, from the one thing that is measured: over the last **28 days**, the calories you ate less what your weight did (a line through the weigh-ins, at 7,700 kcal per kilogram). Beside it stand the source's total and the fine total with their distance from it. It needs calories eaten on at least 24 of the 28 days and at least 6 weigh-ins, one in the first and one in the last week; until then the page says what is missing. It assumes the weight changes through fat and not through water, and it changes none of the other numbers.
 
 Every metric has the tabs **Today**, **Yesterday**, **Week**, **Month**, **Year** and **All**. An average counts only days with data; a day without a measurement is not a zero.
 

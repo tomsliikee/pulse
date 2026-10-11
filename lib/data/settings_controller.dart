@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 
+import 'body_age.dart' show ageOn;
+import 'fine_values.dart';
 import 'goals.dart';
 import 'health_history.dart' show dayKey;
 import 'json_store.dart';
@@ -93,6 +95,26 @@ DateTime? savedBirthDate(Object? json) {
   return null;
 }
 
+/// What the fine values need of the profile in the saved settings [json],
+/// if it holds a birth date.
+FineProfile? savedFineProfile(Object? json, DateTime now, {double? weightKg}) {
+  final birthDate = savedBirthDate(json);
+  if (birthDate == null || json is! Map<String, Object?>) return null;
+  return FineProfile(
+    age: ageOn(birthDate, now).floorToDouble(),
+    sex: switch (json['sex']) {
+      'female' => Sex.female,
+      'male' => Sex.male,
+      _ => null,
+    },
+    heightCm: switch (json['heightCm']) {
+      final int v when v >= minHeightCm && v <= maxHeightCm => v,
+      _ => null,
+    },
+    weightKg: weightKg,
+  );
+}
+
 bool isPlausibleBirthDate(DateTime date, {DateTime? now}) {
   final today = now ?? DateTime.now();
   return date.year >= 1900 && date.isBefore(today);
@@ -153,6 +175,7 @@ class SettingsController extends ChangeNotifier {
   Place? _place;
   bool _morningBrief = true;
   bool _morningTileAllDay = false;
+  bool _fineValues = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
   bool _dynamicColor = true;
@@ -196,6 +219,10 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the Today page keeps the morning's tile after the morning.
   bool get morningTileAllDay => _morningTileAllDay;
+
+  /// Whether active energy, total energy and intensity minutes are shown as
+  /// the app works them out itself, more strictly than the sources do.
+  bool get fineValues => _fineValues;
 
   /// The day (as a day key) the morning's cards last opened by themselves.
   int? get morningSeen => _morningSeen;
@@ -286,6 +313,7 @@ class SettingsController extends ChangeNotifier {
     _place = Place.fromJson(json['place']) ?? _place;
     if (json['morningBrief'] case final bool v) _morningBrief = v;
     if (json['morningTileAllDay'] case final bool v) _morningTileAllDay = v;
+    if (json['fineValues'] case final bool v) _fineValues = v;
     if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
@@ -419,6 +447,8 @@ class SettingsController extends ChangeNotifier {
   void setMorningTileAllDay(bool value) =>
       _update(() => _morningTileAllDay = value);
 
+  void setFineValues(bool value) => _update(() => _fineValues = value);
+
   /// Remembers that the morning's cards opened by themselves on [day].
   void setMorningSeen(DateTime day) =>
       _update(() => _morningSeen = dayKey(day));
@@ -498,6 +528,7 @@ class SettingsController extends ChangeNotifier {
             'place': ?_place?.toJson(),
             'morningBrief': _morningBrief,
             'morningTileAllDay': _morningTileAllDay,
+            'fineValues': _fineValues,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,
             'dynamicColor': _dynamicColor,

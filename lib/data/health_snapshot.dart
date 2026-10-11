@@ -57,6 +57,39 @@ class HealthSnapshot {
     return day.any((v) => v != null) ? day : null;
   }
 
+  /// This snapshot with other values per day and per hour.
+  HealthSnapshot withValues({
+    required Map<Metric, List<double?>> series,
+    required Map<Metric, List<double?>> hourly,
+    List<Workout>? workouts,
+  }) => HealthSnapshot(
+    today: today,
+    loadedAt: loadedAt,
+    dayCount: dayCount,
+    series: series,
+    nights: nights,
+    heart: heart,
+    workouts: workouts ?? this.workouts,
+    entries: entries,
+    hourly: hourly,
+  );
+
+  /// This snapshot as the fine values show it: each metric that has a fine
+  /// value holds that one, and no value on the days without.
+  HealthSnapshot get fine {
+    Map<Metric, List<double?>> swapped(Map<Metric, List<double?>> values) => {
+      for (final MapEntry(key: metric, :value) in values.entries)
+        if (!Metric.fine.containsKey(metric)) metric: value,
+      for (final MapEntry(key: metric, value: fine) in Metric.fine.entries)
+        metric: ?values[fine],
+    };
+    return withValues(
+      series: swapped(series),
+      hourly: swapped(hourly),
+      workouts: [for (final workout in workouts) workout.fine],
+    );
+  }
+
   DateTime dateAt(int index) =>
       DateTime(today.year, today.month, today.day - (dayCount - 1 - index));
 

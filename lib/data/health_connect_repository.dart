@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
 import '../app/app_info.dart';
+import 'fine_values.dart';
 import 'health_history.dart';
 import 'health_repository.dart';
 import 'health_snapshot.dart';
@@ -190,9 +191,10 @@ class HealthConnectRepository implements HealthRepository {
     DateTime now,
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   ) => _inWorker(
     token,
-    (repository) => repository._load(now, previous, maxHeartRate),
+    (repository) => repository._load(now, previous, maxHeartRate, fine),
   );
 
   static Future<DailyValues> _loadHistoryInWorker(
@@ -383,11 +385,12 @@ class HealthConnectRepository implements HealthRepository {
     DateTime now, {
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   }) {
     final token = RootIsolateToken.instance;
     return token == null
-        ? _load(now, previous, maxHeartRate)
-        : _loadInWorker(token, now, previous, maxHeartRate);
+        ? _load(now, previous, maxHeartRate, fine)
+        : _loadInWorker(token, now, previous, maxHeartRate, fine);
   }
 
   @override
@@ -402,6 +405,7 @@ class HealthConnectRepository implements HealthRepository {
     DateTime now,
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   ) async {
     await _configure();
     const dayCount = HealthSnapshot.defaultDayCount;
@@ -428,7 +432,9 @@ class HealthConnectRepository implements HealthRepository {
       final hours = await _totalsBy(
         type,
         metric,
-        yesterday,
+        // The fine values count the steps of every hour of the days whose
+        // heart rate is read.
+        metric == Metric.steps ? heartFrom : yesterday,
         now,
         Duration.secondsPerHour,
       );
@@ -439,6 +445,7 @@ class HealthConnectRepository implements HealthRepository {
       now: now,
       dayCount: dayCount,
       maxHeartRate: maxHeartRate,
+      fine: fine,
       raw: await _readRaw(
         start,
         now,

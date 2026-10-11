@@ -62,6 +62,12 @@ extension MetricPresentation on Metric {
       Tone.tertiary,
     ),
     Metric.speed => const MetricSpec(Icons.speed_rounded, Shapes.slanted),
+    Metric.fineActiveEnergy ||
+    Metric.fineTotalEnergy ||
+    Metric.fineIntensityMinutes ||
+    Metric.fineWorkoutEnergy ||
+    Metric.fineStretchEnergy ||
+    Metric.fineStepEnergy => shownAs.spec,
     Metric.heartRate => const MetricSpec(
       Icons.monitor_heart_rounded,
       Shapes.heart,
@@ -148,8 +154,12 @@ extension MetricPresentation on Metric {
   };
 
   /// What has to be said about where the values come from.
-  String? note(AppLocalizations l10n) => switch (this) {
-    Metric.intensityMinutes => l10n.intensityNote,
+  /// With [fine], about the fine values that stand in its place.
+  String? note(AppLocalizations l10n, {bool fine = false}) => switch (this) {
+    Metric.intensityMinutes =>
+      fine ? l10n.fineIntensityNote : l10n.intensityNote,
+    Metric.activeEnergy when fine => l10n.fineActiveNote,
+    Metric.totalEnergy when fine => l10n.fineTotalNote,
     _ => null,
   };
 
@@ -161,6 +171,12 @@ extension MetricPresentation on Metric {
     Metric.totalEnergy => l10n.metricTotalEnergy,
     Metric.intensityMinutes => l10n.metricIntensityMinutes,
     Metric.speed => l10n.metricSpeed,
+    Metric.fineActiveEnergy ||
+    Metric.fineTotalEnergy ||
+    Metric.fineIntensityMinutes ||
+    Metric.fineWorkoutEnergy ||
+    Metric.fineStretchEnergy ||
+    Metric.fineStepEnergy => shownAs.title(l10n),
     Metric.heartRate => l10n.metricHeartRate,
     Metric.restingHeartRate => l10n.metricRestingHeartRate,
     Metric.heartRateVariability => l10n.metricHeartRateVariability,

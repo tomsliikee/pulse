@@ -24,7 +24,7 @@ class AllDataSection extends StatelessWidget {
     final scheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context);
     final missing = [
-      for (final metric in Metric.values)
+      for (final metric in Metric.listed)
         if (!snapshot.has(metric)) metric,
     ];
 
@@ -33,7 +33,7 @@ class AllDataSection extends StatelessWidget {
       children: [
         for (final group in MetricGroup.values)
           if ([
-                for (final metric in Metric.values)
+                for (final metric in Metric.listed)
                   if (metric.group == group && snapshot.has(metric)) metric,
               ]
               case final metrics when metrics.isNotEmpty) ...[

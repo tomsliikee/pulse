@@ -72,7 +72,13 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _frames.start();
     _health.addListener(() => _frames.mark('health'));
     _settings.addListener(() => _frames.mark('settings'));
-    _settings.addListener(() => _health.birthDate = _settings.birthDate);
+    _settings.addListener(() {
+      _health
+        ..birthDate = _settings.birthDate
+        ..sex = _settings.sex
+        ..heightCm = _settings.heightCm
+        ..fineValues = _settings.fineValues;
+    });
     _settings.addListener(() => _weather.place = _settings.place);
     _palette.addListener(() => _frames.mark('palette'));
     _health.addListener(_keepMorningAlarm);

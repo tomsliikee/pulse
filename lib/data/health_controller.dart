@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'backup.dart';
 import 'body_age.dart';
+import 'fine_values.dart';
 import 'health_history.dart';
 import 'health_repository.dart';
 import 'health_snapshot.dart';
@@ -70,9 +71,16 @@ class HealthController extends ChangeNotifier {
   List<SleepNight> _nights = const [];
   SyncReport? _backgroundSync;
   DateTime? _birthDate;
+  Sex? _sex;
+  int? _heightCm;
+  bool _fineValues = false;
+  HealthSnapshot? _fineOf;
+  HealthSnapshot? _fineSnapshot;
+  List<Workout>? _fineWorkoutsOf;
+  List<Workout> _fineWorkouts = const [];
 
-  /// The maximum heart rate the snapshot on screen was read with.
-  int? _readWith;
+  /// What the snapshot on screen was read with, see [_readsWith].
+  Object? _readWith;
   bool _refreshAgain = false;
   bool _disposed = false;
   int _revision = 0;
@@ -92,6 +100,24 @@ class HealthController extends ChangeNotifier {
   set birthDate(DateTime? value) {
     if (value == _birthDate) return;
     _birthDate = value;
+    _readAgain();
+  }
+
+  /// The sex and the height of the profile. The fine values are worked out
+  /// with them, so a change reads again.
+  set sex(Sex? value) {
+    if (value == _sex) return;
+    _sex = value;
+    _readAgain();
+  }
+
+  set heightCm(int? value) {
+    if (value == _heightCm) return;
+    _heightCm = value;
+    _readAgain();
+  }
+
+  void _readAgain() {
     // Before the first read there is nothing to read again.
     if (_snapshot == null && !_refreshing) return;
     if (_refreshing) {
@@ -101,10 +127,67 @@ class HealthController extends ChangeNotifier {
     }
   }
 
+  /// Whether the fine values stand in the place of the sources' own: in
+  /// [snapshot], [history], [valueOn] and the workouts.
+  bool get fineValues => _fineValues;
+
+  set fineValues(bool value) {
+    if (value == _fineValues) return;
+    _fineValues = value;
+    if (!_disposed) notifyListeners();
+  }
+
   int? get _maxHeartRate => switch (_birthDate) {
     final birthDate? => maxHeartRateOn(birthDate, _clock()),
     null => null,
   };
+
+  FineProfile? get _fineProfile {
+    final birthDate = _birthDate;
+    if (birthDate == null) return null;
+    final weights = _history;
+    final last = weights?.daysOf(Metric.weight).lastOrNull;
+    return FineProfile(
+      // In whole years, so that a read on another day asks for the same.
+      age: ageOn(birthDate, _clock()).floorToDouble(),
+      sex: _sex,
+      heightCm: _heightCm,
+      weightKg: last == null
+          ? null
+          : weights?.value(Metric.weight, dateOfKey(last)),
+    );
+  }
+
+  /// What of the profile changes the values a read gives. The weight is not
+  /// part of it: each day is judged by its own.
+  Object? _readsWith(int? maxHeartRate, FineProfile? profile) =>
+      (maxHeartRate, profile?.age, profile?.sex, profile?.heightCm);
+
+  /// Whether [shown] is without fine values that a full read with [profile]
+  /// would give: it was read before there were any, or in the background,
+  /// which knows no weight from before the window.
+  bool _lacksFineValues(HealthSnapshot shown, FineProfile? profile) {
+    if (profile == null ||
+        !shown.has(Metric.heartRate) ||
+        !shown.has(Metric.restingHeartRate)) {
+      return false;
+    }
+    if (!shown.has(Metric.fineIntensityMinutes)) return true;
+    return !shown.has(Metric.fineActiveEnergy) &&
+        profile.sex != null &&
+        profile.heightCm != null &&
+        (profile.weightKg != null || shown.has(Metric.weight));
+  }
+
+  /// What the fine values still need of the profile to give the energy:
+  /// nothing where the list is empty.
+  ({bool birthDate, bool sex, bool weight}) get fineMissing => (
+    birthDate: _birthDate == null,
+    sex: _sex == null,
+    weight:
+        _fineProfile?.weightKg == null &&
+        !(_snapshot?.has(Metric.weight) ?? false),
+  );
 
   HealthStatus get status => _status;
   bool get refreshing => _refreshing;
@@ -115,7 +198,7 @@ class HealthController extends ChangeNotifier {
 
   /// One value per day for as long as the app has been collecting. Null
   /// until it has been loaded from disk.
-  HealthHistory? get history => _history;
+  HealthHistory? get history => _fineValues ? _history?.fine : _history;
 
   /// While older data is being fetched: the day it has reached so far.
   DateTime? get backfillReached => _backfilling ? _backfillReached : null;
@@ -129,11 +212,34 @@ class HealthController extends ChangeNotifier {
   DateTime get now => _clock();
 
   /// Only valid while [status] is [HealthStatus.ready].
-  HealthSnapshot get snapshot => _snapshot!;
+  HealthSnapshot get snapshot => _shown!;
+
+  /// The snapshot as it is shown: with the fine values where they are asked
+  /// for.
+  HealthSnapshot? get _shown {
+    final snapshot = _snapshot;
+    if (snapshot == null || !_fineValues) return snapshot;
+    if (!identical(snapshot, _fineOf)) {
+      _fineOf = snapshot;
+      _fineSnapshot = snapshot.fine;
+    }
+    return _fineSnapshot;
+  }
 
   /// The value of [metric] on [day]: from the snapshot inside its window,
   /// from the history before it.
   double? valueOn(Metric metric, DateTime day) {
+    final snapshot = _shown;
+    final index = snapshot?.indexOf(day);
+    // A day of the window without a fine value has none: the history holds
+    // nothing newer for it.
+    return (index == null ? null : snapshot?.value(metric, index)) ??
+        history?.value(metric, day);
+  }
+
+  /// The value of [metric] on [day] as it was read, whatever the fine
+  /// values show in its place.
+  double? readValueOn(Metric metric, DateTime day) {
     final index = _snapshot?.indexOf(day);
     return (index == null ? null : _snapshot?.value(metric, index)) ??
         _history?.value(metric, day);
@@ -184,9 +290,18 @@ class HealthController extends ChangeNotifier {
 
   /// Every workout the app has seen, oldest first. Reaches further back
   /// than the snapshot's window.
-  List<Workout> get workouts => _workouts;
+  List<Workout> get workouts {
+    if (!_fineValues) return _workouts;
+    if (!identical(_workouts, _fineWorkoutsOf)) {
+      _fineWorkoutsOf = _workouts;
+      _fineWorkouts = List.unmodifiable([
+        for (final workout in _workouts) workout.fine,
+      ]);
+    }
+    return _fineWorkouts;
+  }
 
-  Workout? get latestWorkout => _workouts.isEmpty ? null : _workouts.last;
+  Workout? get latestWorkout => workouts.isEmpty ? null : workouts.last;
 
   /// The workouts the user took out of the app, in the order of removal.
   List<RemovedWorkout> get removedWorkouts => _removedWorkouts;
@@ -198,11 +313,15 @@ class HealthController extends ChangeNotifier {
     );
     await _loadArchives();
     // The profile may not be loaded yet, and the first read needs it.
-    _birthDate ??= savedBirthDate(await _store.read(StoreKeys.settings));
+    final settings = await _store.read(StoreKeys.settings);
+    _birthDate ??= savedBirthDate(settings);
+    final profile = savedFineProfile(settings, _clock());
+    _sex ??= profile?.sex;
+    _heightCm ??= profile?.heightCm;
     if (_disposed) return;
     if (saved != null) {
       _show(saved);
-      _readWith = _maxHeartRate;
+      _readWith = _readsWith(_maxHeartRate, _fineProfile);
     }
     await refresh();
     if (_disposed || _status != HealthStatus.ready) return;
@@ -272,6 +391,8 @@ class HealthController extends ChangeNotifier {
       }
       final shown = _snapshot;
       final maxHeartRate = _maxHeartRate;
+      final profile = _fineProfile;
+      final readWith = _readsWith(maxHeartRate, profile);
       final read = await _repository.load(
         _clock(),
         // The first read of a day is a full one as well, and so is the one
@@ -280,12 +401,14 @@ class HealthController extends ChangeNotifier {
             full ||
                 shown == null ||
                 shown.today != today ||
-                maxHeartRate != _readWith
+                readWith != _readWith ||
+                _lacksFineValues(shown, profile)
             ? null
             : shown,
         maxHeartRate: maxHeartRate,
+        fine: profile,
       );
-      _readWith = maxHeartRate;
+      _readWith = readWith;
       final fresh = withoutWorkouts(read, _removedWorkouts);
       final background = await _repository.backgroundAccessGranted();
       final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
@@ -352,7 +475,13 @@ class HealthController extends ChangeNotifier {
   /// ran: steps, distance, energy, minutes of activity and floors. The
   /// health store keeps all of it; an app cannot delete another's records.
   /// Returns what [restoreWorkout] needs to undo it.
-  Future<RemovedWorkout> removeWorkout(Workout workout) async {
+  Future<RemovedWorkout> removeWorkout(Workout shown) async {
+    // What the page handed over may carry the fine energy in the store's
+    // place; the archive keeps the workout as it was read.
+    final workout = [
+      ..._workouts,
+      ...?_snapshot?.workouts,
+    ].firstWhere((other) => other.key == shown.key, orElse: () => shown);
     var totals = const <Metric, Map<DateTime, double>>{};
     try {
       totals = await _repository.loadTotalsDuring(workout.start, workout.end);

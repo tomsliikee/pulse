@@ -36,9 +36,12 @@ List<Workout>? mergeWorkouts(List<Workout> stored, Iterable<Workout> fresh) {
   var changed = false;
   for (final workout in fresh) {
     final old = byKey[workout.key];
-    final merged = old == null || workout.avgBpm != null
+    var merged = old == null || workout.avgBpm != null
         ? workout
         : workout.withHeart(avgBpm: old.avgBpm, maxBpm: old.maxBpm);
+    if (merged.fineKcal == null && old?.fineKcal != null) {
+      merged = merged.withFineKcal(old!.fineKcal);
+    }
     if (old != null && _same(old, merged)) continue;
     byKey[workout.key] = merged;
     changed = true;
@@ -53,7 +56,8 @@ bool _same(Workout a, Workout b) =>
     a.distanceKm == b.distanceKm &&
     a.steps == b.steps &&
     a.avgBpm == b.avgBpm &&
-    a.maxBpm == b.maxBpm;
+    a.maxBpm == b.maxBpm &&
+    a.fineKcal == b.fineKcal;
 
 /// A workout the user took out of the app, with what the store counted
 /// while it ran. The health store keeps it, so it is remembered here and

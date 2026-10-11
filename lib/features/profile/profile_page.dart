@@ -290,6 +290,51 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
+              SectionTitle(l10n.valuesTitle),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: M3EToggleButtonGroup(
+                  type: M3EButtonGroupType.connected,
+                  style: M3EButtonStyle.tonal,
+                  size: M3EButtonSize.md,
+                  haptic: M3EHapticFeedback.light,
+                  selectedIndex: settings.fineValues ? 1 : 0,
+                  onSelectedIndexChanged: (index) {
+                    if (index != null) settings.setFineValues(index == 1);
+                  },
+                  actions: [
+                    M3EToggleButtonGroupAction(label: Text(l10n.valuesCoarse)),
+                    M3EToggleButtonGroupAction(label: Text(l10n.valuesFine)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
+                child: Text(
+                  settings.fineValues
+                      ? l10n.valuesFineNote
+                      : l10n.valuesCoarseNote,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (settings.fineValues)
+                if ([
+                      if (health.fineMissing.birthDate) l10n.birthDate,
+                      if (health.fineMissing.sex) l10n.sex,
+                      if (health.fineMissing.weight) l10n.metricWeight,
+                    ]
+                    case final missing when missing.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                    child: Text(
+                      l10n.valuesFineMissing(missing.join(', ')),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.error,
+                      ),
+                    ),
+                  ),
               SectionTitle(l10n.appearance),
               Align(
                 alignment: Alignment.centerLeft,

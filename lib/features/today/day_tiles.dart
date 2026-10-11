@@ -262,10 +262,16 @@ class DayCard extends StatelessWidget {
                                   value: energy,
                                   hours: hoursUntilNow(Metric.activeEnergy),
                                   round: round,
-                                  label: l10n.ofGoal(
-                                    formats.integer(settings.activeEnergyGoal),
-                                    Metric.activeEnergy.unit,
-                                  ),
+                                  // Says when the app counts for itself.
+                                  label: [
+                                    l10n.ofGoal(
+                                      formats.integer(
+                                        settings.activeEnergyGoal,
+                                      ),
+                                      Metric.activeEnergy.unit,
+                                    ),
+                                    if (settings.fineValues) l10n.valuesFine,
+                                  ].join(' · '),
                                   shape: Shapes.burst,
                                   color: scheme.tertiary,
                                 ),

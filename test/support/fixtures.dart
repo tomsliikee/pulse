@@ -10,6 +10,7 @@ import 'package:pulse/data/weather.dart';
 import 'package:pulse/app/formatters.dart';
 import 'package:pulse/app/backup_files.dart';
 import 'package:pulse/app/pulse_app.dart';
+import 'package:pulse/data/fine_values.dart';
 import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/health_repository.dart';
 import 'package:pulse/data/health_snapshot.dart';
@@ -138,6 +139,7 @@ class FixtureRepository implements HealthRepository {
   /// What each [load] was given as the snapshot to build on.
   final List<HealthSnapshot?> loadedWith = [];
   final List<int?> maxHeartRates = [];
+  final List<FineProfile?> fineProfiles = [];
 
   final List<EntryDraft> added = [];
   final List<HealthEntry> deleted = [];
@@ -161,12 +163,19 @@ class FixtureRepository implements HealthRepository {
     DateTime now, {
     HealthSnapshot? previous,
     int? maxHeartRate,
+    FineProfile? fine,
   }) async {
     if (failLoads) throw const FormatException('store unavailable');
     await gate?.future;
     loadedWith.add(previous);
     maxHeartRates.add(maxHeartRate);
-    return buildSnapshot(now: now, raw: readings, maxHeartRate: maxHeartRate);
+    fineProfiles.add(fine);
+    return buildSnapshot(
+      now: now,
+      raw: readings,
+      maxHeartRate: maxHeartRate,
+      fine: fine,
+    );
   }
 
   @override

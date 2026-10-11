@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
+import '../../data/energy_balance.dart';
 import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
@@ -23,6 +24,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../entry/entry_sheet.dart';
+import 'energy_balance_card.dart';
 import 'metric_spec.dart';
 import 'metric_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -417,7 +419,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
             ],
           ),
         ),
-        if (metric.note(l10n) case final note?)
+        if (metric.note(l10n, fine: health.fineValues) case final note?)
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
             child: Text(
@@ -427,6 +429,54 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                   color: scheme.onSurfaceVariant,
                 ),
               ),
+            ),
+          ),
+        if (metric == Metric.activeEnergy &&
+            health.fineValues &&
+            dayIndex != null)
+          if ([
+                for (final part in Metric.fineParts)
+                  health.readValueOn(part, snapshot.dateAt(dayIndex)),
+              ]
+              case [final workouts?, final stretches?, final steps?]) ...[
+            SectionTitle(l10n.finePartsTitle),
+            SegmentGroup(
+              children: [
+                for (final (icon, label, value) in [
+                  (
+                    Icons.fitness_center_rounded,
+                    l10n.finePartWorkouts,
+                    workouts,
+                  ),
+                  (
+                    Icons.monitor_heart_rounded,
+                    l10n.finePartStretches,
+                    stretches,
+                  ),
+                  (Icons.directions_walk_rounded, l10n.finePartSteps, steps),
+                ])
+                  Row(
+                    children: [
+                      Icon(icon, color: colors.accent),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(label, style: theme.textTheme.titleSmall),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        metric.formatWithUnit(formats, value),
+                        style: type.figure(theme.textTheme.titleMedium),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        if (metric == Metric.totalEnergy)
+          EnergyBalanceCard(
+            balance: energyBalance(
+              today: health.today,
+              valueOn: health.readValueOn,
             ),
           ),
         if (kind != null && dayIndex != null) ...[

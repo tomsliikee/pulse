@@ -34,7 +34,20 @@ DailyValues dailyValuesOf(HealthSnapshot snapshot) => {
 /// One value per day and metric, for as long as the app has been collecting.
 /// Kept in memory; [HistoryArchive] loads and saves it.
 class HealthHistory {
-  final Map<Metric, SplayTreeMap<int, double>> _values = {};
+  HealthHistory() : _values = {};
+
+  HealthHistory._(this._values);
+
+  final Map<Metric, SplayTreeMap<int, double>> _values;
+
+  /// This history as the fine values show it: each metric that has a fine
+  /// value holds that one, and no value on the days without. Shares the
+  /// values with this history; it is for reading.
+  HealthHistory get fine => HealthHistory._({
+    ..._values,
+    for (final MapEntry(key: metric, value: fine) in Metric.fine.entries)
+      metric: _values[fine] ?? SplayTreeMap(),
+  });
 
   bool get isEmpty => _values.values.every((days) => days.isEmpty);
 

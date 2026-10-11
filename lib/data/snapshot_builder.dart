@@ -1,3 +1,4 @@
+import 'fine_values.dart';
 import 'health_snapshot.dart';
 import 'heart_day.dart';
 import 'metric_catalog.dart';
@@ -68,6 +69,7 @@ HealthSnapshot buildSnapshot({
   required RawReadings raw,
   int dayCount = HealthSnapshot.defaultDayCount,
   int? maxHeartRate,
+  FineProfile? fine,
 }) {
   final today = DateTime(now.year, now.month, now.day);
   // Only used for its date arithmetic while the real lists are built.
@@ -115,6 +117,10 @@ HealthSnapshot buildSnapshot({
     _addZoneMinutes(frame, sorted, series, hourlyTotals, maxHeartRate);
   }
 
+  final fineKcal = fine == null
+      ? const <String, int>{}
+      : _addFineValues(frame, sorted, series, hourlyTotals, raw, fine, now);
+
   final nights = _nights(frame, raw);
   series[Metric.sleep] = [
     for (final night in nights) night == null ? null : night.asleepMinutes / 60,
@@ -128,7 +134,10 @@ HealthSnapshot buildSnapshot({
 
   final workouts = [
     for (final workout in raw.workouts)
-      if (frame.indexOf(workout.start) != null) workout,
+      if (frame.indexOf(workout.start) != null)
+        fineKcal.containsKey(workout.key)
+            ? workout.withFineKcal(fineKcal[workout.key])
+            : workout,
   ]..sort((a, b) => a.start.compareTo(b.start));
 
   return HealthSnapshot(
@@ -144,6 +153,152 @@ HealthSnapshot buildSnapshot({
   );
 }
 
+/// The beats of every day of [frame], with their time, oldest first.
+List<List<(DateTime, double)>> _beatsByDay(
+  HealthSnapshot frame,
+  List<RawSample> sorted,
+) {
+  final beats = List.generate(frame.dayCount, (_) => <(DateTime, double)>[]);
+  for (final sample in sorted) {
+    if (sample.metric != Metric.heartRate) continue;
+    final index = frame.indexOf(sample.time);
+    if (index == null || !Metric.heartRate.accepts(sample.value)) continue;
+    beats[index].add((sample.time, sample.value));
+  }
+  return beats;
+}
+
+/// Gives every day whose heart rate was read its fine values: the intensity
+/// minutes, the active energy and the total with it, see [fineDay]. Returns
+/// the fine active energy of the workouts, by their key.
+Map<String, int> _addFineValues(
+  HealthSnapshot frame,
+  List<RawSample> sorted,
+  Map<Metric, List<double?>> series,
+  Map<Metric, Map<DateTime, double>> hourlyTotals,
+  RawReadings raw,
+  FineProfile profile,
+  DateTime now,
+) {
+  final beats = _beatsByDay(frame, sorted);
+  final resting = series[Metric.restingHeartRate];
+  final weights = series[Metric.weight];
+  final totals = series[Metric.totalEnergy];
+  final actives = series[Metric.activeEnergy];
+  final workouts = [
+    for (final workout in raw.workouts)
+      (workout.start, workout.end, workout.type),
+  ];
+  final stepsOf = series[Metric.steps];
+  // The steps of every hour, by day and hour of the day.
+  final stepHours = <int, Map<int, double>>{};
+  for (final MapEntry(key: hour, value: taken)
+      in (raw.hourlyTotals[Metric.steps] ?? const <DateTime, double>{})
+          .entries) {
+    final index = frame.indexOf(hour);
+    if (index == null) continue;
+    final hours = stepHours.putIfAbsent(index, () => {});
+    hours[hour.hour] = (hours[hour.hour] ?? 0) + taken;
+  }
+  final workoutSteps = List<double>.filled(frame.dayCount, 0);
+  for (final workout in raw.workouts) {
+    final index = frame.indexOf(workout.start);
+    if (index != null) workoutSteps[index] += workout.steps ?? 0;
+  }
+  // A day without a weight is judged by the one before it, the first days
+  // by the first that is known.
+  double? weight;
+  for (final value in weights ?? const <double?>[]) {
+    if (value != null) {
+      weight = value;
+      break;
+    }
+  }
+  weight ??= profile.weightKg;
+
+  final minutes = List<double?>.filled(frame.dayCount, null);
+  final energy = List<double?>.filled(frame.dayCount, null);
+  final total = List<double?>.filled(frame.dayCount, null);
+  final parts = {
+    for (final part in Metric.fineParts)
+      part: List<double?>.filled(frame.dayCount, null),
+  };
+  final minuteHours = <DateTime, double>{};
+  final energyHours = <DateTime, double>{};
+  final workoutKcal = <String, int>{};
+  final max = profile.maxHeartRate.toDouble();
+  final sex = profile.sex;
+  double? rest;
+  for (var i = 0; i < frame.dayCount; i++) {
+    rest = resting?[i] ?? rest;
+    weight = weights?[i] ?? weight;
+    final reserve = rest == null ? 0.0 : max - rest;
+    if (rest == null || reserve <= 0 || beats[i].isEmpty) continue;
+    final kg = weight;
+    final atRest = restingPerMinute(
+      total: totals?[i],
+      active: actives?[i],
+      // Today has only run until now.
+      minutes: i == frame.dayCount - 1
+          ? now.hour * 60 + now.minute
+          : Duration.minutesPerDay,
+      profile: profile,
+      kg: kg,
+    );
+    final day = fineDay(
+      beats[i],
+      on: frame.dateAt(i),
+      kg: kg,
+      stepsByHour: stepHours[i],
+      steps: stepsOf?[i],
+      workoutSteps: workoutSteps[i],
+      perStep: kg == null
+          ? null
+          : kcalPerStep(kg: kg, heightCm: profile.heightCm),
+      moderate: rest + moderateReserveShare * reserve,
+      vigorous: rest + vigorousReserveShare * reserve,
+      workouts: workouts,
+      netPerMinute: sex == null || kg == null || atRest == null
+          ? null
+          : (bpm) =>
+                keytelPerMinute(bpm, kg: kg, age: profile.age, sex: sex) -
+                atRest,
+    );
+    // A day with its heart rate read and nothing counted has none.
+    minutes[i] = day.minutes;
+    minuteHours.addAll(day.minutesByHour);
+    final kcal = day.kcal;
+    if (kcal == null) continue;
+    energy[i] = kcal;
+    energyHours.addAll(day.kcalByHour!);
+    parts[Metric.fineWorkoutEnergy]![i] = day.workoutsKcal;
+    parts[Metric.fineStretchEnergy]![i] = day.stretchKcal;
+    parts[Metric.fineStepEnergy]![i] = day.stepKcal;
+    final sourceTotal = totals?[i];
+    final sourceActive = actives?[i];
+    if (sourceTotal != null && sourceActive != null) {
+      total[i] = sourceTotal - sourceActive + kcal;
+    }
+    for (final MapEntry(key: index, :value) in day.workoutKcal.entries) {
+      final key = raw.workouts[index].key;
+      workoutKcal[key] = (workoutKcal[key] ?? 0) + value.round();
+    }
+  }
+  void put(Metric metric, List<double?> days, [Map<DateTime, double>? hours]) {
+    if (days.every((value) => value == null)) return;
+    series[metric] = days;
+    if (hours != null && hours.isNotEmpty) hourlyTotals[metric] = hours;
+  }
+
+  put(Metric.fineIntensityMinutes, minutes, minuteHours);
+  put(Metric.fineActiveEnergy, energy, energyHours);
+  put(Metric.fineTotalEnergy, total);
+  for (final MapEntry(key: part, value: days) in parts.entries) {
+    put(part, days);
+  }
+  return workoutKcal;
+}
+
 /// Gives every day without recorded intensity minutes the ones estimated
 /// from its heart rate. A day whose resting heart rate is not written yet is
 /// judged by the latest one before it.
@@ -154,13 +309,7 @@ void _addZoneMinutes(
   Map<Metric, Map<DateTime, double>> hourlyTotals,
   int maxHeartRate,
 ) {
-  final beats = List.generate(frame.dayCount, (_) => <(DateTime, double)>[]);
-  for (final sample in sorted) {
-    if (sample.metric != Metric.heartRate) continue;
-    final index = frame.indexOf(sample.time);
-    if (index == null || !Metric.heartRate.accepts(sample.value)) continue;
-    beats[index].add((sample.time, sample.value));
-  }
+  final beats = _beatsByDay(frame, sorted);
   final resting = series[Metric.restingHeartRate];
   final recorded = series[Metric.intensityMinutes];
   final days = [...?recorded];
@@ -376,6 +525,12 @@ HealthSnapshot keepHeartBefore(
   final heart = [...fresh.heart];
   final average = [...fresh.valuesOf(Metric.heartRate)];
   final intensity = [...fresh.valuesOf(Metric.intensityMinutes)];
+  // The fine values come from the beats as well.
+  final fine = {
+    for (final metric in [...Metric.fine.values, ...Metric.fineParts])
+      metric: [...fresh.valuesOf(metric)],
+  };
+  final fineKcal = <String, int>{};
   for (var i = 0; i < fresh.dayCount; i++) {
     final day = fresh.dateAt(i);
     if (!day.isBefore(from)) break;
@@ -384,6 +539,15 @@ HealthSnapshot keepHeartBefore(
     heart[i] = previous.heart[kept];
     average[i] = previous.value(Metric.heartRate, kept);
     intensity[i] ??= previous.value(Metric.intensityMinutes, kept);
+    for (final MapEntry(key: metric, value: days) in fine.entries) {
+      days[i] ??= previous.value(metric, kept);
+    }
+  }
+  for (final workout in previous.workouts) {
+    final kcal = workout.fineKcal;
+    if (kcal != null && workout.start.isBefore(from)) {
+      fineKcal[workout.key] = kcal;
+    }
   }
   return HealthSnapshot(
     today: fresh.today,
@@ -393,10 +557,17 @@ HealthSnapshot keepHeartBefore(
       ...fresh.series,
       if (average.any((v) => v != null)) Metric.heartRate: average,
       if (intensity.any((v) => v != null)) Metric.intensityMinutes: intensity,
+      for (final MapEntry(key: metric, value: days) in fine.entries)
+        if (days.any((v) => v != null)) metric: days,
     },
     nights: fresh.nights,
     heart: heart,
-    workouts: fresh.workouts,
+    workouts: [
+      for (final workout in fresh.workouts)
+        workout.fineKcal == null && fineKcal.containsKey(workout.key)
+            ? workout.withFineKcal(fineKcal[workout.key])
+            : workout,
+    ],
     entries: fresh.entries,
     hourly: fresh.hourly,
   );

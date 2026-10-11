@@ -53,7 +53,7 @@ class AddTilesSection extends StatelessWidget {
         (
           group.label(l10n),
           [
-            for (final metric in Metric.values)
+            for (final metric in Metric.listed)
               if (metric.group == group && open(metric.name)) metric.name,
           ],
         ),

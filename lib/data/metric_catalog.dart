@@ -18,6 +18,17 @@ enum Metric {
   intensityMinutes(MetricGroup.activity, 'min', DayRule.sum, max: 1440),
   speed(MetricGroup.activity, 'km/h', DayRule.average, digits: 1, max: 150),
 
+  // The fine values: what the app works out itself for the three above, and
+  // shows in their place when the user asks for it. Never listed themselves.
+  fineActiveEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
+  fineTotalEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 30000),
+  fineIntensityMinutes(MetricGroup.activity, 'min', DayRule.sum, max: 1440),
+
+  // What the fine active energy of a day is made of.
+  fineWorkoutEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
+  fineStretchEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
+  fineStepEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
+
   heartRate(MetricGroup.vitals, 'bpm', DayRule.average, min: 20, max: 250),
   restingHeartRate(MetricGroup.vitals, 'bpm', DayRule.last, min: 20, max: 200),
   heartRateVariability(MetricGroup.vitals, 'ms', DayRule.average, max: 400),
@@ -93,6 +104,47 @@ enum Metric {
   final int digits;
   final double min;
   final double max;
+
+  /// The metrics that have a fine value beside the source's own, each with
+  /// the metric that holds it.
+  static const Map<Metric, Metric> fine = {
+    activeEnergy: fineActiveEnergy,
+    totalEnergy: fineTotalEnergy,
+    intensityMinutes: fineIntensityMinutes,
+  };
+
+  /// Every metric the app lists and names.
+  static final List<Metric> listed = List.unmodifiable([
+    for (final metric in values)
+      if (!metric.isFine) metric,
+  ]);
+
+  /// The parts of the fine active energy: workouts, raised stretches and
+  /// everyday steps.
+  static const List<Metric> fineParts = [
+    fineWorkoutEnergy,
+    fineStretchEnergy,
+    fineStepEnergy,
+  ];
+
+  /// Whether this only holds the fine value of another metric, or a part
+  /// of one.
+  bool get isFine =>
+      this == fineActiveEnergy ||
+      this == fineTotalEnergy ||
+      this == fineIntensityMinutes ||
+      fineParts.contains(this);
+
+  /// The metric this is shown as.
+  Metric get shownAs => switch (this) {
+    fineActiveEnergy ||
+    fineWorkoutEnergy ||
+    fineStretchEnergy ||
+    fineStepEnergy => activeEnergy,
+    fineTotalEnergy => totalEnergy,
+    fineIntensityMinutes => intensityMinutes,
+    _ => this,
+  };
 
   bool accepts(double value) => value.isFinite && value >= min && value <= max;
 
