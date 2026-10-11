@@ -97,7 +97,12 @@ DateTime? savedBirthDate(Object? json) {
 
 /// What the fine values need of the profile in the saved settings [json],
 /// if it holds a birth date.
-FineProfile? savedFineProfile(Object? json, DateTime now, {double? weightKg}) {
+FineProfile? savedFineProfile(
+  Object? json,
+  DateTime now, {
+  double? weightKg,
+  Set<String> removedWorkouts = const {},
+}) {
   final birthDate = savedBirthDate(json);
   if (birthDate == null || json is! Map<String, Object?>) return null;
   return FineProfile(
@@ -112,6 +117,7 @@ FineProfile? savedFineProfile(Object? json, DateTime now, {double? weightKg}) {
       _ => null,
     },
     weightKg: weightKg,
+    removedWorkouts: removedWorkouts,
   );
 }
 

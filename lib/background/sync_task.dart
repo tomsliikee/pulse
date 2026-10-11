@@ -66,15 +66,20 @@ Future<void> syncOnce(
   final workouts = WorkoutArchive(store);
   final settings = await store.read(StoreKeys.settings);
   final birthDate = savedBirthDate(settings);
+  final removed = await workouts.loadRemoved();
   final snapshot = withoutWorkouts(
     await repository.load(
       now,
       previous: previous,
       maxHeartRate: birthDate == null ? null : maxHeartRateOn(birthDate, now),
       // The weight of days without one comes from the days read.
-      fine: savedFineProfile(settings, now),
+      fine: savedFineProfile(
+        settings,
+        now,
+        removedWorkouts: {for (final entry in removed) entry.workout.key},
+      ),
     ),
-    await workouts.loadRemoved(),
+    removed,
   );
   await store.write(StoreKeys.snapshot, snapshot.toJson());
   // Also kept for the long term, so no day is lost when the app stays

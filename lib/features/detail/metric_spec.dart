@@ -66,7 +66,6 @@ extension MetricPresentation on Metric {
     Metric.fineTotalEnergy ||
     Metric.fineIntensityMinutes ||
     Metric.fineWorkoutEnergy ||
-    Metric.fineStretchEnergy ||
     Metric.fineStepEnergy => shownAs.spec,
     Metric.heartRate => const MetricSpec(
       Icons.monitor_heart_rounded,
@@ -175,7 +174,6 @@ extension MetricPresentation on Metric {
     Metric.fineTotalEnergy ||
     Metric.fineIntensityMinutes ||
     Metric.fineWorkoutEnergy ||
-    Metric.fineStretchEnergy ||
     Metric.fineStepEnergy => shownAs.title(l10n),
     Metric.heartRate => l10n.metricHeartRate,
     Metric.restingHeartRate => l10n.metricRestingHeartRate,

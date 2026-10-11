@@ -23,12 +23,11 @@ void main() {
 
   FineDay day(
     List<(DateTime, double)> beats, {
-    List<(DateTime, DateTime, WorkoutType)> workouts = const [],
+    List<FineWorkout> workouts = const [],
     double Function(double bpm)? net,
     double? kg,
     Map<int, double>? stepsByHour,
     double? steps,
-    double workoutSteps = 0,
     double? perStep,
   }) => fineDay(
     beats,
@@ -40,8 +39,21 @@ void main() {
     kg: kg,
     stepsByHour: stepsByHour,
     steps: steps,
-    workoutSteps: workoutSteps,
     perStep: perStep,
+  );
+
+  FineWorkout workout(
+    WorkoutType type,
+    DateTime start,
+    int minutes, {
+    int? steps,
+    double? km,
+  }) => FineWorkout(
+    start: start,
+    end: start.add(Duration(minutes: minutes)),
+    type: type,
+    steps: steps,
+    km: km,
   );
 
   group('formulas', () {
@@ -61,22 +73,12 @@ void main() {
       );
     });
 
-    test('the burn at rest comes from the source where that is plausible, '
-        'else from weight, height, age and sex', () {
+    test('the burn at rest comes from weight, height, age and sex, and from '
+        'the source only where those are not known', () {
       const profile = FineProfile(age: 34, sex: Sex.male, heightCm: 180);
-      // 2300 kcal of base over a whole day.
-      expect(
-        restingPerMinute(
-          total: 3300,
-          active: 1000,
-          minutes: 1440,
-          profile: profile,
-          kg: 80,
-        ),
-        closeTo(2300 / 1440, 1e-9),
-      );
-      // A total that holds no base is not believed: Mifflin-St Jeor's 1760.
-      for (final total in <double?>[1000, null]) {
+      // Mifflin-St Jeor's 1760, whatever the source says: a total written
+      // twice would hold the base twice.
+      for (final total in <double?>[3300, 5800, null]) {
         expect(
           restingPerMinute(
             total: total,
@@ -92,21 +94,55 @@ void main() {
         restingBurnPerDay(kg: 80, heightCm: 180, age: 34, sex: Sex.female),
         1594,
       );
-      // Nothing to go by.
+      // Without a height the source's base stands in: 2300 kcal a day.
+      const short = FineProfile(age: 34, sex: Sex.male);
       expect(
         restingPerMinute(
-          total: null,
-          active: null,
+          total: 3300,
+          active: 1000,
           minutes: 1440,
-          profile: const FineProfile(age: 34, sex: Sex.male),
+          profile: short,
           kg: 80,
         ),
-        isNull,
+        closeTo(2300 / 1440, 1e-9),
       );
+      // But not one that cannot be a base, and nothing gives nothing.
+      for (final total in <double?>[5800, null]) {
+        expect(
+          restingPerMinute(
+            total: total,
+            active: 1000,
+            minutes: 1440,
+            profile: short,
+            kg: 80,
+          ),
+          isNull,
+        );
+      }
+    });
+
+    test('a step costs by weight and height', () {
+      expect(kcalPerStep(kg: 80, heightCm: 180), closeTo(0.029808, 1e-9));
+      expect(kcalPerStep(kg: 80), closeTo(0.028, 1e-9));
+    });
+
+    test('each kind of workout has its way to the energy', () {
+      expect(fixedNetPerMinute(WorkoutType.strength, 80), closeTo(3.5, 1e-9));
+      expect(fixedNetPerMinute(WorkoutType.yoga, 80), closeTo(2.1, 1e-9));
+      expect(fixedNetPerMinute(WorkoutType.other, 80), closeTo(3.5, 1e-9));
+      for (final type in WorkoutType.values) {
+        final way = fineEnergyOf(type);
+        expect(fixedNetPerMinute(type, 80) != null, way == FineEnergy.fixed);
+      }
+      expect(fineEnergyOf(WorkoutType.run), FineEnergy.pulse);
+      expect(fineEnergyOf(WorkoutType.ride), FineEnergy.pulse);
+      expect(fineEnergyOf(WorkoutType.swim), FineEnergy.pulse);
+      expect(fineEnergyOf(WorkoutType.walk), FineEnergy.steps);
+      expect(fineEnergyOf(WorkoutType.hike), FineEnergy.steps);
     });
   });
 
-  group('fineDay', () {
+  group('fineDay, the minutes', () {
     test('nine minutes in a row do not count, ten do', () {
       expect(day(stretch(at(0, 9), 9, 120)).minutes, 0);
       expect(day(stretch(at(0, 9), 10, 120)).minutes, 10);
@@ -159,138 +195,21 @@ void main() {
       expect(result.minutesByHour, {at(0, 9): 6, at(0, 10): 12});
     });
 
-    test('short spikes outside a workout count for nothing', () {
-      final result = day([
-        ...stretch(at(0, 9), 3, 150),
-        ...stretch(at(0, 12), 4, 125),
-      ], net: (bpm) => 5);
-      expect(result.minutes, 0);
-      expect(result.kcal, 0);
-    });
-
-    test('in a workout every minute gives energy, and those at a moderate '
-        'pulse give minutes, however short', () {
-      final result = day(
-        [
-          ...stretch(at(0, 18), 5, 100),
-          ...stretch(at(0, 18, 5), 5, 120),
-          // After the workout.
-          ...stretch(at(0, 18, 30), 5, 120),
-        ],
-        workouts: [(at(0, 18), at(0, 18, 10), WorkoutType.run)],
-        net: (bpm) => bpm / 10,
-      );
-      expect(result.minutes, 5);
-      expect(result.kcal, closeTo(5 * 10 + 5 * 12, 1e-9));
-      expect(result.workoutKcal, {0: closeTo(110, 1e-9)});
-    });
-
-    test('a minute never costs less than nothing', () {
-      final result = day(
-        stretch(at(0, 18), 10, 60),
-        workouts: [(at(0, 18), at(0, 18, 10), WorkoutType.run)],
-        net: (bpm) => -1,
-      );
-      expect(result.kcal, 0);
-      expect(result.workoutKcal, isEmpty);
-    });
-
-    test('strength, yoga and unnamed workouts give a fixed rate for each of '
-        'their minutes, whatever the pulse and without one', () {
-      expect(fixedNetPerMinute(WorkoutType.strength, 80), closeTo(3.5, 1e-9));
-      expect(fixedNetPerMinute(WorkoutType.yoga, 80), closeTo(2.1, 1e-9));
-      expect(fixedNetPerMinute(WorkoutType.other, 80), closeTo(3.5, 1e-9));
-      for (final type in [
-        WorkoutType.run,
-        WorkoutType.ride,
-        WorkoutType.walk,
-        WorkoutType.hike,
-        WorkoutType.swim,
-      ]) {
-        expect(fixedNetPerMinute(type, 80), isNull, reason: '$type');
+    test('in a workout of any kind the minutes at a moderate pulse count, '
+        'however short', () {
+      for (final type in WorkoutType.values) {
+        final result = day(
+          [
+            ...stretch(at(0, 18), 5, 100),
+            ...stretch(at(0, 18, 5), 5, 120),
+            // After the workout.
+            ...stretch(at(0, 18, 30), 5, 120),
+          ],
+          workouts: [workout(type, at(0, 18), 10)],
+        );
+        expect(result.minutes, 5, reason: '$type');
+        expect(result.kcal, isNull);
       }
-
-      // An hour in the gym: the pulse is read for ten minutes of it only.
-      final gym = day(
-        stretch(at(0, 18), 10, 150),
-        workouts: [(at(0, 18), at(0, 19), WorkoutType.strength)],
-        net: (bpm) => 20,
-        kg: 80,
-      );
-      expect(gym.kcal, closeTo(60 * 3.5, 1e-9));
-      expect(gym.workoutKcal, {0: closeTo(210, 1e-9)});
-      // The minutes still follow the pulse.
-      expect(gym.minutes, 20);
-
-      // A run of the same time follows the pulse, minute by minute.
-      final run = day(
-        stretch(at(0, 18), 10, 150),
-        workouts: [(at(0, 18), at(0, 19), WorkoutType.run)],
-        net: (bpm) => 20,
-        kg: 80,
-      );
-      expect(run.kcal, closeTo(10 * 20, 1e-9));
-    });
-
-    test('a step costs by weight and height', () {
-      expect(kcalPerStep(kg: 80, heightCm: 180), closeTo(0.029808, 1e-9));
-      expect(kcalPerStep(kg: 80), closeTo(0.028, 1e-9));
-    });
-
-    test('the steps of an hour count beside what is counted already, 100 '
-        'for each of its counted minutes left out', () {
-      final result = day(
-        // A brisk walk of 20 minutes from nine.
-        stretch(at(0, 9), 20, 120),
-        net: (bpm) => 5,
-        stepsByHour: {8: 500, 9: 2600, 10: 0, 18: 1500},
-        workouts: [(at(0, 18), at(0, 18, 30), WorkoutType.strength)],
-        kg: 80,
-        perStep: 0.03,
-      );
-      expect(result.kcalByHour, {
-        at(0, 8): closeTo(500 * 0.03, 1e-9),
-        // The walk itself, and the 600 steps beside it.
-        at(0, 9): closeTo(20 * 5 + 600 * 0.03, 1e-9),
-        // Half an hour in the gym takes all the steps of its hour.
-        at(0, 18): closeTo(30 * 3.5, 1e-9),
-      });
-      expect(result.unplacedKcal, 0);
-    });
-
-    test('where only the steps of the day are known, those of its workouts '
-        'and 100 for each minute of a stretch are left out', () {
-      final result = day(
-        stretch(at(0, 9), 20, 120),
-        net: (bpm) => 5,
-        steps: 9000,
-        workoutSteps: 3000,
-        perStep: 0.03,
-      );
-      expect(result.unplacedKcal, closeTo((9000 - 3000 - 2000) * 0.03, 1e-9));
-      expect(result.kcal, closeTo(100 + 120, 1e-9));
-      // Never less than nothing.
-      expect(
-        day(
-          const [],
-          net: (bpm) => 5,
-          steps: 500,
-          workoutSteps: 900,
-          perStep: 1,
-        ).kcal,
-        0,
-      );
-    });
-
-    test('steps alone give no energy without a way to it', () {
-      expect(day(const [], stepsByHour: {9: 1000}, perStep: 0.03).kcal, isNull);
-      expect(day(const [], net: (bpm) => 5, stepsByHour: {9: 1000}).kcal, 0);
-    });
-
-    test('without a way to the energy there is none, but the minutes', () {
-      final result = day(stretch(at(0, 9), 10, 120));
-      expect(result.kcal, isNull);
-      expect(result.minutes, 10);
     });
 
     test('the beats of a minute are averaged', () {
@@ -304,38 +223,203 @@ void main() {
     });
   });
 
+  group('fineDay, the energy', () {
+    test('a raised stretch outside a workout gives minutes and no energy '
+        'of its own', () {
+      final result = day(
+        stretch(at(0, 9), 20, 150),
+        net: (bpm) => 20,
+        kg: 80,
+        stepsByHour: {9: 2400},
+        perStep: 0.03,
+      );
+      expect(result.minutes, 40);
+      // Its steps are all there is, and none of them is taken out.
+      expect(result.kcal, closeTo(2400 * 0.03, 1e-9));
+      expect(result.workoutKcal, isEmpty);
+      expect(result.stepKcal, closeTo(72, 1e-9));
+    });
+
+    test('a run follows the pulse, minute by minute, and never costs less '
+        'than nothing', () {
+      final run = day(
+        [...stretch(at(0, 18), 10, 150), ...stretch(at(0, 18, 10), 10, 60)],
+        workouts: [workout(WorkoutType.run, at(0, 18), 60)],
+        net: (bpm) => bpm > 100 ? 20 : -1,
+        kg: 80,
+      );
+      // Ten minutes at 20; the pulse falls to 60 within the next minute and
+      // the minutes without a reading give nothing.
+      expect(run.kcal, closeTo(10 * 20, 1e-9));
+      expect(run.workoutKcal, {0: closeTo(200, 1e-9)});
+      expect(run.stepKcal, 0);
+    });
+
+    test('strength, yoga and unnamed workouts give a fixed rate for each of '
+        'their minutes, whatever the pulse and without one', () {
+      // An hour in the gym: the pulse is read for ten minutes of it only.
+      final gym = day(
+        stretch(at(0, 18), 10, 150),
+        workouts: [workout(WorkoutType.strength, at(0, 18), 60)],
+        net: (bpm) => 20,
+        kg: 80,
+      );
+      expect(gym.kcal, closeTo(60 * 3.5, 1e-9));
+      expect(gym.workoutKcal, {0: closeTo(210, 1e-9)});
+      // The minutes still follow the pulse.
+      expect(gym.minutes, 20);
+    });
+
+    test(
+      'a minute counted by pulse or rate takes 100 steps out of its hour',
+      () {
+        final result = day(
+          const [],
+          net: (bpm) => 5,
+          stepsByHour: {8: 500, 18: 1500, 19: 4000},
+          workouts: [
+            workout(WorkoutType.strength, at(0, 18), 30),
+            workout(WorkoutType.yoga, at(0, 19), 20),
+          ],
+          kg: 80,
+          perStep: 0.03,
+        );
+        expect(result.kcalByHour, {
+          at(0, 8): closeTo(500 * 0.03, 1e-9),
+          // Half an hour in the gym takes all the steps of its hour.
+          at(0, 18): closeTo(30 * 3.5, 1e-9),
+          // Twenty minutes of yoga take 2,000 of 4,000.
+          at(0, 19): closeTo(20 * 2.1 + 2000 * 0.03, 1e-9),
+        });
+        expect(result.stepKcal, closeTo(2500 * 0.03, 1e-9));
+        expect(result.unplacedKcal, 0);
+      },
+    );
+
+    test('a walk is counted by its steps like the rest of the day, and they '
+        'are named as the walk\'s', () {
+      final result = day(
+        // The pulse of the walk says nothing about its energy.
+        stretch(at(0, 9), 40, 125),
+        net: (bpm) => 20,
+        stepsByHour: {8: 1000, 9: 4200, 15: 2000},
+        workouts: [workout(WorkoutType.walk, at(0, 9), 40, steps: 4000)],
+        kg: 80,
+        perStep: 0.03,
+      );
+      expect(result.kcal, closeTo(7200 * 0.03, 1e-9));
+      expect(result.workoutKcal, {0: closeTo(4000 * 0.03, 1e-9)});
+      expect(result.stepKcal, closeTo(3200 * 0.03, 1e-9));
+      expect(result.minutes, 40);
+
+      // Without its steps a hike goes by its distance: 0.5 kcal per kg and km.
+      final hike = day(
+        const [],
+        net: (bpm) => 20,
+        stepsByHour: {9: 9000},
+        workouts: [workout(WorkoutType.hike, at(0, 9), 60, km: 4)],
+        kg: 80,
+        perStep: 0.03,
+      );
+      expect(hike.workoutKcal, {0: closeTo(160, 1e-9)});
+      expect(hike.stepKcal, closeTo(270 - 160, 1e-9));
+
+      // Never more than the steps of the day gave.
+      final more = day(
+        const [],
+        net: (bpm) => 20,
+        stepsByHour: {9: 1000},
+        workouts: [workout(WorkoutType.walk, at(0, 9), 60, steps: 3000)],
+        kg: 80,
+        perStep: 0.03,
+      );
+      expect(more.kcal, closeTo(30, 1e-9));
+      expect(more.workoutKcal, {0: closeTo(30, 1e-9)});
+      expect(more.stepKcal, closeTo(0, 1e-9));
+    });
+
+    test('where only the steps of the day are known, 100 are left out for '
+        'each minute counted by pulse or rate', () {
+      final result = day(
+        const [],
+        net: (bpm) => 5,
+        steps: 9000,
+        workouts: [workout(WorkoutType.strength, at(0, 18), 30)],
+        kg: 80,
+        perStep: 0.03,
+      );
+      expect(result.unplacedKcal, closeTo(6000 * 0.03, 1e-9));
+      expect(result.kcal, closeTo(30 * 3.5 + 180, 1e-9));
+      // Never less than nothing.
+      expect(
+        day(
+          const [],
+          net: (bpm) => 5,
+          steps: 500,
+          workouts: [workout(WorkoutType.strength, at(0, 18), 30)],
+          kg: 80,
+          perStep: 1,
+        ).stepKcal,
+        0,
+      );
+    });
+
+    test('steps alone give no energy without a way to it', () {
+      expect(day(const [], stepsByHour: {9: 1000}, perStep: 0.03).kcal, isNull);
+      expect(day(const [], net: (bpm) => 5, stepsByHour: {9: 1000}).kcal, 0);
+    });
+  });
+
   group('buildSnapshot', () {
     RawSample beat(DateTime time, double bpm) =>
         RawSample(Metric.heartRate, time, bpm);
     RawSample resting(int daysAgo, double bpm) =>
         RawSample(Metric.restingHeartRate, at(daysAgo, 6), bpm);
     const profile = FineProfile(age: 34, sex: Sex.male, heightCm: 180);
+    // At 80 kg the base is Mifflin-St Jeor's 1760 kcal a day.
+    const atRest = 1760 / 1440;
+    final run = Workout(
+      type: WorkoutType.run,
+      start: at(1, 18),
+      minutes: 20,
+      kcal: 400,
+    );
     // Resting 60 and a maximum of 184: moderate from 109.6, vigorous from
     // 134.4.
-    RawReadings readings({bool weight = true}) => RawReadings(
+    RawReadings readings({
+      bool weight = true,
+      bool steps = false,
+    }) => RawReadings(
       samples: [
         resting(1, 60),
         if (weight) RawSample(Metric.weight, at(1, 7), 80),
-        // Yesterday: a workout of 20 minutes at 140, and a spike of 3.
+        // Yesterday: a run of 20 minutes at 140, and a spike of 3.
         for (final (time, bpm) in stretch(at(1, 18), 20, 140)) beat(time, bpm),
         for (final (time, bpm) in stretch(at(1, 12), 3, 150)) beat(time, bpm),
-        // Today: a brisk walk of 12 minutes at 120.
+        // Today: a brisk walk of 12 minutes at 120, not recorded.
         for (final (time, bpm) in stretch(at(0, 9), 12, 120)) beat(time, bpm),
         // The day before yesterday has no resting heart rate before it.
         for (final (time, bpm) in stretch(at(2, 9), 12, 120)) beat(time, bpm),
       ],
       dailyTotals: {
-        Metric.totalEnergy: {at(1, 0): 3300, at(0, 0): 2000},
+        // A source whose total holds more than a base.
+        Metric.totalEnergy: {at(1, 0): 4800, at(0, 0): 2000},
         Metric.activeEnergy: {at(1, 0): 1000, at(0, 0): 514},
+        if (steps) Metric.steps: {at(1, 0): 12000, at(0, 0): 4000},
       },
-      workouts: [
-        Workout(
-          type: WorkoutType.run,
-          start: at(1, 18),
-          minutes: 20,
-          kcal: 400,
-        ),
-      ],
+      hourlyTotals: {
+        if (steps)
+          Metric.steps: {
+            // Yesterday: 8,000 over the day, and 4,000 in the hour of
+            // the run, of which its 20 minutes take 2,000.
+            at(1, 10): 8000,
+            at(1, 18): 4000,
+            // Today: the walk and its 1,500 steps, and the rest.
+            at(0, 9): 1500,
+            at(0, 13): 2500,
+          },
+      },
+      workouts: [run],
     );
 
     test('the fine values stand beside the source\'s own', () {
@@ -346,124 +430,107 @@ void main() {
         raw: readings(),
       );
       final today = snapshot.dayCount - 1;
-      // Yesterday's base is 2300 kcal over the day.
-      final perMinute =
-          keytelPerMinute(140, kg: 80, age: 34, sex: Sex.male) - 2300 / 1440;
+      final running =
+          keytelPerMinute(140, kg: 80, age: 34, sex: Sex.male) - atRest;
 
       expect(snapshot.value(Metric.activeEnergy, today - 1), 1000);
       expect(
         snapshot.value(Metric.fineActiveEnergy, today - 1),
-        closeTo(20 * perMinute, 1e-6),
+        closeTo(20 * running, 1e-6),
       );
+      // The total is the own base and what was spent on top of it, not the
+      // source's 4,800.
       expect(
         snapshot.value(Metric.fineTotalEnergy, today - 1),
-        closeTo(2300 + 20 * perMinute, 1e-6),
+        closeTo(1760 + 20 * running, 1e-6),
       );
       // The coarse minutes count the spike as well: 20 and 3, all twice.
       expect(snapshot.value(Metric.intensityMinutes, today - 1), 46);
       expect(snapshot.value(Metric.fineIntensityMinutes, today - 1), 40);
       expect(snapshot.workouts.single.kcal, 400);
-      expect(snapshot.workouts.single.fineKcal, (20 * perMinute).round());
+      expect(snapshot.workouts.single.fineKcal, (20 * running).round());
 
-      // Today has run for 930 minutes; its base is 1486 kcal so far.
-      final walking =
-          keytelPerMinute(120, kg: 80, age: 34, sex: Sex.male) - 1486 / 930;
+      // Today's walk gives minutes; without steps there is no energy in it,
+      // and the day has run for 930 minutes.
       expect(snapshot.value(Metric.fineIntensityMinutes, today), 12);
+      expect(snapshot.value(Metric.fineActiveEnergy, today), 0);
       expect(
-        snapshot.value(Metric.fineActiveEnergy, today),
-        closeTo(12 * walking, 1e-6),
-      );
-      expect(
-        snapshot.hourly[Metric.fineActiveEnergy]![HealthSnapshot.hoursPerDay +
-            9],
-        closeTo(12 * walking, 1e-6),
+        snapshot.value(Metric.fineTotalEnergy, today),
+        closeTo(atRest * 930, 1e-6),
       );
       expect(snapshot.hourly[Metric.fineIntensityMinutes]![18], 40);
       // A day that cannot be judged has no fine value.
       expect(snapshot.value(Metric.fineIntensityMinutes, today - 2), isNull);
     });
 
-    test(
-      'the steps beside the workout and the walk are part of the energy',
-      () {
-        final base = readings();
-        final plain = buildSnapshot(now: now, fine: profile, raw: base);
-        final withSteps = buildSnapshot(
-          now: now,
-          fine: profile,
-          raw: RawReadings(
-            samples: base.samples,
-            dailyTotals: {
-              ...base.dailyTotals,
-              Metric.steps: {at(1, 0): 12000, at(0, 0): 4000},
-            },
-            hourlyTotals: {
-              Metric.steps: {
-                // Yesterday: 8,000 over the day, and 4,000 in the hour of the
-                // run, of which the run's 20 minutes take 2,000.
-                at(1, 10): 8000,
-                at(1, 18): 4000,
-                // Today: the walk of 12 minutes and 1,500 steps, and the rest.
-                at(0, 9): 1500,
-                at(0, 13): 2500,
-              },
-            },
-            workouts: base.workouts,
-          ),
-        );
-        final today = plain.dayCount - 1;
-        final step = kcalPerStep(kg: 80, heightCm: 180);
+    test('the steps are the rest of the energy, and the parts add up', () {
+      final plain = buildSnapshot(now: now, fine: profile, raw: readings());
+      final snapshot = buildSnapshot(
+        now: now,
+        fine: profile,
+        raw: readings(steps: true),
+      );
+      final today = plain.dayCount - 1;
+      final yesterday = today - 1;
+      final step = kcalPerStep(kg: 80, heightCm: 180);
+      final running = plain.value(Metric.fineActiveEnergy, yesterday)!;
 
+      expect(
+        snapshot.value(Metric.fineActiveEnergy, yesterday),
+        closeTo(running + (8000 + 2000) * step, 1e-6),
+      );
+      expect(
+        snapshot.value(Metric.fineWorkoutEnergy, yesterday),
+        closeTo(running, 1e-6),
+      );
+      expect(
+        snapshot.value(Metric.fineStepEnergy, yesterday),
+        closeTo(10000 * step, 1e-6),
+      );
+      // The walk that was not recorded keeps all its steps.
+      expect(
+        snapshot.value(Metric.fineActiveEnergy, today),
+        closeTo(4000 * step, 1e-6),
+      );
+      expect(snapshot.value(Metric.fineWorkoutEnergy, today), 0);
+      expect(
+        snapshot.hourly[Metric.fineActiveEnergy]![10],
+        closeTo(8000 * step, 1e-6),
+      );
+      for (final index in [yesterday, today]) {
         expect(
-          withSteps.value(Metric.fineActiveEnergy, today - 1),
-          closeTo(
-            plain.value(Metric.fineActiveEnergy, today - 1)! +
-                (8000 + 2000) * step,
-            1e-6,
+          Metric.fineParts.fold<double>(
+            0,
+            (sum, part) => sum + snapshot.value(part, index)!,
           ),
+          closeTo(snapshot.value(Metric.fineActiveEnergy, index)!, 1e-6),
         );
-        expect(
-          withSteps.value(Metric.fineActiveEnergy, today),
-          closeTo(
-            plain.value(Metric.fineActiveEnergy, today)! + (300 + 2500) * step,
-            1e-6,
-          ),
-        );
-        expect(
-          withSteps.hourly[Metric.fineActiveEnergy]![10],
-          closeTo(8000 * step, 1e-6),
-        );
-        // The parts add up to the whole.
-        final yesterday = today - 1;
-        final workout = withSteps.value(Metric.fineWorkoutEnergy, yesterday)!;
-        expect(workout, closeTo(withSteps.workouts.single.fineKcal!, 0.5));
-        // The spike at noon is no stretch.
-        expect(withSteps.value(Metric.fineStretchEnergy, yesterday), 0);
-        expect(
-          withSteps.value(Metric.fineStepEnergy, yesterday),
-          closeTo(10000 * step, 1e-6),
-        );
-        expect(withSteps.value(Metric.fineWorkoutEnergy, today), 0);
-        for (final index in [yesterday, today]) {
-          expect(
-            Metric.fineParts.fold<double>(
-              0,
-              (sum, part) => sum + withSteps.value(part, index)!,
-            ),
-            closeTo(withSteps.value(Metric.fineActiveEnergy, index)!, 1e-6),
-          );
-        }
-        // The workout itself is as before.
-        expect(
-          withSteps.workouts.single.fineKcal,
-          plain.workouts.single.fineKcal,
-        );
-        expect(
-          withSteps.value(Metric.fineIntensityMinutes, today - 1),
-          plain.value(Metric.fineIntensityMinutes, today - 1),
-        );
-      },
-    );
+      }
+      expect(snapshot.workouts.single.fineKcal, running.round());
+      expect(snapshot.value(Metric.fineIntensityMinutes, yesterday), 40);
+    });
+
+    test('a workout the user took out of the app counts for nothing', () {
+      final snapshot = buildSnapshot(
+        now: now,
+        fine: FineProfile(
+          age: 34,
+          sex: Sex.male,
+          heightCm: 180,
+          removedWorkouts: {run.key},
+        ),
+        raw: readings(steps: true),
+      );
+      final yesterday = snapshot.dayCount - 2;
+      final step = kcalPerStep(kg: 80, heightCm: 180);
+      expect(snapshot.value(Metric.fineWorkoutEnergy, yesterday), 0);
+      // Its steps are steps like any others.
+      expect(
+        snapshot.value(Metric.fineActiveEnergy, yesterday),
+        closeTo(12000 * step, 1e-6),
+      );
+      expect(snapshot.workouts.single.fineKcal, isNull);
+    });
 
     test('without the profile there are none, and without a weight or the '
         'sex the minutes alone', () {
@@ -615,7 +682,7 @@ void main() {
 
   test('the fine metrics are never listed', () {
     expect(Metric.listed.where((metric) => metric.isFine), isEmpty);
-    expect(Metric.listed.length, Metric.values.length - 6);
+    expect(Metric.listed.length, Metric.values.length - 5);
     for (final MapEntry(key: metric, value: fine) in Metric.fine.entries) {
       expect(fine.shownAs, metric);
     }

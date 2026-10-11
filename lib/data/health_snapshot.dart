@@ -21,9 +21,11 @@ class HealthSnapshot {
     this.hourly = const {},
   });
 
-  /// 2: the numbers of a workout are the store's own totals of its time. A
-  /// snapshot from before is read again in full rather than built on.
-  static const int schemaVersion = 2;
+  /// 2: the numbers of a workout are the store's own totals of its time.
+  /// 3: the fine values count walks by their steps and build the total on
+  /// the person's own base. A snapshot from before is read again in full
+  /// rather than built on.
+  static const int schemaVersion = 3;
   static const int defaultDayCount = 30;
 
   final DateTime today;

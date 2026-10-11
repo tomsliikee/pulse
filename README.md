@@ -211,7 +211,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **778** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **780** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD
@@ -284,18 +284,18 @@ The profile has a switch **Coarse | Fine** for the three numbers that sources te
 
 | Number | How the fine value is counted |
 |---|---|
-| **Active calories** | Three parts, each **less what that time would have cost at rest**: workouts, raised stretches and everyday steps |
-| **Workouts** | Running, cycling, walking, hiking and swimming from the heart rate, minute by minute (Keytel et al., 2005, from heart rate, weight, age and sex). **Strength**, **yoga** and unnamed workouts at a fixed rate per minute and kilogram from the Compendium of Physical Activities (3.5, 2.5 and 3.5 MET), because there the heart rate rises further than the energy spent |
-| **Raised stretches** | Outside workouts, at least **10 minutes in a row** at a moderate heart rate or above, from the heart rate. A single minute below does not end a stretch; a short spike on the stairs counts for nothing |
-| **Everyday steps** | The steps of every hour beside what is counted already (100 steps are left out for each counted minute), at 0.5 kcal per kilogram and kilometre and a step of 0.414 times your height |
-| **Total calories** | The source's own base (its total less its active calories) plus the fine active calories |
-| **Intensity minutes** | Minutes of workouts and raised stretches at a moderate heart rate once, at a vigorous one twice. Moderate begins at 40 %, vigorous at 60 % of the heart rate reserve; the maximum is **208 − 0.7 × age** |
+| **Active calories** | Workouts and steps, each **less what that time would have cost at rest** |
+| **Running, cycling, swimming** | From the heart rate, minute by minute (Keytel et al., 2005, from heart rate, weight, age and sex) |
+| **Strength, yoga, unnamed workouts** | A fixed rate per minute and kilogram from the Compendium of Physical Activities (3.5, 2.5 and 3.5 MET), because there the heart rate rises further than the energy spent |
+| **Walking, hiking and the rest of the day** | From the **steps**: 0.5 kcal per kilogram and kilometre at a step of 0.414 times your height. At a walking pace the heart rate says far more than the legs spend. Each minute of a workout counted by heart rate or rate takes 100 steps out of its hour, so nothing is counted twice |
+| **Total calories** | Your own base (Mifflin-St Jeor, from weight, height, age and sex) for the day so far, plus the fine active calories. A source's total is not built on: where two apps write it, it holds the base twice |
+| **Intensity minutes** | Minutes at a moderate heart rate in a workout, or in a stretch of at least **10 minutes in a row** outside one, once; at a vigorous one twice. A single minute below does not end a stretch. Moderate begins at 40 %, vigorous at 60 % of the heart rate reserve; the maximum is **208 − 0.7 × age** |
 
-Readings up to five minutes apart are joined by the heart rate on the way from one to the other, because a watch does not write every minute. The burn at rest is the source's base of that day where it is plausible, else Mifflin-St Jeor's estimate from weight, height, age and sex. The calories need a **date of birth**, the **sex** and a **weight**; the profile says what is missing.
+Readings up to five minutes apart are joined by the heart rate on the way from one to the other, because a watch does not write every minute. A workout you removed from Pulse counts for nothing here either. The calories need a **date of birth**, the **sex** and a **weight**; the profile says what is missing.
 
-In the fine mode the page of **active calories** lists what the day is made of (workouts, effort without a recording, everyday steps), and the calories on Today carry the word **Fine**.
+In the fine mode the page of **active calories** lists what the day is made of (workouts, everyday steps), and the calories on Today carry the word **Fine**.
 
-Both sets are stored side by side, so the switch takes effect at once. Fine values exist for the days read since they were introduced: the single heart beats are read for the last **8 days** only, so a pull to refresh fills those, and older days show no value in the fine mode rather than the coarse one.
+Both sets are stored side by side, so the switch takes effect at once. Fine values exist for the days read since they were introduced: the single heart beats are read for the last **8 days** only, so those are filled on the first start, and older days show no value in the fine mode rather than the coarse one.
 
 #### What You Really Burn
 

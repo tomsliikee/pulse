@@ -82,7 +82,6 @@ void main() {
           for (final part in [
             l10n.finePartsTitle,
             l10n.finePartWorkouts,
-            l10n.finePartStretches,
             l10n.finePartSteps,
           ]) {
             expect(

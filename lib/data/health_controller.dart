@@ -155,6 +155,9 @@ class HealthController extends ChangeNotifier {
       weightKg: last == null
           ? null
           : weights?.value(Metric.weight, dateOfKey(last)),
+      removedWorkouts: {
+        for (final removed in _removedWorkouts) removed.workout.key,
+      },
     );
   }
 

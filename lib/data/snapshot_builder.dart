@@ -185,10 +185,12 @@ Map<String, int> _addFineValues(
   final weights = series[Metric.weight];
   final totals = series[Metric.totalEnergy];
   final actives = series[Metric.activeEnergy];
-  final workouts = [
+  // What the user took out of the app is no workout.
+  final counted = [
     for (final workout in raw.workouts)
-      (workout.start, workout.end, workout.type),
+      if (!profile.removedWorkouts.contains(workout.key)) workout,
   ];
+  final workouts = [for (final workout in counted) FineWorkout.of(workout)];
   final stepsOf = series[Metric.steps];
   // The steps of every hour, by day and hour of the day.
   final stepHours = <int, Map<int, double>>{};
@@ -199,11 +201,6 @@ Map<String, int> _addFineValues(
     if (index == null) continue;
     final hours = stepHours.putIfAbsent(index, () => {});
     hours[hour.hour] = (hours[hour.hour] ?? 0) + taken;
-  }
-  final workoutSteps = List<double>.filled(frame.dayCount, 0);
-  for (final workout in raw.workouts) {
-    final index = frame.indexOf(workout.start);
-    if (index != null) workoutSteps[index] += workout.steps ?? 0;
   }
   // A day without a weight is judged by the one before it, the first days
   // by the first that is known.
@@ -235,13 +232,14 @@ Map<String, int> _addFineValues(
     final reserve = rest == null ? 0.0 : max - rest;
     if (rest == null || reserve <= 0 || beats[i].isEmpty) continue;
     final kg = weight;
+    // Today has only run until now.
+    final dayMinutes = i == frame.dayCount - 1
+        ? now.hour * 60 + now.minute
+        : Duration.minutesPerDay;
     final atRest = restingPerMinute(
       total: totals?[i],
       active: actives?[i],
-      // Today has only run until now.
-      minutes: i == frame.dayCount - 1
-          ? now.hour * 60 + now.minute
-          : Duration.minutesPerDay,
+      minutes: dayMinutes,
       profile: profile,
       kg: kg,
     );
@@ -251,7 +249,6 @@ Map<String, int> _addFineValues(
       kg: kg,
       stepsByHour: stepHours[i],
       steps: stepsOf?[i],
-      workoutSteps: workoutSteps[i],
       perStep: kg == null
           ? null
           : kcalPerStep(kg: kg, heightCm: profile.heightCm),
@@ -272,15 +269,11 @@ Map<String, int> _addFineValues(
     energy[i] = kcal;
     energyHours.addAll(day.kcalByHour!);
     parts[Metric.fineWorkoutEnergy]![i] = day.workoutsKcal;
-    parts[Metric.fineStretchEnergy]![i] = day.stretchKcal;
     parts[Metric.fineStepEnergy]![i] = day.stepKcal;
-    final sourceTotal = totals?[i];
-    final sourceActive = actives?[i];
-    if (sourceTotal != null && sourceActive != null) {
-      total[i] = sourceTotal - sourceActive + kcal;
-    }
+    // The base of the day so far, and what was spent on top of it.
+    total[i] = atRest! * dayMinutes + kcal;
     for (final MapEntry(key: index, :value) in day.workoutKcal.entries) {
-      final key = raw.workouts[index].key;
+      final key = counted[index].key;
       workoutKcal[key] = (workoutKcal[key] ?? 0) + value.round();
     }
   }

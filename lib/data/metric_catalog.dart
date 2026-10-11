@@ -26,7 +26,6 @@ enum Metric {
 
   // What the fine active energy of a day is made of.
   fineWorkoutEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
-  fineStretchEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
   fineStepEnergy(MetricGroup.activity, 'kcal', DayRule.sum, max: 20000),
 
   heartRate(MetricGroup.vitals, 'bpm', DayRule.average, min: 20, max: 250),
@@ -119,13 +118,8 @@ enum Metric {
       if (!metric.isFine) metric,
   ]);
 
-  /// The parts of the fine active energy: workouts, raised stretches and
-  /// everyday steps.
-  static const List<Metric> fineParts = [
-    fineWorkoutEnergy,
-    fineStretchEnergy,
-    fineStepEnergy,
-  ];
+  /// The parts of the fine active energy: workouts and everyday steps.
+  static const List<Metric> fineParts = [fineWorkoutEnergy, fineStepEnergy];
 
   /// Whether this only holds the fine value of another metric, or a part
   /// of one.
@@ -137,10 +131,7 @@ enum Metric {
 
   /// The metric this is shown as.
   Metric get shownAs => switch (this) {
-    fineActiveEnergy ||
-    fineWorkoutEnergy ||
-    fineStretchEnergy ||
-    fineStepEnergy => activeEnergy,
+    fineActiveEnergy || fineWorkoutEnergy || fineStepEnergy => activeEnergy,
     fineTotalEnergy => totalEnergy,
     fineIntensityMinutes => intensityMinutes,
     _ => this,

@@ -438,7 +438,7 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                 for (final part in Metric.fineParts)
                   health.readValueOn(part, snapshot.dateAt(dayIndex)),
               ]
-              case [final workouts?, final stretches?, final steps?]) ...[
+              case [final workouts?, final steps?]) ...[
             SectionTitle(l10n.finePartsTitle),
             SegmentGroup(
               children: [
@@ -447,11 +447,6 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                     Icons.fitness_center_rounded,
                     l10n.finePartWorkouts,
                     workouts,
-                  ),
-                  (
-                    Icons.monitor_heart_rounded,
-                    l10n.finePartStretches,
-                    stretches,
                   ),
                   (Icons.directions_walk_rounded, l10n.finePartSteps, steps),
                 ])
