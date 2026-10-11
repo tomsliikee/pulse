@@ -49,15 +49,14 @@ class _Gait {
   /// How fast the ground passes, in scene heights per second.
   final double travel;
 
-  static _Gait of(WorkoutType type) => switch (type) {
-    WorkoutType.run => const _Gait(cycle: 0.72, travel: 1.3),
-    WorkoutType.ride => const _Gait(cycle: 0.9, travel: 1.9),
-    WorkoutType.hike => const _Gait(cycle: 1.3, travel: 0.4),
-    WorkoutType.swim => const _Gait(cycle: 1.7, travel: 0.45),
-    WorkoutType.strength => const _Gait(cycle: 2.6, travel: 0),
-    WorkoutType.yoga => const _Gait(cycle: 5.5, travel: 0),
-    WorkoutType.walk ||
-    WorkoutType.other => const _Gait(cycle: 1.1, travel: 0.55),
+  static _Gait of(WorkoutFigure figure) => switch (figure) {
+    WorkoutFigure.run => const _Gait(cycle: 0.72, travel: 1.3),
+    WorkoutFigure.ride => const _Gait(cycle: 0.9, travel: 1.9),
+    WorkoutFigure.hike => const _Gait(cycle: 1.3, travel: 0.4),
+    WorkoutFigure.swim => const _Gait(cycle: 1.7, travel: 0.45),
+    WorkoutFigure.lift => const _Gait(cycle: 2.6, travel: 0),
+    WorkoutFigure.breathe => const _Gait(cycle: 5.5, travel: 0),
+    WorkoutFigure.walk => const _Gait(cycle: 1.1, travel: 0.55),
   };
 }
 
@@ -84,7 +83,8 @@ class _ScenePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    final gait = _Gait.of(type);
+    final figure = type.figure;
+    final gait = _Gait.of(figure);
     final time = seconds.value;
     final full = size;
     size = Size(full.width, math.min(stage ?? full.height, full.height));
@@ -99,25 +99,25 @@ class _ScenePainter extends CustomPainter {
     final centre = size.width * 0.5;
 
     _sun(canvas, size, u);
-    if (type == WorkoutType.swim) {
+    if (figure == WorkoutFigure.swim) {
       _swimmer(canvas, size, u, centre, turn, travelled);
       return;
     }
     _hills(canvas, size, ground, travelled * 0.18, 26 * u, 0.9, 0.55);
     _hills(canvas, size, ground, travelled * 0.45, 15 * u, 1.7, 0.9);
     _ground(canvas, size, u, ground, travelled);
-    switch (type) {
-      case WorkoutType.ride:
+    switch (figure) {
+      case WorkoutFigure.ride:
         _rider(canvas, u, centre, ground, turn, travelled);
-      case WorkoutType.strength:
+      case WorkoutFigure.lift:
         _lifter(canvas, u, centre, ground, turn);
-      case WorkoutType.yoga:
+      case WorkoutFigure.breathe:
         _yogi(canvas, u, centre, ground, turn);
-      case WorkoutType.run:
+      case WorkoutFigure.run:
         _walker(canvas, u, centre, ground, turn, running: true);
-      case WorkoutType.hike:
+      case WorkoutFigure.hike:
         _walker(canvas, u, centre, ground, turn, hiking: true);
-      case WorkoutType.walk || WorkoutType.other || WorkoutType.swim:
+      case WorkoutFigure.walk || WorkoutFigure.swim:
         _walker(canvas, u, centre, ground, turn);
     }
   }

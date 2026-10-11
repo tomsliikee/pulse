@@ -189,7 +189,7 @@ void main() {
         ..historyAccess = true
         ..olderDays = fixtureOlderDays();
       await store.write(StoreKeys.workoutBackfill, {
-        'version': 2,
+        'version': 3,
         'done': false,
         'reached': DateTime(2025, 3, 1).toIso8601String(),
       });

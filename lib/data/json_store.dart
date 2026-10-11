@@ -24,6 +24,9 @@ abstract final class StoreKeys {
   static const String workouts = 'workouts';
   static const String workoutBackfill = 'workoutBackfill';
   static const String nightBackfill = 'nightBackfill';
+  static const String foods = 'foods';
+  static const String foodBackfill = 'foodBackfill';
+  static const String routeBackfill = 'routeBackfill';
   static const String sync = 'sync';
   static const String weather = 'weather';
   static const String morning = 'morning';

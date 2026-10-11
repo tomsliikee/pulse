@@ -320,6 +320,91 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
+              SectionTitle(l10n.routeTitle),
+              if (health.routesNeedConsent) ...[
+                SurfaceCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.routeConsentNote, style: muted),
+                      const SizedBox(height: 12),
+                      M3EFilledButton.tonal(
+                        onPressed: health.requestRoutes,
+                        child: Text(l10n.routeAllow),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              SegmentGroup(
+                padding: EdgeInsets.zero,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.routeSplitsSwitch,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.routeSplits,
+                          onChanged: (value) {
+                            Haptics.selection();
+                            settings.setRouteSplits(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.routeClimbSwitch,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.routeClimb,
+                          onChanged: (value) {
+                            Haptics.selection();
+                            settings.setRouteClimb(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.routeTilesSwitch,
+                            style: theme.textTheme.bodyMedium,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Switch(
+                          value: settings.routeOnTiles,
+                          onChanged: (value) {
+                            Haptics.selection();
+                            settings.setRouteOnTiles(value);
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               SectionTitle(l10n.valuesTitle),
               Align(
                 alignment: Alignment.centerLeft,

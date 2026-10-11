@@ -20,6 +20,7 @@ import '../../widgets/entrance.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/section_card.dart';
 import '../../widgets/sub_page.dart';
+import 'route_view.dart';
 import 'workout_format.dart';
 import 'workout_scene.dart';
 import 'workout_style.dart';
@@ -85,6 +86,8 @@ class WorkoutDetailPage extends StatelessWidget {
             orElse: () => workout,
           );
           final insights = WorkoutInsights.of(current, health.workouts);
+          final settings = scope.settings;
+          final route = health.routeOf(current);
           return SubPage(
             title: current.type.label(l10n),
             glass: scope.settings.liquidGlass,
@@ -102,6 +105,15 @@ class WorkoutDetailPage extends StatelessWidget {
                 for (final (index, section) in [
                   _Summary(insights: insights),
                   _Measures(insights: insights),
+                  if (route == null && health.routesNeedConsent)
+                    RouteConsentSection(onAllow: health.requestRoutes),
+                  if (route != null) ...[
+                    RouteSection(route: route),
+                    if (settings.routeSplits && route.splits.isNotEmpty)
+                      SplitsSection(route: route, type: current.type),
+                    if (settings.routeClimb && route.hasAltitude)
+                      ElevationSection(route: route),
+                  ],
                   _Comparison(insights: insights),
                   if (insights.trend.length > 1) _Progress(insights: insights),
                   _Frequency(insights: insights),

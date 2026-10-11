@@ -2,6 +2,7 @@ import 'fine_values.dart';
 import 'health_history.dart';
 import 'health_snapshot.dart';
 import 'models.dart';
+import 'routes.dart';
 
 enum HealthAccess {
   granted,
@@ -79,6 +80,19 @@ abstract interface class HealthRepository {
   /// The nights that ended on the days from [from] to [to], both inclusive,
   /// as the archive keeps them. Used once to fill the night archive.
   Future<List<SleepNight>> loadNights(DateTime from, DateTime to);
+
+  /// The meals eaten on the days from [from] to [to], both inclusive. Used
+  /// once to fill the food archive with what the store already has.
+  Future<List<HealthEntry>> loadMeals(DateTime from, DateTime to);
+
+  /// The routes of the workouts that started on the days from [from] to
+  /// [to], both inclusive, as far as the store hands them out.
+  Future<RouteReading> loadRoutes(DateTime from, DateTime to);
+
+  /// Asks the user to let the app read the route of the workout the store
+  /// names [consentFor], and with it, if they choose so, every route.
+  /// Whether a route was allowed.
+  Future<bool> requestRouteAccess(String consentFor);
 }
 
 /// Used where there is nothing to read from, such as the desktop build.
@@ -136,4 +150,15 @@ class UnsupportedHealthRepository implements HealthRepository {
   @override
   Future<List<SleepNight>> loadNights(DateTime from, DateTime to) async =>
       const [];
+
+  @override
+  Future<List<HealthEntry>> loadMeals(DateTime from, DateTime to) async =>
+      const [];
+
+  @override
+  Future<RouteReading> loadRoutes(DateTime from, DateTime to) async =>
+      (routes: const <WorkoutRoute>[], consentFor: null);
+
+  @override
+  Future<bool> requestRouteAccess(String consentFor) async => false;
 }

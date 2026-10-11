@@ -131,14 +131,17 @@ void main() {
       expect(fixedNetPerMinute(WorkoutType.yoga, 80), closeTo(2.1, 1e-9));
       expect(fixedNetPerMinute(WorkoutType.other, 80), closeTo(3.5, 1e-9));
       for (final type in WorkoutType.values) {
-        final way = fineEnergyOf(type);
-        expect(fixedNetPerMinute(type, 80) != null, way == FineEnergy.fixed);
+        expect(type.met, greaterThan(1), reason: type.name);
+        expect(fixedNetPerMinute(type, 80), greaterThan(0));
       }
-      expect(fineEnergyOf(WorkoutType.run), FineEnergy.pulse);
-      expect(fineEnergyOf(WorkoutType.ride), FineEnergy.pulse);
-      expect(fineEnergyOf(WorkoutType.swim), FineEnergy.pulse);
-      expect(fineEnergyOf(WorkoutType.walk), FineEnergy.steps);
-      expect(fineEnergyOf(WorkoutType.hike), FineEnergy.steps);
+      expect(WorkoutType.tennis.energy, FineEnergy.pulse);
+      expect(WorkoutType.golf.energy, FineEnergy.fixed);
+      expect(WorkoutType.snowshoe.energy, FineEnergy.steps);
+      expect(WorkoutType.run.energy, FineEnergy.pulse);
+      expect(WorkoutType.ride.energy, FineEnergy.pulse);
+      expect(WorkoutType.swim.energy, FineEnergy.pulse);
+      expect(WorkoutType.walk.energy, FineEnergy.steps);
+      expect(WorkoutType.hike.energy, FineEnergy.steps);
     });
   });
 
@@ -249,9 +252,11 @@ void main() {
         kg: 80,
       );
       // Ten minutes at 20; the pulse falls to 60 within the next minute and
-      // the minutes without a reading give nothing.
-      expect(run.kcal, closeTo(10 * 20, 1e-9));
-      expect(run.workoutKcal, {0: closeTo(200, 1e-9)});
+      // gives nothing. The forty minutes without a reading are counted at
+      // the rate of a run.
+      final unread = 40 * fixedNetPerMinute(WorkoutType.run, 80);
+      expect(run.kcal, closeTo(10 * 20 + unread, 1e-9));
+      expect(run.workoutKcal, {0: closeTo(200 + unread, 1e-9)});
       expect(run.stepKcal, 0);
     });
 

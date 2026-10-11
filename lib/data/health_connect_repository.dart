@@ -11,6 +11,7 @@ import 'health_repository.dart';
 import 'health_snapshot.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
+import 'routes.dart';
 import 'snapshot_builder.dart';
 
 /// Reads from and writes to Android's Health Connect. The only file that
@@ -363,6 +364,89 @@ class HealthConnectRepository implements HealthRepository {
     return token == null
         ? _loadNights(from, to)
         : _loadNightsInWorker(token, from, to);
+  }
+
+  static const MethodChannel _routes = MethodChannel('at.haiden.pulse/routes');
+
+  static Future<RouteReading> _loadRoutesInWorker(
+    RootIsolateToken token,
+    DateTime from,
+    DateTime to,
+  ) => _inWorker(token, (repository) => repository._loadRoutes(from, to));
+
+  @override
+  Future<RouteReading> loadRoutes(DateTime from, DateTime to) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _loadRoutes(from, to)
+        : _loadRoutesInWorker(token, from, to);
+  }
+
+  Future<RouteReading> _loadRoutes(DateTime from, DateTime to) async {
+    await _configure();
+    final start = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    final routes = <WorkoutRoute>[];
+    String? consentFor;
+    for (final point in await _read(HealthDataType.WORKOUT_ROUTE, start, end)) {
+      final value = point.value;
+      if (value is! WorkoutRouteHealthValue) continue;
+      if (value.locations.isEmpty) {
+        // A route of another app, which the user has not let this one read.
+        if (point.metadata?['route_requires_consent'] == true) {
+          consentFor ??= point.uuid;
+        }
+        continue;
+      }
+      final first = value.locations.first.timestamp;
+      final route = routeOf(first, [
+        for (final location in value.locations)
+          RoutePoint(
+            latitude: location.latitude,
+            longitude: location.longitude,
+            seconds: location.timestamp.difference(first).inMilliseconds / 1000,
+            altitude: location.altitude,
+          ),
+      ]);
+      if (route != null) routes.add(route);
+    }
+    return (routes: routes, consentFor: consentFor);
+  }
+
+  @override
+  Future<bool> requestRouteAccess(String consentFor) async {
+    try {
+      return await _routes.invokeMethod<bool>('request', consentFor) ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException catch (error) {
+      debugPrint('Asking for the routes failed: $error');
+      return false;
+    }
+  }
+
+  static Future<List<HealthEntry>> _loadMealsInWorker(
+    RootIsolateToken token,
+    DateTime from,
+    DateTime to,
+  ) => _inWorker(token, (repository) => repository._loadMeals(from, to));
+
+  @override
+  Future<List<HealthEntry>> loadMeals(DateTime from, DateTime to) {
+    final token = RootIsolateToken.instance;
+    return token == null
+        ? _loadMeals(from, to)
+        : _loadMealsInWorker(token, from, to);
+  }
+
+  Future<List<HealthEntry>> _loadMeals(DateTime from, DateTime to) async {
+    await _configure();
+    final start = DateTime(from.year, from.month, from.day);
+    final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
+    return [
+      for (final point in await _read(HealthDataType.NUTRITION, start, end))
+        ?_meal(point),
+    ];
   }
 
   Future<List<SleepNight>> _loadNights(DateTime from, DateTime to) async {
@@ -819,22 +903,7 @@ class HealthConnectRepository implements HealthRepository {
     if (value is! WorkoutHealthValue) return null;
     final distance = value.totalDistance;
     return Workout(
-      type: switch (value.workoutActivityType) {
-        HealthWorkoutActivityType.RUNNING ||
-        HealthWorkoutActivityType.RUNNING_TREADMILL => WorkoutType.run,
-        HealthWorkoutActivityType.BIKING ||
-        HealthWorkoutActivityType.BIKING_STATIONARY => WorkoutType.ride,
-        HealthWorkoutActivityType.WALKING => WorkoutType.walk,
-        HealthWorkoutActivityType.HIKING => WorkoutType.hike,
-        HealthWorkoutActivityType.STRENGTH_TRAINING ||
-        HealthWorkoutActivityType.WEIGHTLIFTING => WorkoutType.strength,
-        HealthWorkoutActivityType.YOGA ||
-        HealthWorkoutActivityType.PILATES => WorkoutType.yoga,
-        HealthWorkoutActivityType.SWIMMING ||
-        HealthWorkoutActivityType.SWIMMING_POOL ||
-        HealthWorkoutActivityType.SWIMMING_OPEN_WATER => WorkoutType.swim,
-        _ => WorkoutType.other,
-      },
+      type: workoutTypeOf(value.workoutActivityType),
       start: point.dateFrom,
       minutes: point.dateTo.difference(point.dateFrom).inMinutes,
       kcal: value.totalEnergyBurned,
@@ -846,3 +915,84 @@ class HealthConnectRepository implements HealthRepository {
     );
   }
 }
+
+/// The app's kind of a workout the plugin read. On Android the plugin
+/// names every dance CARDIO_DANCE and every kind of skiing
+/// CROSS_COUNTRY_SKIING; what it has no name for comes as OTHER.
+WorkoutType workoutTypeOf(HealthWorkoutActivityType type) => switch (type) {
+  HealthWorkoutActivityType.RUNNING => WorkoutType.run,
+  HealthWorkoutActivityType.RUNNING_TREADMILL => WorkoutType.treadmill,
+  HealthWorkoutActivityType.BIKING ||
+  HealthWorkoutActivityType.HAND_CYCLING => WorkoutType.ride,
+  HealthWorkoutActivityType.BIKING_STATIONARY => WorkoutType.stationaryBike,
+  HealthWorkoutActivityType.WALKING ||
+  HealthWorkoutActivityType.WALKING_TREADMILL => WorkoutType.walk,
+  HealthWorkoutActivityType.HIKING => WorkoutType.hike,
+  HealthWorkoutActivityType.WHEELCHAIR ||
+  HealthWorkoutActivityType.WHEELCHAIR_RUN_PACE ||
+  HealthWorkoutActivityType.WHEELCHAIR_WALK_PACE => WorkoutType.wheelchair,
+  HealthWorkoutActivityType.STAIR_CLIMBING ||
+  HealthWorkoutActivityType.STAIRS => WorkoutType.stairs,
+  HealthWorkoutActivityType.SWIMMING ||
+  HealthWorkoutActivityType.SWIMMING_POOL => WorkoutType.swim,
+  HealthWorkoutActivityType.SWIMMING_OPEN_WATER => WorkoutType.openWater,
+  HealthWorkoutActivityType.WATER_POLO => WorkoutType.waterPolo,
+  HealthWorkoutActivityType.SURFING => WorkoutType.surfing,
+  HealthWorkoutActivityType.SAILING => WorkoutType.sailing,
+  HealthWorkoutActivityType.SCUBA_DIVING ||
+  HealthWorkoutActivityType.UNDERWATER_DIVING => WorkoutType.scuba,
+  HealthWorkoutActivityType.ROWING => WorkoutType.rowing,
+  HealthWorkoutActivityType.AMERICAN_FOOTBALL => WorkoutType.americanFootball,
+  HealthWorkoutActivityType.AUSTRALIAN_FOOTBALL =>
+    WorkoutType.australianFootball,
+  HealthWorkoutActivityType.BADMINTON => WorkoutType.badminton,
+  HealthWorkoutActivityType.BASEBALL => WorkoutType.baseball,
+  HealthWorkoutActivityType.BASKETBALL => WorkoutType.basketball,
+  HealthWorkoutActivityType.CRICKET => WorkoutType.cricket,
+  HealthWorkoutActivityType.FRISBEE_DISC ||
+  HealthWorkoutActivityType.DISC_SPORTS => WorkoutType.frisbee,
+  HealthWorkoutActivityType.GOLF => WorkoutType.golf,
+  HealthWorkoutActivityType.HANDBALL => WorkoutType.handball,
+  HealthWorkoutActivityType.RACQUETBALL => WorkoutType.racquetball,
+  HealthWorkoutActivityType.RUGBY => WorkoutType.rugby,
+  HealthWorkoutActivityType.SOCCER => WorkoutType.soccer,
+  HealthWorkoutActivityType.SOFTBALL => WorkoutType.softball,
+  HealthWorkoutActivityType.SQUASH => WorkoutType.squash,
+  HealthWorkoutActivityType.TABLE_TENNIS => WorkoutType.tableTennis,
+  HealthWorkoutActivityType.TENNIS => WorkoutType.tennis,
+  HealthWorkoutActivityType.VOLLEYBALL => WorkoutType.volleyball,
+  HealthWorkoutActivityType.SKIING ||
+  HealthWorkoutActivityType.CROSS_COUNTRY_SKIING ||
+  HealthWorkoutActivityType.DOWNHILL_SKIING => WorkoutType.ski,
+  HealthWorkoutActivityType.SNOWBOARDING => WorkoutType.snowboard,
+  HealthWorkoutActivityType.SNOWSHOEING => WorkoutType.snowshoe,
+  HealthWorkoutActivityType.ICE_SKATING => WorkoutType.iceSkating,
+  HealthWorkoutActivityType.HOCKEY => WorkoutType.iceHockey,
+  HealthWorkoutActivityType.STRENGTH_TRAINING ||
+  HealthWorkoutActivityType.TRADITIONAL_STRENGTH_TRAINING ||
+  HealthWorkoutActivityType.FUNCTIONAL_STRENGTH_TRAINING =>
+    WorkoutType.strength,
+  HealthWorkoutActivityType.WEIGHTLIFTING => WorkoutType.weights,
+  HealthWorkoutActivityType.CALISTHENICS => WorkoutType.calisthenics,
+  HealthWorkoutActivityType.GYMNASTICS => WorkoutType.gymnastics,
+  HealthWorkoutActivityType.ROCK_CLIMBING ||
+  HealthWorkoutActivityType.CLIMBING => WorkoutType.climbing,
+  HealthWorkoutActivityType.HIGH_INTENSITY_INTERVAL_TRAINING =>
+    WorkoutType.hiit,
+  HealthWorkoutActivityType.ELLIPTICAL => WorkoutType.elliptical,
+  HealthWorkoutActivityType.ROWING_MACHINE => WorkoutType.rowingMachine,
+  HealthWorkoutActivityType.STAIR_CLIMBING_MACHINE => WorkoutType.stairMachine,
+  HealthWorkoutActivityType.DANCING ||
+  HealthWorkoutActivityType.CARDIO_DANCE ||
+  HealthWorkoutActivityType.SOCIAL_DANCE => WorkoutType.dance,
+  HealthWorkoutActivityType.BOXING ||
+  HealthWorkoutActivityType.KICKBOXING => WorkoutType.boxing,
+  HealthWorkoutActivityType.MARTIAL_ARTS => WorkoutType.martialArts,
+  HealthWorkoutActivityType.FENCING => WorkoutType.fencing,
+  HealthWorkoutActivityType.YOGA => WorkoutType.yoga,
+  HealthWorkoutActivityType.PILATES => WorkoutType.pilates,
+  HealthWorkoutActivityType.GUIDED_BREATHING => WorkoutType.breathing,
+  HealthWorkoutActivityType.SKATING => WorkoutType.skating,
+  HealthWorkoutActivityType.PARAGLIDING => WorkoutType.paragliding,
+  _ => WorkoutType.other,
+};

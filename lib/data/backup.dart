@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'health_history.dart';
 import 'json_store.dart';
 import 'night_archive.dart';
+import 'routes.dart';
 import 'workout_archive.dart';
 
 /// What reading a backup added to the app's own data.
@@ -16,6 +17,7 @@ const String _nightsPrefix = 'nights-';
 bool _kept(String name) =>
     name.startsWith(_historyPrefix) ||
     name.startsWith(_nightsPrefix) ||
+    name.startsWith(RouteArchive.prefix) ||
     name == StoreKeys.workouts ||
     name == StoreKeys.settings;
 
@@ -26,7 +28,8 @@ String backupFileName(DateTime now) {
 }
 
 /// Everything that cannot be read again from the health store, as one JSON
-/// text: the years of the history, the nights, the workouts and the settings,
+/// text: the years of the history, the nights, the workouts with their
+/// routes and the settings,
 /// each as the app keeps it.
 Future<String> exportBackup(JsonStore store, DateTime now) async {
   final names = [
@@ -87,6 +90,16 @@ Future<BackupResult> importBackup(
     // After the workouts, so one the app holds is not removed by a backup.
     await WorkoutArchive(store)
         .addRemoved(await WorkoutArchive(file).loadRemoved());
+
+    // The routes the app has none for; a workout it knows to be without
+    // one may still have one in the backup.
+    final ownRoutes = await RouteArchive(store).load();
+    await RouteArchive(store).add({
+      for (final MapEntry(:key, value: route) in (await RouteArchive(
+        file,
+      ).load()).entries)
+        if (route != null && ownRoutes[key] == null) key: route,
+    });
 
     final settings = documents[StoreKeys.settings];
     final restore =

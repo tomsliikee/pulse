@@ -38,7 +38,9 @@ The screenshots on this page show sample data.
 - **Body Age:** Your real age plus or minus the years your last 30 days are worth.
 - **Ten Years of History:** Every metric by day, week, month, year and in total.
 - **Your Own Layout:** Remove, add, resize and reorder the tiles of every page.
-- **Entries:** Add **water**, **weight** and **meals**; they are written to Health Connect.
+- **Every Kind of Workout:** 56 kinds, from running to table tennis, each counted in the way that fits it.
+- **Routes:** The way a workout took, drawn by its speed, with the time of each kilometre and the climb.
+- **Entries:** Add **water**, **weight** and **meals**; they are written to Health Connect. A meal starts at the foods you logged before.
 - **Colour Styles, Dark Theme and Liquid Glass:** The colours follow your wallpaper or one of seven styles of the app's own, and the bars can turn into refracting glass.
 - **Three Languages:** **German**, **English** and **Polish**.
 - **Private by Construction:** Everything stays in the app's own directory, with a backup file you save yourself.
@@ -77,6 +79,9 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 - **The Latest Workout as a Scene:** A figure walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape.
 - **A Page per Workout:** Every number against the workout before and the average of the last ones, a chart of the last twelve of its kind, and marks for personal bests.
+- **The Route:** Where a workout has one, its line tinted from slow to fast, the time of each kilometre as bars with the fastest marked (a speed for rides, stretches of five or ten kilometres for long ways), and the altitude as a profile with the metres climbed and descended. Rows and the latest workout show the line small. Three switches in the profile take the kilometres, the climb and the small lines away.
+- **Allowing Routes:** Health Connect hands out the routes other apps recorded only with your consent. While it holds them back, a workout's page and the profile show a button that opens Health Connect's own dialog; choose **Allow all routes** there. The line is kept as at most 200 points in the app's own directory; no map is loaded.
+- **Kinds of Workout:** Each kind Health Connect tells apart has its own name and icon. The fine values count endurance and ball sports by heart rate, walking and hiking by steps, and calm or static kinds such as strength, yoga or golf at a fixed rate; a minute without a heart rate counts at the rate of its kind.
 - **All Activities:** Month by month, with a filter for the kind.
 - **Steps by Week and Month:** The average per day stands large above the chart.
 - **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
@@ -195,6 +200,7 @@ Three switches in the profile change the look further, all **off by default**:
 ## Your Data
 
 - **Entries:** **Water**, **weight** and **meals** from the **+** button, written to Health Connect. The water tile adds a glass of **250 ml** with one tap. Your own entries can be edited and deleted.
+- **Foods:** A new meal starts at the five foods eaten most often in the last 90 days; a tap fills the form with the name and values of the last time. **More** opens every food ever logged, including those other apps wrote, to search, sort (latest, most often, A–Z, calories) and filter (time of day, high in protein, calories, only from Pulse). A swipe takes a food out of the lists until it is eaten again.
 - **Tiles:** In edit mode every tile has a **minus**; a list below offers what you removed and every measurement with data. Hold a tile to drag it. A measurement tile is **small** or **large**.
 - **History:** One value per day and metric for up to **ten years**. Data already in Health Connect is loaded once on first start.
 - **Background Refresh:** About once an hour, so no day is lost when the app stays closed.
@@ -249,6 +255,7 @@ flutter test
 | :--- | :--- |
 | **26 `READ_*`** health permissions | One per data type the app shows |
 | **`WRITE_HYDRATION`**, **`WRITE_WEIGHT`**, **`WRITE_NUTRITION`** | The three kinds of entries you can add |
+| **`READ_EXERCISE_ROUTES`** | The routes of workouts other apps recorded. Asked for through Health Connect's own dialog; if declined, workouts have no line |
 | **`READ_HEALTH_DATA_HISTORY`** | Loading data older than 30 days once. If declined, history grows from today |
 | **`READ_HEALTH_DATA_IN_BACKGROUND`** | The hourly refresh. If declined, data is refreshed when the app is opened |
 | **`POST_NOTIFICATIONS`** | The notification that says good morning. Asked for after the cards first opened by themselves; if declined, they still open in the app |
@@ -259,7 +266,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **851** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **913** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD
@@ -375,6 +382,8 @@ Everything is kept in the app's private directory, **`/data/data/at.haiden.pulse
 | **`history-YYYY.json`** | One value per day and metric for that calendar year, for ten years |
 | **`nights-YYYY.json`** | Every night that ended in that year: its times and the minutes in each stage |
 | **`workouts.json`** | Every workout the app has seen, and the ones removed by hand |
+| **`routes-YYYY.json`** | The route of each workout of that year that has one, as at most 200 points, with the time of each kilometre and the climb |
+| **`foods.json`** | Every named meal the app has seen, as the foods they were: the values of the last time and when each was eaten |
 | **`settings.json`** | Goals, profile, theme, look switches, tile order and sizes |
 | **`sync.json`** | When the last background refresh ran and how long it took |
 | **`weather.json`** | The last forecast of today, so the service is asked at most once an hour |

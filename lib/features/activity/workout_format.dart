@@ -22,7 +22,7 @@ extension WorkoutMeasureText on WorkoutMeasure {
         WorkoutMeasure.duration => formats.duration(value.round()),
         WorkoutMeasure.distance => '${_km(formats, value)} km',
         WorkoutMeasure.pace =>
-          type == WorkoutType.swim
+          type.swims
               ? '${_clock(value / 10)} min/100 m'
               : '${_clock(value)} min/km',
         WorkoutMeasure.speed => '${formats.decimal(value)} km/h',
@@ -37,10 +37,7 @@ extension WorkoutMeasureText on WorkoutMeasure {
   String formatDifference(Formats formats, WorkoutType type, double value) {
     final size = value.abs();
     return switch (this) {
-      WorkoutMeasure.pace => _seconds(
-        formats,
-        type == WorkoutType.swim ? size / 10 : size,
-      ),
+      WorkoutMeasure.pace => _seconds(formats, type.swims ? size / 10 : size),
       _ => format(formats, type, size),
     };
   }

@@ -27,7 +27,14 @@ FixtureRepository _everyKind() => FixtureRepository(
         for (var n = 0; n < 2; n++)
           Workout(
             type: type,
-            start: DateTime(2026, 10, 5 - type.index, 9 + n * 8),
+            // Kinds once read as one share a key at the same minute.
+            start: DateTime(
+              2026,
+              10,
+              5 - type.index % 8,
+              9 + n * 8,
+              type.index,
+            ),
             minutes: 40 + n,
             kcal: 300,
             distanceKm: type == WorkoutType.strength ? null : 6.0 + n,
@@ -232,7 +239,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byType(ChoiceChip),
-        matching: find.text('Spaziergang'),
+        matching: find.text('Gehen'),
       ),
     );
     await advance(tester);

@@ -17,6 +17,7 @@ import 'package:pulse/data/health_snapshot.dart';
 import 'package:pulse/data/json_store.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
+import 'package:pulse/data/routes.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
@@ -129,6 +130,18 @@ class FixtureRepository implements HealthRepository {
   /// Nights from before the window, handed out by [loadNights].
   List<SleepNight> olderNights = const [];
   final List<(DateTime, DateTime)> nightRequests = [];
+
+  /// The routes the store has, handed out by [loadRoutes] once
+  /// [routeAccess] is there; [requestRouteAccess] gives it if [grantsRoutes].
+  List<WorkoutRoute> routes = const [];
+  bool routeAccess = true;
+  bool grantsRoutes = true;
+  final List<(DateTime, DateTime)> routeRequests = [];
+  final List<String> routeConsentRequests = [];
+
+  /// Meals from before the window, handed out by [loadMeals].
+  List<HealthEntry> olderMeals = const [];
+  final List<(DateTime, DateTime)> mealRequests = [];
   final List<(DateTime, DateTime)> historyRequests = [];
   int historyPermissionRequests = 0;
   int _nextId = 100;
@@ -252,6 +265,39 @@ class FixtureRepository implements HealthRepository {
     return [
       for (final night in olderNights)
         if (!night.date.isBefore(from) && !night.date.isAfter(to)) night,
+    ];
+  }
+
+  @override
+  Future<RouteReading> loadRoutes(DateTime from, DateTime to) async {
+    routeRequests.add((from, to));
+    final end = DateTime(to.year, to.month, to.day + 1);
+    return (
+      routes: routeAccess
+          ? [
+              for (final route in routes)
+                if (!route.start.isBefore(from) && route.start.isBefore(end))
+                  route,
+            ]
+          : const <WorkoutRoute>[],
+      consentFor: routeAccess || routes.isEmpty ? null : 'session-1',
+    );
+  }
+
+  @override
+  Future<bool> requestRouteAccess(String consentFor) async {
+    routeConsentRequests.add(consentFor);
+    return routeAccess = grantsRoutes;
+  }
+
+  @override
+  Future<List<HealthEntry>> loadMeals(DateTime from, DateTime to) async {
+    mealRequests.add((from, to));
+    final end = DateTime(to.year, to.month, to.day + 1);
+    return [
+      for (final meal in olderMeals)
+        if (!meal.draft.time.isBefore(from) && meal.draft.time.isBefore(end))
+          meal,
     ];
   }
 
@@ -415,7 +461,7 @@ RawReadings fixtureReadings() {
         type: WorkoutType.run,
         start: _day(1, 18),
         minutes: 35,
-        kcal: 364,
+        kcal: 371,
         distanceKm: 5.6,
       ),
     ],

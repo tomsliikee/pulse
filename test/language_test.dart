@@ -396,6 +396,12 @@ void main() {
           await tester.tap(find.text(entry).hitTestable().last);
           await advance(tester);
           expect(find.text(title), findsOneWidget);
+          if (entry == l10n.entryMeal) {
+            // The foods logged before come first.
+            await tester.tap(find.text(l10n.foodNew).hitTestable());
+            await advance(tester);
+            expect(find.text(title), findsOneWidget);
+          }
           // An empty amount is refused, which shows the longest message.
           await tester.tap(find.text(l10n.save).hitTestable());
           await advance(tester);

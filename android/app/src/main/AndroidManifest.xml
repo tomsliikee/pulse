@@ -14,6 +14,8 @@
     <uses-permission android:name="android.permission.health.READ_ACTIVITY_INTENSITY"/>
     <uses-permission android:name="android.permission.health.READ_SPEED"/>
     <uses-permission android:name="android.permission.health.READ_EXERCISE"/>
+    <!-- Asked for route by route; the dialog also offers every route. -->
+    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTES"/>
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE"/>
     <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY"/>

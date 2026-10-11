@@ -6,23 +6,56 @@ import '../../app/app_scope.dart';
 import '../../app/back_gesture.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
+import '../../data/food_archive.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../theme/app_shapes.dart';
 import '../detail/metric_spec.dart';
+import 'food_sheet.dart';
+import 'foods_page.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Opens the form that records a new entry of [kind], or changes [existing].
+/// A new meal starts at the foods logged before, where there are any; the
+/// form then begins with the one chosen there.
 Future<void> showEntrySheet(
   BuildContext context,
   EntryKind kind, {
   HealthEntry? existing,
-}) {
+}) async {
+  EntryDraft? template;
+  if (kind == EntryKind.meal && existing == null) {
+    final health = AppScope.of(context).health;
+    if (health.foods.any((food) => !food.hidden)) {
+      var choice = await _showSheet<Object>(context, (_) => const FoodSheet());
+      if (!context.mounted) return;
+      if (choice == FoodChoice.more) {
+        choice = await Navigator.of(context)
+            .push(MaterialPageRoute<Food>(builder: (_) => const FoodsPage()));
+        if (!context.mounted) return;
+      }
+      switch (choice) {
+        case final Food food:
+          template = food.draftAt(DateTime.now());
+        case FoodChoice.create:
+          break;
+        default:
+          return;
+      }
+    }
+  }
+  await _showSheet<void>(
+    context,
+    (_) => EntrySheet(kind: kind, existing: existing, template: template),
+  );
+}
+
+Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) {
   final navigator = Navigator.of(context);
   final localizations = MaterialLocalizations.of(context);
   return navigator.push(
-    _EntrySheetRoute(
-      builder: (_) => EntrySheet(kind: kind, existing: existing),
+    _EntrySheetRoute<T>(
+      builder: builder,
       capturedThemes: InheritedTheme.capture(
         from: context,
         to: navigator.context,
@@ -38,8 +71,8 @@ Future<void> showEntrySheet(
 
 /// The modal sheet of `showModalBottomSheet`, which also shrinks towards the
 /// bottom edge while a back swipe is in progress.
-class _EntrySheetRoute extends ModalBottomSheetRoute<void>
-    with BackGestureRoute<void> {
+class _EntrySheetRoute<T> extends ModalBottomSheetRoute<T>
+    with BackGestureRoute<T> {
   _EntrySheetRoute({
     required super.builder,
     super.capturedThemes,
@@ -106,10 +139,18 @@ extension EntryKindLabel on EntryKind {
 }
 
 class EntrySheet extends StatefulWidget {
-  const EntrySheet({super.key, required this.kind, this.existing});
+  const EntrySheet({
+    super.key,
+    required this.kind,
+    this.existing,
+    this.template,
+  });
 
   final EntryKind kind;
   final HealthEntry? existing;
+
+  /// What the form of a new entry begins with.
+  final EntryDraft? template;
 
   @override
   State<EntrySheet> createState() => _EntrySheetState();
@@ -121,7 +162,7 @@ class _EntrySheetState extends State<EntrySheet> {
 
   final TextEditingController _amount = TextEditingController();
   late final TextEditingController _name = TextEditingController(
-    text: widget.existing?.draft.name ?? '',
+    text: widget.existing?.draft.name ?? widget.template?.name ?? '',
   );
   final Map<Metric, TextEditingController> _nutrients = {
     for (final metric in const [
@@ -152,7 +193,7 @@ class _EntrySheetState extends State<EntrySheet> {
           : formats.decimal(value);
     }
 
-    final draft = widget.existing?.draft;
+    final draft = widget.existing?.draft ?? widget.template;
     _amount.text = initial(draft?.amount);
     _nutrients[Metric.carbs]!.text = initial(draft?.carbs);
     _nutrients[Metric.protein]!.text = initial(draft?.protein);

@@ -34,11 +34,12 @@ const double _minKmForPace = 0.1;
 double? measureOf(Workout workout, WorkoutMeasure measure) {
   final km = workout.distanceKm;
   final moved = km != null && km >= _minKmForPace && workout.minutes > 0;
-  final wheels = workout.type == WorkoutType.ride;
+  final wheels = workout.type.rolls;
   return switch (measure) {
     WorkoutMeasure.duration => workout.minutes.toDouble(),
     WorkoutMeasure.distance => km != null && km > 0 ? km : null,
-    WorkoutMeasure.pace => moved && !wheels ? workout.minutes / km : null,
+    WorkoutMeasure.pace =>
+      moved && workout.type.paced ? workout.minutes / km : null,
     WorkoutMeasure.speed => moved && wheels ? km / workout.minutes * 60 : null,
     WorkoutMeasure.energy => workout.kcal?.toDouble(),
     WorkoutMeasure.steps => workout.steps?.toDouble(),
@@ -304,7 +305,7 @@ class WorkoutInsights {
       tips.add(const WorkoutTip(WorkoutTipKind.higherPulse));
     }
 
-    if (workout.type == WorkoutType.strength && perWeekRecent < 2) {
+    if (workout.type.buildsStrength && perWeekRecent < 2) {
       tips.add(const WorkoutTip(WorkoutTipKind.strengthTwice));
     }
 

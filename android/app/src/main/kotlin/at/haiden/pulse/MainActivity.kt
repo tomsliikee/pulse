@@ -2,6 +2,7 @@ package at.haiden.pulse
 
 import android.Manifest
 import android.app.LocaleManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -44,6 +45,15 @@ class MainActivity : FlutterFragmentActivity() {
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             pendingConsent?.success(granted)
             pendingConsent = null
+        }
+
+    // The answer to the question whether a workout's route may be read.
+    private var pendingRoute: MethodChannel.Result? = null
+
+    private val askRoute =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { answer ->
+            pendingRoute?.success(answer.resultCode == RESULT_OK)
+            pendingRoute = null
         }
 
     // A notification tapped while the app is open arrives here; kept so the
@@ -125,6 +135,33 @@ class MainActivity : FlutterFragmentActivity() {
                 } else {
                     pendingConsent = result
                     askConsent.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        // Health Connect's own question for the route of a workout another app
+        // recorded, which also offers to allow every route. Part of Android
+        // from 14 on.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/routes")
+            .setMethodCallHandler { call, result ->
+                val session = call.arguments as? String
+                if (call.method != "request" || session == null) {
+                    result.notImplemented()
+                    return@setMethodCallHandler
+                }
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE ||
+                    pendingRoute != null
+                ) {
+                    result.success(false)
+                    return@setMethodCallHandler
+                }
+                try {
+                    pendingRoute = result
+                    askRoute.launch(
+                        Intent("android.health.connect.action.REQUEST_EXERCISE_ROUTE")
+                            .putExtra("android.health.connect.extra.SESSION_ID", session)
+                    )
+                } catch (error: ActivityNotFoundException) {
+                    pendingRoute = null
+                    result.success(false)
                 }
             }
         // The language Android keeps for this app, so the profile and the

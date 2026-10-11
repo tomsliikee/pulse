@@ -192,6 +192,9 @@ class SettingsController extends ChangeNotifier {
   bool _morningBrief = true;
   bool _morningTileAllDay = false;
   bool _weekReport = true;
+  bool _routeSplits = true;
+  bool _routeClimb = true;
+  bool _routeOnTiles = true;
   bool _fineValues = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
@@ -237,6 +240,15 @@ class SettingsController extends ChangeNotifier {
   /// Whether the app says on Sunday evening that the week's report is
   /// ready: with a tile on the Today page and a notification.
   bool get weekReport => _weekReport;
+
+  /// Whether a workout with a route shows the time of each kilometre.
+  bool get routeSplits => _routeSplits;
+
+  /// Whether it shows what it climbed, and the line of its altitude.
+  bool get routeClimb => _routeClimb;
+
+  /// Whether the tiles and rows of workouts show the line of their route.
+  bool get routeOnTiles => _routeOnTiles;
 
   /// Whether the Today page keeps the morning's tile after the morning.
   bool get morningTileAllDay => _morningTileAllDay;
@@ -335,6 +347,9 @@ class SettingsController extends ChangeNotifier {
     if (json['morningBrief'] case final bool v) _morningBrief = v;
     if (json['morningTileAllDay'] case final bool v) _morningTileAllDay = v;
     if (json['weekReport'] case final bool v) _weekReport = v;
+    if (json['routeSplits'] case final bool v) _routeSplits = v;
+    if (json['routeClimb'] case final bool v) _routeClimb = v;
+    if (json['routeOnTiles'] case final bool v) _routeOnTiles = v;
     if (json['fineValues'] case final bool v) _fineValues = v;
     if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
@@ -493,6 +508,12 @@ class SettingsController extends ChangeNotifier {
 
   void setWeekReport(bool value) => _update(() => _weekReport = value);
 
+  void setRouteSplits(bool value) => _update(() => _routeSplits = value);
+
+  void setRouteClimb(bool value) => _update(() => _routeClimb = value);
+
+  void setRouteOnTiles(bool value) => _update(() => _routeOnTiles = value);
+
   void setMorningTileAllDay(bool value) =>
       _update(() => _morningTileAllDay = value);
 
@@ -578,6 +599,9 @@ class SettingsController extends ChangeNotifier {
             'morningBrief': _morningBrief,
             'morningTileAllDay': _morningTileAllDay,
             'weekReport': _weekReport,
+            'routeSplits': _routeSplits,
+            'routeClimb': _routeClimb,
+            'routeOnTiles': _routeOnTiles,
             'fineValues': _fineValues,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,

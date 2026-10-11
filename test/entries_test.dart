@@ -59,6 +59,9 @@ void main() {
   testWidgets('a meal keeps its name and nutrients', (tester) async {
     final app = await pumpApp(tester);
     await _openMenuItem(tester, 'Mahlzeit');
+    // The fixture has a meal with a name, so the foods come first.
+    await tester.tap(find.text('Neu erstellen').hitTestable());
+    await advance(tester);
 
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'Porridge');

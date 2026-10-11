@@ -1,6 +1,7 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_scope.dart';
 import '../../app/container_route.dart';
 import '../../app/formatters.dart';
 import '../../app/layout.dart';
@@ -17,6 +18,7 @@ import '../../theme/page_accent.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/chip_carousel.dart';
 import '../../widgets/free_figure.dart';
+import 'route_view.dart';
 import 'workout_detail_page.dart';
 import 'workout_format.dart';
 import 'workout_list_page.dart';
@@ -87,6 +89,10 @@ class LatestWorkoutCard extends StatelessWidget {
     final type = AppType.of(context);
     final accent = PageAccent.colorsOf(context);
     final workout = workouts.last;
+    final scope = AppScope.of(context);
+    final route = scope.settings.routeOnTiles
+        ? scope.health.routeOf(workout)
+        : null;
     final insights = WorkoutInsights.of(workout, workouts);
     final shown = [
       for (final measure in const [
@@ -229,6 +235,12 @@ class LatestWorkoutCard extends StatelessWidget {
                     iconColor: accent.onAccent,
                   ),
                 ),
+                if (route != null)
+                  Positioned(
+                    right: 16,
+                    top: 16,
+                    child: RouteThumb(route: route, size: 56),
+                  ),
               ],
             ),
           ),
@@ -321,6 +333,10 @@ class WorkoutRow extends StatelessWidget {
     final type = AppType.of(context);
     // A workout keeps the colour of activity on whatever page it is listed.
     final activity = scheme.tone(Tone.secondary);
+    final scope = AppScope.of(context);
+    final route = scope.settings.routeOnTiles
+        ? scope.health.routeOf(workout)
+        : null;
     return InkWell(
       onTap: onRestore != null
           ? null
@@ -378,16 +394,22 @@ class WorkoutRow extends StatelessWidget {
                 tooltip: l10n.restoreWorkout,
                 icon: const Icon(Icons.restore_rounded),
               ),
-            ] else if (workout.kcal case final kcal?) ...[
-              const SizedBox(width: 8),
-              Text(
-                '${formats.integer(kcal)} kcal',
-                style: type.figure(
-                  context.emphasizedTextTheme.labelLarge?.copyWith(
-                    color: activity.accent,
+            ] else ...[
+              if (workout.kcal case final kcal?) ...[
+                const SizedBox(width: 8),
+                Text(
+                  '${formats.integer(kcal)} kcal',
+                  style: type.figure(
+                    context.emphasizedTextTheme.labelLarge?.copyWith(
+                      color: activity.accent,
+                    ),
                   ),
                 ),
-              ),
+              ],
+              if (route != null) ...[
+                const SizedBox(width: 12),
+                RouteThumb(route: route),
+              ],
             ],
           ],
         ),

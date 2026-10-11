@@ -111,46 +111,10 @@ double? restingPerMinute({
   return null;
 }
 
-/// How the fine values work out the energy of a workout.
-enum FineEnergy {
-  /// From the heart rate, minute by minute.
-  pulse,
-
-  /// A fixed rate for each of its minutes.
-  fixed,
-
-  /// From its steps, like the rest of the day.
-  steps,
-}
-
-/// The effort of a workout that is counted at a fixed rate, as a multiple
-/// of rest (Compendium of Physical Activities). In strength training and
-/// the like the pulse rises further than the energy spent does.
-const double _strengthMet = 3.5;
-const double _yogaMet = 2.5;
-const double _otherMet = 3.5;
-
-/// How a workout of [type] is counted. Walking at a moderate pulse costs
-/// far less than the pulse suggests, so walks and hikes go by their steps.
-FineEnergy fineEnergyOf(WorkoutType type) => switch (type) {
-  WorkoutType.run || WorkoutType.ride || WorkoutType.swim => FineEnergy.pulse,
-  WorkoutType.strength ||
-  WorkoutType.yoga ||
-  WorkoutType.other => FineEnergy.fixed,
-  WorkoutType.walk || WorkoutType.hike => FineEnergy.steps,
-};
-
 /// The energy a minute of a workout of [type] costs beyond rest at [kg], in
-/// kcal, where that is a fixed rate. Null for the other kinds.
-double? fixedNetPerMinute(WorkoutType type, double kg) {
-  final met = switch (type) {
-    WorkoutType.strength => _strengthMet,
-    WorkoutType.yoga => _yogaMet,
-    WorkoutType.other => _otherMet,
-    _ => null,
-  };
-  return met == null ? null : (met - 1) * 3.5 * kg / 200;
-}
+/// kcal, at its fixed rate.
+double fixedNetPerMinute(WorkoutType type, double kg) =>
+    (type.met - 1) * 3.5 * kg / 200;
 
 /// What walking a kilometre costs beyond rest, in kcal per kg.
 const double _walkingPerKgKm = 0.5;
@@ -249,7 +213,7 @@ class FineDay {
 /// does not count itself. Moderate once, vigorous twice.
 ///
 /// Active energy, never less than nothing, in two parts:
-/// - workouts by their kind, see [fineEnergyOf]: what [netPerMinute] says
+/// - workouts by their kind, see [WorkoutType.energy]: what [netPerMinute] says
 ///   for the pulse of each of their minutes, or a fixed rate for each
 ///   minute, see [fixedNetPerMinute], with [kg];
 /// - the steps at [perStep] each: of every hour in [stepsByHour] (by the
@@ -352,13 +316,14 @@ FineDay fineDay(
     }
     if (workout == null) continue;
     final type = workouts[workout].type;
-    final way = fineEnergyOf(type);
+    final way = type.energy;
     if (way == FineEnergy.steps) continue;
     countedOf[m ~/ 60]++;
     if (netPerMinute == null) continue;
-    final net = way == FineEnergy.fixed
-        ? (kg == null ? 0.0 : fixedNetPerMinute(type, kg)!)
-        : (mean == null ? 0.0 : netPerMinute(mean));
+    // A minute without a pulse is counted at the kind's own rate.
+    final net = way == FineEnergy.fixed || mean == null
+        ? (kg == null ? 0.0 : fixedNetPerMinute(type, kg))
+        : netPerMinute(mean);
     if (net <= 0) continue;
     kcalByHour![hour] = (kcalByHour[hour] ?? 0) + net;
     workoutKcal[workout] = (workoutKcal[workout] ?? 0) + net;
@@ -386,7 +351,7 @@ FineDay fineDay(
     final walked = <int, double>{};
     for (var i = 0; i < workouts.length; i++) {
       final workout = workouts[i];
-      if (fineEnergyOf(workout.type) != FineEnergy.steps) continue;
+      if (workout.type.energy != FineEnergy.steps) continue;
       // A walk over midnight belongs to the day it began on.
       if (workout.start.isBefore(day) ||
           !workout.start.isBefore(day.add(const Duration(days: 1)))) {

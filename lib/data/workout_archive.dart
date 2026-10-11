@@ -51,6 +51,7 @@ List<Workout>? mergeWorkouts(List<Workout> stored, Iterable<Workout> fresh) {
 }
 
 bool _same(Workout a, Workout b) =>
+    a.type == b.type &&
     a.minutes == b.minutes &&
     a.kcal == b.kcal &&
     a.distanceKm == b.distanceKm &&

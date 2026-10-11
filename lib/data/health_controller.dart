@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'backup.dart';
 import 'body_age.dart';
 import 'fine_values.dart';
+import 'food_archive.dart';
 import 'health_history.dart';
 import 'health_repository.dart';
 import 'health_snapshot.dart';
@@ -12,6 +13,7 @@ import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
 import 'night_archive.dart';
+import 'routes.dart';
 import 'settings_controller.dart';
 import 'sync_report.dart';
 import 'workout_archive.dart';
@@ -42,6 +44,8 @@ class HealthController extends ChangeNotifier {
   late final HistoryArchive _archive = HistoryArchive(_store);
   late final WorkoutArchive _workoutArchive = WorkoutArchive(_store);
   late final NightArchive _nightArchive = NightArchive(_store);
+  late final FoodArchive _foodArchive = FoodArchive(_store);
+  late final RouteArchive _routeArchive = RouteArchive(_store);
 
   /// How many days one request for older data covers.
   static const int backfillChunkDays = 90;
@@ -54,7 +58,7 @@ class HealthController extends ChangeNotifier {
   /// 2: workouts carry the store's own totals of their time, so the ones
   /// loaded before, with the numbers of every source added up, are loaded
   /// once more.
-  static const int _workoutBackfillVersion = 2;
+  static const int _workoutBackfillVersion = 3;
 
   HealthStatus _status = HealthStatus.loading;
   HealthSnapshot? _snapshot;
@@ -68,7 +72,12 @@ class HealthController extends ChangeNotifier {
   List<Workout> _workouts = const [];
   List<RemovedWorkout> _removedWorkouts = const [];
   bool _backfillingNights = false;
+  bool _backfillingFoods = false;
+  bool _backfillingRoutes = false;
   List<SleepNight> _nights = const [];
+  List<Food> _foods = const [];
+  Map<String, WorkoutRoute?> _routes = const {};
+  String? _routeConsentFor;
   SyncReport? _backgroundSync;
   DateTime? _birthDate;
   Sex? _sex;
@@ -282,6 +291,17 @@ class HealthController extends ChangeNotifier {
   /// snapshot's window.
   List<SleepNight> get nights => _nights;
 
+  /// The way [workout] took over the ground, where the store had one and
+  /// the app was let read it.
+  WorkoutRoute? routeOf(Workout workout) => _routes[workout.key];
+
+  /// Whether the store has routes the user has not let the app read yet;
+  /// [requestRoutes] asks.
+  bool get routesNeedConsent => _routeConsentFor != null;
+
+  /// Every named meal the app has seen, as the foods they were, by name.
+  List<Food> get foods => _foods;
+
   SleepNight? get latestNight => _nights.isEmpty ? null : _nights.last;
 
   /// [night] with the curve of its stages, as long as the snapshot's window
@@ -331,6 +351,8 @@ class HealthController extends ChangeNotifier {
     await _backfill();
     await _backfillWorkouts();
     await _backfillNights();
+    await _backfillFoods();
+    await _backfillRoutes();
   }
 
   Future<void> _loadArchives() async {
@@ -338,12 +360,16 @@ class HealthController extends ChangeNotifier {
     final workouts = await _workoutArchive.load();
     final removed = await _workoutArchive.loadRemoved();
     final nights = await _nightArchive.load();
+    final foods = await _foodArchive.load();
+    final routes = await _routeArchive.load();
     final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
     if (_disposed) return;
     _history = history;
     _workouts = List.unmodifiable(workouts);
     _removedWorkouts = List.unmodifiable(removed);
     _nights = List.unmodifiable(nights);
+    _foods = List.unmodifiable(foods);
+    _routes = Map.unmodifiable(routes);
     _backgroundSync = sync;
   }
 
@@ -428,6 +454,11 @@ class HealthController extends ChangeNotifier {
         window: (fresh.dateAt(0), fresh.loadedAt),
       );
       await _archiveNights(nightSummaries(fresh));
+      await _archiveFoods(
+        fresh.entries,
+        window: (fresh.dateAt(0), fresh.loadedAt),
+      );
+      await _readRoutes(fresh.dateAt(0), fresh.today);
     } on Exception catch (error) {
       debugPrint('Health refresh failed: $error');
       // An earlier snapshot stays on screen; a failed read is no reason to
@@ -456,6 +487,8 @@ class HealthController extends ChangeNotifier {
     await _backfill();
     await _backfillWorkouts();
     await _backfillNights();
+    await _backfillFoods();
+    await _backfillRoutes();
   }
 
   Future<void> _archiveNights(List<SleepNight> nights) async {
@@ -463,6 +496,135 @@ class HealthController extends ChangeNotifier {
     if (merged == null) return;
     _nights = List.unmodifiable(merged);
     await _nightArchive.mergeIntoStore(nights);
+  }
+
+  /// Reads the routes of the workouts from [from] to [to] the app has not
+  /// asked for yet, and keeps them. Returns false where the store wants the
+  /// user's consent first: then nothing is known about a workout without a
+  /// route, and it is asked for again another time.
+  Future<bool> _readRoutes(
+    DateTime from,
+    DateTime to, {
+    bool again = false,
+  }) async {
+    if (_routeConsentFor != null && !again) return false;
+    final first = dayKey(from);
+    final last = dayKey(to);
+    final open = [
+      for (final workout in _workouts)
+        if (dayKey(workout.start) >= first &&
+            dayKey(workout.start) <= last &&
+            !_routes.containsKey(workout.key))
+          workout,
+    ];
+    if (open.isEmpty) return true;
+    final reading = await _repository.loadRoutes(from, to);
+    if (_disposed) return false;
+    _routeConsentFor = reading.consentFor;
+    final found = <String, WorkoutRoute?>{};
+    for (final workout in open) {
+      final route = routeFor(workout, reading.routes);
+      if (route != null || reading.consentFor == null) {
+        found[workout.key] = route;
+      }
+    }
+    if (found.isNotEmpty) {
+      await _routeArchive.add(found);
+      if (_disposed) return false;
+      _routes = Map.unmodifiable({..._routes, ...found});
+    }
+    return reading.consentFor == null;
+  }
+
+  /// Shows the store's question for the routes other apps recorded. Once
+  /// the user allows every route, the ones of all workouts are read.
+  Future<void> requestRoutes() async {
+    final consentFor = _routeConsentFor;
+    final shown = _snapshot;
+    if (consentFor == null || shown == null) return;
+    try {
+      if (!await _repository.requestRouteAccess(consentFor) || _disposed) {
+        return;
+      }
+      await _readRoutes(shown.dateAt(0), shown.today, again: true);
+      if (_disposed) return;
+      notifyListeners();
+      await _backfillRoutes();
+    } on Exception catch (error) {
+      debugPrint('Asking for the routes failed: $error');
+    }
+  }
+
+  /// Reads the routes of the workouts from before the window once, the way
+  /// [_backfillWorkouts] reads the workouts. Stops, to go on another time,
+  /// where the store wants the user's consent.
+  Future<void> _backfillRoutes() async {
+    final shown = _snapshot;
+    if (_backfillingRoutes ||
+        _disposed ||
+        shown == null ||
+        _routeConsentFor != null ||
+        _workouts.isEmpty) {
+      return;
+    }
+    final state = await _store.read(StoreKeys.routeBackfill);
+    if (_disposed) return;
+    if (state case {'done': true}) return;
+    DateTime? reached;
+    if (state case {'reached': final String value}) {
+      reached = DateTime.tryParse(value);
+    }
+
+    Future<void> save({bool done = false}) => _store.write(
+      StoreKeys.routeBackfill,
+      {'done': done, 'reached': reached?.toIso8601String()},
+    );
+
+    _backfillingRoutes = true;
+    try {
+      if (!await _repository.historyAccessGranted() || _disposed) return;
+      final oldest = _workouts.first.start;
+      final limit = DateTime(oldest.year, oldest.month, oldest.day);
+      var to = reached ?? shown.dateAt(0).subtract(const Duration(days: 1));
+      to = DateTime(to.year, to.month, to.day);
+      while (!to.isBefore(limit)) {
+        var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
+        if (from.isBefore(limit)) from = limit;
+        if (!await _readRoutes(from, to) || _disposed) return;
+        notifyListeners();
+        to = DateTime(from.year, from.month, from.day - 1);
+        reached = to;
+        await save();
+      }
+      await save(done: true);
+    } on Exception catch (error) {
+      // Not marked as done, so the next start continues where this stopped.
+      debugPrint('Loading older routes failed: $error');
+    } finally {
+      _backfillingRoutes = false;
+    }
+  }
+
+  Future<void> _archiveFoods(
+    Iterable<HealthEntry> meals, {
+    (DateTime, DateTime)? window,
+  }) async {
+    final all = await _foodArchive.mergeIntoStore(meals, window: window);
+    if (_disposed) return;
+    _foods = List.unmodifiable(all);
+  }
+
+  /// Takes [food] out of the suggestions until it is eaten again, or with
+  /// [hidden] false puts it back. Its meals stay where they are.
+  Future<void> hideFood(Food food, {bool hidden = true}) async {
+    final all = await _foodArchive.setHidden(
+      food.key,
+      _clock(),
+      hidden: hidden,
+    );
+    if (_disposed) return;
+    _foods = List.unmodifiable(all);
+    notifyListeners();
   }
 
   Future<void> _archiveWorkouts(
@@ -684,6 +846,56 @@ class HealthController extends ChangeNotifier {
       debugPrint('Loading older workouts failed: $error');
     } finally {
       _backfillingWorkouts = false;
+    }
+  }
+
+  /// Fills the food archive once with the meals the store already holds,
+  /// in the way [_backfillWorkouts] does for workouts.
+  Future<void> _backfillFoods() async {
+    final history = _history;
+    if (_backfillingFoods || _disposed || history == null) return;
+    final state = await _store.read(StoreKeys.foodBackfill);
+    if (_disposed) return;
+    if (state case {'done': true}) return;
+    DateTime? reached;
+    if (state case {'reached': final String value}) {
+      reached = DateTime.tryParse(value);
+    }
+
+    Future<void> save({bool done = false}) => _store.write(
+      StoreKeys.foodBackfill,
+      {'done': done, 'reached': reached?.toIso8601String()},
+    );
+
+    _backfillingFoods = true;
+    try {
+      if (!await _repository.historyAccessGranted() || _disposed) return;
+      var limit = DateTime(today.year - HistoryArchive.retentionYears + 1);
+      final oldest = history.firstDayOfAll;
+      if (oldest == null) return;
+      if (oldest.isAfter(limit)) limit = oldest;
+      var to = reached ?? snapshot.dateAt(0).subtract(const Duration(days: 1));
+      to = DateTime(to.year, to.month, to.day);
+      while (!to.isBefore(limit)) {
+        var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
+        if (from.isBefore(limit)) from = limit;
+        final meals = await _repository.loadMeals(from, to);
+        if (_disposed) return;
+        if (meals.isNotEmpty) {
+          await _archiveFoods(meals);
+          if (_disposed) return;
+          notifyListeners();
+        }
+        to = DateTime(from.year, from.month, from.day - 1);
+        reached = to;
+        await save();
+      }
+      await save(done: true);
+    } on Exception catch (error) {
+      // Not marked as done, so the next start continues where this stopped.
+      debugPrint('Loading older meals failed: $error');
+    } finally {
+      _backfillingFoods = false;
     }
   }
 

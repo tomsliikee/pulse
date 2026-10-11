@@ -238,7 +238,7 @@ BodyAge estimateBodyAge({
 
   final regularity = sleepRegularity(snapshot.nights);
   final strengthSessions = snapshot.workouts
-      .where((w) => w.type == WorkoutType.strength)
+      .where((w) => w.type.buildsStrength)
       .length;
 
   final factors = [

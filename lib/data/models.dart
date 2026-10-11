@@ -2,7 +2,175 @@ import 'package:flutter/foundation.dart';
 
 enum SleepStage { awake, rem, light, deep }
 
-enum WorkoutType { run, ride, walk, hike, strength, yoga, swim, other }
+/// What kinds of workout share: their shape and the figure of their scene.
+enum WorkoutFamily {
+  run,
+  ride,
+  walk,
+  water,
+  ball,
+  winter,
+  strength,
+  studio,
+  calm,
+  other,
+}
+
+/// How the fine values work out the energy of a workout.
+enum FineEnergy {
+  /// From the heart rate, minute by minute.
+  pulse,
+
+  /// A fixed rate for each of its minutes.
+  fixed,
+
+  /// From its steps, like the rest of the day.
+  steps,
+}
+
+/// The figure a workout's scene shows.
+enum WorkoutFigure { walk, run, hike, ride, swim, lift, breathe }
+
+/// Every kind of workout Health Connect tells apart. The first eight are
+/// the ones the app began with; their names are in stored workouts.
+enum WorkoutType {
+  run(WorkoutFamily.run, FineEnergy.pulse, 9.8),
+  ride(WorkoutFamily.ride, FineEnergy.pulse, 7.5),
+  walk(WorkoutFamily.walk, FineEnergy.steps, 3.5),
+  hike(
+    WorkoutFamily.walk,
+    FineEnergy.steps,
+    6.0,
+    ownFigure: WorkoutFigure.hike,
+  ),
+  strength(WorkoutFamily.strength, FineEnergy.fixed, 3.5),
+  yoga(WorkoutFamily.calm, FineEnergy.fixed, 2.5),
+  swim(WorkoutFamily.water, FineEnergy.pulse, 6.0),
+  other(WorkoutFamily.other, FineEnergy.fixed, 3.5),
+  treadmill(WorkoutFamily.run, FineEnergy.pulse, 9.0, oldName: 'run'),
+  stationaryBike(WorkoutFamily.ride, FineEnergy.pulse, 7.0, oldName: 'ride'),
+  wheelchair(WorkoutFamily.walk, FineEnergy.pulse, 3.5),
+  stairs(
+    WorkoutFamily.walk,
+    FineEnergy.pulse,
+    8.0,
+    ownFigure: WorkoutFigure.hike,
+  ),
+  openWater(WorkoutFamily.water, FineEnergy.pulse, 6.0, oldName: 'swim'),
+  waterPolo(WorkoutFamily.water, FineEnergy.pulse, 10.0),
+  surfing(WorkoutFamily.water, FineEnergy.pulse, 3.0),
+  sailing(WorkoutFamily.water, FineEnergy.fixed, 3.0),
+  scuba(WorkoutFamily.water, FineEnergy.fixed, 7.0),
+  rowing(WorkoutFamily.water, FineEnergy.pulse, 7.0),
+  americanFootball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
+  australianFootball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
+  badminton(WorkoutFamily.ball, FineEnergy.pulse, 5.5),
+  baseball(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
+  basketball(WorkoutFamily.ball, FineEnergy.pulse, 6.5),
+  cricket(WorkoutFamily.ball, FineEnergy.pulse, 4.8),
+  frisbee(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
+  golf(WorkoutFamily.ball, FineEnergy.fixed, 4.8),
+  handball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
+  racquetball(WorkoutFamily.ball, FineEnergy.pulse, 7.0),
+  rugby(WorkoutFamily.ball, FineEnergy.pulse, 8.3),
+  soccer(WorkoutFamily.ball, FineEnergy.pulse, 7.0),
+  softball(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
+  squash(WorkoutFamily.ball, FineEnergy.pulse, 7.3),
+  tableTennis(WorkoutFamily.ball, FineEnergy.pulse, 4.0),
+  tennis(WorkoutFamily.ball, FineEnergy.pulse, 7.3),
+  volleyball(WorkoutFamily.ball, FineEnergy.pulse, 4.0),
+  ski(WorkoutFamily.winter, FineEnergy.pulse, 7.0),
+  snowboard(WorkoutFamily.winter, FineEnergy.pulse, 5.3),
+  snowshoe(WorkoutFamily.winter, FineEnergy.steps, 5.3),
+  iceSkating(WorkoutFamily.winter, FineEnergy.pulse, 7.0),
+  iceHockey(WorkoutFamily.winter, FineEnergy.pulse, 8.0),
+  weights(WorkoutFamily.strength, FineEnergy.fixed, 3.5, oldName: 'strength'),
+  calisthenics(WorkoutFamily.strength, FineEnergy.fixed, 3.8),
+  gymnastics(WorkoutFamily.strength, FineEnergy.fixed, 3.8),
+  climbing(WorkoutFamily.strength, FineEnergy.pulse, 5.8),
+  hiit(WorkoutFamily.studio, FineEnergy.pulse, 8.0),
+  elliptical(WorkoutFamily.studio, FineEnergy.pulse, 5.0),
+  rowingMachine(WorkoutFamily.studio, FineEnergy.pulse, 7.0),
+  stairMachine(WorkoutFamily.studio, FineEnergy.pulse, 9.0),
+  dance(WorkoutFamily.studio, FineEnergy.pulse, 6.0),
+  boxing(WorkoutFamily.studio, FineEnergy.pulse, 7.8),
+  martialArts(WorkoutFamily.studio, FineEnergy.pulse, 7.5),
+  fencing(WorkoutFamily.studio, FineEnergy.pulse, 6.0),
+  pilates(WorkoutFamily.calm, FineEnergy.fixed, 3.0, oldName: 'yoga'),
+  breathing(WorkoutFamily.calm, FineEnergy.fixed, 1.3),
+  skating(WorkoutFamily.other, FineEnergy.pulse, 7.0),
+  paragliding(WorkoutFamily.other, FineEnergy.fixed, 3.5);
+
+  const WorkoutType(
+    this.family,
+    this.energy,
+    this.met, {
+    this.oldName,
+    this.ownFigure,
+  });
+
+  final WorkoutFamily family;
+
+  /// How the fine values count it. In strength training and the like the
+  /// pulse rises further than the energy spent does, and walking at a
+  /// moderate pulse costs far less than the pulse suggests.
+  final FineEnergy energy;
+
+  /// Its effort as a multiple of rest (Compendium of Physical Activities):
+  /// the rate of a [FineEnergy.fixed] kind, and of the minutes of a
+  /// [FineEnergy.pulse] kind that have no pulse.
+  final double met;
+
+  /// The coarser kind the app once read it as.
+  final String? oldName;
+  final WorkoutFigure? ownFigure;
+
+  /// The name a workout's [Workout.key] is built from. A kind the app once
+  /// read as a coarser one keeps that one's, so the key of a stored workout
+  /// does not change when it is read again.
+  String get stem => oldName ?? (index < 8 ? name : 'other');
+
+  WorkoutFigure get figure =>
+      ownFigure ??
+      switch (family) {
+        WorkoutFamily.run => WorkoutFigure.run,
+        WorkoutFamily.ride => WorkoutFigure.ride,
+        WorkoutFamily.walk => WorkoutFigure.walk,
+        WorkoutFamily.water => WorkoutFigure.swim,
+        WorkoutFamily.ball => WorkoutFigure.run,
+        WorkoutFamily.winter => WorkoutFigure.hike,
+        WorkoutFamily.strength => WorkoutFigure.lift,
+        WorkoutFamily.studio => WorkoutFigure.run,
+        WorkoutFamily.calm => WorkoutFigure.breathe,
+        WorkoutFamily.other => WorkoutFigure.walk,
+      };
+
+  /// Whether its distance is swum: a pace is then per 100 metres.
+  bool get swims => this == swim || this == openWater;
+
+  /// Whether it covers ground fast enough for a speed instead of a pace.
+  bool get rolls =>
+      family == WorkoutFamily.ride ||
+      const {
+        skating,
+        ski,
+        snowboard,
+        iceSkating,
+        rowing,
+        sailing,
+      }.contains(this);
+
+  /// Whether it covers ground on foot or by swimming, so it has a pace.
+  bool get paced =>
+      family == WorkoutFamily.run ||
+      family == WorkoutFamily.walk ||
+      swims ||
+      this == snowshoe;
+
+  /// Whether it builds strength, for what counts sessions of that.
+  bool get buildsStrength =>
+      family == WorkoutFamily.strength && this != climbing;
+}
 
 /// Asked for in the profile; Health Connect on Android does not have it.
 enum Sex { female, male }
@@ -195,7 +363,7 @@ class Workout {
   final int? fineKcal;
 
   /// Names the workout across reads of the store.
-  String get key => '${type.name}@${start.toIso8601String()}';
+  String get key => '${type.stem}@${start.toIso8601String()}';
 
   DateTime get end => start.add(Duration(minutes: minutes));
 
