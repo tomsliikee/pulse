@@ -99,7 +99,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Vitals:** Resting heart rate, variability, blood pressure, oxygen saturation, respiratory rate and skin temperature, where your devices record them.
 - **Time in Zones:** Rest, light, cardio and peak, each as its share of the measured time.
 
-![Vitals and time in zones, a metric by week, the tiles on Today, and edit mode](readmestuff/heart.png)
+![The day's curve with its bar, vitals and time in zones, the page of the day, and its zones and parts](readmestuff/heart.png)
 
 ---
 
@@ -300,6 +300,8 @@ Both sets are stored side by side, so the switch takes effect at once. Fine valu
 #### What You Really Burn
 
 No estimate from a wrist is exact. The page of **total calories** therefore works the burn out backwards, from the one thing that is measured: over the last **28 days**, the calories you ate less what your weight did (a line through the weigh-ins, at 7,700 kcal per kilogram). Beside it stand the source's total and the fine total with their distance from it. It needs calories eaten on at least 24 of the 28 days and at least 6 weigh-ins, one in the first and one in the last week; until then the page says what is missing. It assumes the weight changes through fat and not through water, and it changes none of the other numbers.
+
+![Today with fine values, what a day's active calories are made of, the real burn from food and weight, and the switch in the profile](readmestuff/fine.png)
 
 Every metric has the tabs **Today**, **Yesterday**, **Week**, **Month**, **Year** and **All**. An average counts only days with data; a day without a measurement is not a zero.
 
