@@ -85,7 +85,11 @@ class WorkoutDetailPage extends StatelessWidget {
             (other) => other.key == workout.key,
             orElse: () => workout,
           );
-          final insights = WorkoutInsights.of(current, health.workouts);
+          final insights = WorkoutInsights.of(
+            current,
+            health.workouts,
+            maxHeartRate: health.maxHeartRate,
+          );
           final settings = scope.settings;
           final route = health.routeOf(current);
           return SubPage(
@@ -160,9 +164,13 @@ class _Summary extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            formats.duration(workout.minutes),
+            workoutFigure(formats, workout),
             style: type.hero(context.emphasizedTextTheme.displaySmall),
           ),
+          if (insights.primary.isBest) ...[
+            const SizedBox(height: 2),
+            const _Best(),
+          ],
           const SizedBox(height: 4),
           Text(
             workoutHeadline(formats, insights),
@@ -178,7 +186,8 @@ class _Summary extends StatelessWidget {
   }
 }
 
-/// Every number of the workout, two to a row.
+/// Every number of the workout but the one above, two to a row; what its
+/// kind is about first.
 class _Measures extends StatelessWidget {
   const _Measures({required this.insights});
 
@@ -190,43 +199,85 @@ class _Measures extends StatelessWidget {
     final scheme = theme.colorScheme;
     final formats = Formats.of(context);
     final l10n = formats.l10n;
+    final muted = theme.textTheme.labelMedium?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final shown = insights.measures.skip(1).toList();
+    final rated = shown.any(
+      (comparison) => comparison.measure == WorkoutMeasure.intensity,
+    );
     return TitledSection(
       title: l10n.workoutNumbers,
-      child: NumberGrid(
-        cells: [
-          for (final comparison in insights.measures)
-            NumberCell(
-              label: comparison.measure.label(l10n),
-              value: AnimatedNumber(
-                value: comparison.value,
-                format: (value) => comparison.measure.format(
-                  formats,
-                  insights.workout.type,
-                  value,
-                ),
-              ),
-              footer: !comparison.isBest
-                  ? null
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.emoji_events_rounded,
-                          size: 14,
-                          color: scheme.tertiary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          l10n.personalBest,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: scheme.tertiary,
-                          ),
-                        ),
-                      ],
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 12,
+        children: [
+          NumberGrid(
+            cells: [
+              for (final comparison in shown) _cell(context, comparison, muted),
+            ],
+          ),
+          if (rated)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(l10n.intensityNote, style: muted),
             ),
         ],
       ),
+    );
+  }
+
+  NumberCell _cell(
+    BuildContext context,
+    MeasureComparison comparison,
+    TextStyle? muted,
+  ) {
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    if (comparison.measure == WorkoutMeasure.intensity) {
+      return NumberCell(
+        label: comparison.measure.label(l10n),
+        value: Text(IntensityLevel.of(comparison.value).label(l10n)),
+        footer: Text(
+          comparison.measure.format(
+            formats,
+            insights.workout.type,
+            comparison.value,
+          ),
+          style: muted,
+        ),
+      );
+    }
+    return NumberCell(
+      label: comparison.measure.label(l10n),
+      value: AnimatedNumber(
+        value: comparison.value,
+        format: (value) =>
+            comparison.measure.format(formats, insights.workout.type, value),
+      ),
+      footer: comparison.isBest ? const _Best() : null,
+    );
+  }
+}
+
+/// The mark of the best the user has done in this kind of workout.
+class _Best extends StatelessWidget {
+  const _Best();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.emoji_events_rounded, size: 14, color: scheme.tertiary),
+        const SizedBox(width: 4),
+        Text(
+          Formats.of(context).l10n.personalBest,
+          style: theme.textTheme.labelMedium?.copyWith(color: scheme.tertiary),
+        ),
+      ],
     );
   }
 }
@@ -336,11 +387,22 @@ class _ProgressState extends State<_Progress> {
     final l10n = formats.l10n;
     final trend = widget.insights.trend;
     final offered = [
-      for (final measure in const [
-        WorkoutMeasure.distance,
-        WorkoutMeasure.speed,
-        WorkoutMeasure.duration,
-      ])
+      for (final measure in switch (trend.last.type.focus) {
+        WorkoutFocus.distance || WorkoutFocus.speed => const [
+          WorkoutMeasure.distance,
+          WorkoutMeasure.speed,
+          WorkoutMeasure.duration,
+        ],
+        WorkoutFocus.effort => const [
+          WorkoutMeasure.duration,
+          WorkoutMeasure.energy,
+          WorkoutMeasure.avgHeartRate,
+        ],
+        WorkoutFocus.calm => const [
+          WorkoutMeasure.duration,
+          WorkoutMeasure.avgHeartRate,
+        ],
+      })
         if (_value(trend.last, measure) != null) measure,
     ];
     final measure = offered[_shown < offered.length ? _shown : 0];

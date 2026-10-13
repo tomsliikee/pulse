@@ -685,6 +685,123 @@ void main() {
     });
   });
 
+  group('what a kind of workout is about', () {
+    DateTime week(int n) => DateTime(2026, 9, 1 + n * 7, 18);
+    Workout session(
+      WorkoutType type,
+      int n, {
+      int minutes = 40,
+      double? km,
+      int? steps,
+      int? kcal,
+      int? avgBpm,
+    }) => Workout(
+      type: type,
+      start: week(n),
+      minutes: minutes,
+      distanceKm: km,
+      steps: steps,
+      kcal: kcal,
+      avgBpm: avgBpm,
+    );
+
+    test('every kind has a focus, a figure and an order of its measures', () {
+      for (final type in WorkoutType.values) {
+        final order = WorkoutMeasure.orderFor(type.focus);
+        expect(order.toSet(), hasLength(order.length), reason: type.name);
+        expect(order, contains(WorkoutMeasure.duration), reason: type.name);
+      }
+      expect(WorkoutType.run.focus, WorkoutFocus.distance);
+      expect(WorkoutType.swim.focus, WorkoutFocus.distance);
+      expect(WorkoutType.ride.focus, WorkoutFocus.speed);
+      expect(WorkoutType.weights.focus, WorkoutFocus.effort);
+      expect(WorkoutType.soccer.focus, WorkoutFocus.effort);
+      expect(WorkoutType.ski.focus, WorkoutFocus.effort);
+      expect(WorkoutType.yoga.focus, WorkoutFocus.calm);
+    });
+
+    test('the metres walked in a gym are a by-product: last, not judged, '
+        'never a best and not the headline', () {
+      final all = [
+        session(WorkoutType.weights, 0, minutes: 19, km: 0.1, steps: 4),
+        session(WorkoutType.weights, 1, minutes: 19, km: 0.1, steps: 5),
+        session(
+          WorkoutType.weights,
+          2,
+          minutes: 20,
+          km: 0.45,
+          steps: 720,
+          kcal: 98,
+          avgBpm: 105,
+        ),
+      ];
+      final insights = WorkoutInsights.of(all[2], all);
+      expect(insights.primary.measure, WorkoutMeasure.duration);
+      expect(
+        [for (final measure in insights.measures) measure.measure],
+        [
+          WorkoutMeasure.duration,
+          WorkoutMeasure.energy,
+          WorkoutMeasure.avgHeartRate,
+          WorkoutMeasure.distance,
+          WorkoutMeasure.steps,
+        ],
+      );
+      final distance = insights.measure(WorkoutMeasure.distance)!;
+      expect(distance.minor, isTrue);
+      expect(distance.againstPrevious, Trend.neutral);
+      expect(distance.isBest, isFalse);
+      expect(insights.measure(WorkoutMeasure.steps)!.isBest, isFalse);
+      expect(insights.headline!.measure, WorkoutMeasure.duration);
+      expect(insights.primary.againstPrevious, Trend.better);
+      expect(
+        workoutHeadline(formatsOf(), insights),
+        '1 min länger als letztes Mal',
+      );
+      // Four and a half times as far is no jump in what was done.
+      expect(
+        insights.tips.map((tip) => tip.kind),
+        isNot(contains(WorkoutTipKind.bigJump)),
+      );
+    });
+
+    test('a run is about its distance, and about its length without one', () {
+      final far = session(WorkoutType.run, 0, km: 6, kcal: 400);
+      expect(
+        WorkoutInsights.of(far, [far]).primary.measure,
+        WorkoutMeasure.distance,
+      );
+      final nowhere = session(WorkoutType.run, 0, kcal: 400);
+      expect(
+        WorkoutInsights.of(nowhere, [nowhere]).primary.measure,
+        WorkoutMeasure.duration,
+      );
+    });
+
+    test('the intensity needs a pulse and the highest one for the age', () {
+      final hard = session(WorkoutType.hiit, 0, avgBpm: 152);
+      expect(
+        WorkoutInsights.of(hard, [hard]).measure(WorkoutMeasure.intensity),
+        isNull,
+      );
+      final rated = WorkoutInsights.of(hard, [hard], maxHeartRate: 190);
+      final intensity = rated.measure(WorkoutMeasure.intensity)!;
+      expect(intensity.value, closeTo(80, 0.01));
+      expect(intensity.againstPrevious, Trend.neutral);
+      expect(IntensityLevel.of(intensity.value), IntensityLevel.hard);
+      expect(IntensityLevel.of(59.9), IntensityLevel.easy);
+      expect(IntensityLevel.of(60), IntensityLevel.moderate);
+      expect(IntensityLevel.of(85), IntensityLevel.allOut);
+      final still = session(WorkoutType.hiit, 0);
+      expect(
+        WorkoutInsights.of(still, [
+          still,
+        ], maxHeartRate: 190).measure(WorkoutMeasure.intensity),
+        isNull,
+      );
+    });
+  });
+
   group('workout texts', () {
     final formats = formatsOf();
 

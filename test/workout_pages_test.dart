@@ -38,6 +38,9 @@ FixtureRepository _everyKind() => FixtureRepository(
             minutes: 40 + n,
             kcal: 300,
             distanceKm: type == WorkoutType.strength ? null : 6.0 + n,
+            steps: 900,
+            avgBpm: 150,
+            maxBpm: 171,
           ),
     ],
   ),
@@ -337,6 +340,9 @@ void main() {
           size: size,
           locale: Locale(language),
           repository: _everyKind(),
+          // With a date of birth every workout has an intensity.
+          store: MemoryJsonStore()
+            ..documents['settings'] = '{"birthDate":"1992-03-07"}',
         );
         await _openActivity(tester, l10n);
         await tapInView(tester, find.text(l10n.allActivities));
@@ -369,6 +375,14 @@ void main() {
           expect(
             find.descendant(of: page, matching: find.text(l10n.compareLast)),
             findsOneWidget,
+            reason: workout.type.name,
+          );
+          expect(
+            find.descendant(
+              of: page,
+              matching: find.text(l10n.measureIntensity),
+            ),
+            findsWidgets,
             reason: workout.type.name,
           );
           await tester.drag(

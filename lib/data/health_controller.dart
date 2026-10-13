@@ -146,6 +146,10 @@ class HealthController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  /// The highest heart rate the user's age allows; null without a date of
+  /// birth.
+  int? get maxHeartRate => _maxHeartRate;
+
   int? get _maxHeartRate => switch (_birthDate) {
     final birthDate? => maxHeartRateOn(birthDate, _clock()),
     null => null,

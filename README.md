@@ -55,7 +55,7 @@ The screenshots on this page show sample data.
 
 The large cards of the four pages come in two modes, chosen at the top of the profile.
 
-- **Simple:** Each card keeps its drawing and one to three numbers: recovery, steps and active calories on Today, the distance of the latest workout, the score and length of the night, the latest heart rate and the day's range. Sentences say how it went without a number.
+- **Simple:** Each card keeps its drawing and one to three numbers: recovery, steps and active calories on Today, the distance or the duration of the latest workout, the score and length of the night, the latest heart rate and the day's range. Sentences say how it went without a number.
 - **Advanced:** The same cards with everything: goals, hours, times, pace, sleep stages and minutes per zone.
 - **Nothing Is Lost:** Tiles and detail pages show all their numbers in both modes. Tap a large card to see everything behind it.
 
@@ -91,7 +91,9 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 ### Activity
 
-- **The Latest Workout as a Scene:** A figure walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape. A runner and a rider leave the wind behind them, and a runner raises dust with every step.
+- **The Latest Workout as a Scene:** A figure does what the workout was, where it takes place: on the road, in a hall with wall bars, on a field with a goal, a net or a basket, in falling snow, on a rock face, on the water or under it. 22 figures cover the 56 kinds; related kinds share one and differ in what they hold. Strength changes from squats to presses to lifts from the floor, yoga flows from one posture into the next, a ball is struck and comes back.
+- **The Number a Kind Is About:** A run, a ride or a swim opens with its **distance** and compares pace or speed. Strength, studio, ball and winter sports open with their **duration**, then calories, intensity and heart rate; the few hundred metres walked between the machines stand last and are neither judged nor a personal best. Calm kinds such as yoga show duration and heart rate.
+- **Intensity:** The average heart rate of a workout against the highest for your age (220 less the age, from the date of birth in the profile), as a word from **Easy** to **All out** and a percentage. A rule of thumb by the app, not a measurement.
 - **A Page per Workout:** Every number against the workout before and the average of the last ones, a chart of the last twelve of its kind, and marks for personal bests.
 - **The Route:** Where a workout has one, its line tinted from slow to fast, the time of each kilometre as bars with the fastest marked (a speed for rides, stretches of five or ten kilometres for long ways), and the altitude as a profile with the metres climbed and descended. Rows and the latest workout show the line small. Three switches in the profile take the kilometres, the climb and the small lines away.
 - **Allowing Routes:** Health Connect hands out the routes other apps recorded only with your consent. While it holds them back, a workout's page and the profile show a button that opens Health Connect's own dialog; choose **Allow all routes** there. The line is kept as at most 200 points in the app's own directory; no map is loaded.
@@ -100,7 +102,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Steps by Week and Month:** The average per day stands large above the chart.
 - **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
 
-![Steps and activity metrics, the page about one run, its comparison and progress, and the list of all activities](readmestuff/activities.png)
+![Activity with a run as the latest workout, the page about that run, the page about a strength session, and Activity with a yoga session](readmestuff/activities.png)
 
 ![All activities with their routes, a run's route tinted by speed, its kilometres and elevation, and a new meal starting at the foods logged before](readmestuff/routes_foods.png)
 
@@ -282,7 +284,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **949** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **953** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

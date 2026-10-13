@@ -864,5 +864,11 @@
   "heartSoFar": "dziś do tej pory",
   "stepsChartTap": "Dotknij słupka, aby zobaczyć ten dzień.",
   "activeUnit": "aktywne {unit}",
-  "refresh": "Odśwież"
+  "refresh": "Odśwież",
+  "measureIntensity": "Intensywność",
+  "intensityEasy": "Lekko",
+  "intensityModerate": "Umiarkowanie",
+  "intensityHard": "Mocno",
+  "intensityAllOut": "Bardzo mocno",
+  "intensityNote": "Intensywność: twoje średnie tętno wobec maksymalnego dla twojego wieku. Reguła Pulse, nie pomiar."
 }

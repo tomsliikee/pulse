@@ -78,7 +78,8 @@ class LatestWorkoutCard extends StatelessWidget {
   /// Every workout the app knows, oldest first, and not empty.
   final List<Workout> workouts;
 
-  /// Whether the card shows one number alone: how far, or how long.
+  /// Whether the card shows one number alone: how far, or how long where
+  /// the kind of workout is not about distance.
   final bool simple;
 
   static const double sceneHeight = 132;
@@ -104,17 +105,20 @@ class LatestWorkoutCard extends StatelessWidget {
     final route = scope.settings.routeOnTiles
         ? scope.health.routeOf(workout)
         : null;
-    final insights = WorkoutInsights.of(workout, workouts);
-    final shown = [
-      for (final measure in const [
-        WorkoutMeasure.distance,
-        WorkoutMeasure.pace,
-        WorkoutMeasure.speed,
-        WorkoutMeasure.energy,
-        WorkoutMeasure.avgHeartRate,
-      ])
-        ?insights.measure(measure),
-    ].take(3);
+    final insights = WorkoutInsights.of(
+      workout,
+      workouts,
+      maxHeartRate: scope.health.maxHeartRate,
+    );
+    // What the kind is about; how long it took stands in the line above.
+    final shown = insights.measures
+        .where(
+          (comparison) =>
+              !comparison.minor &&
+              comparison.measure != WorkoutMeasure.duration &&
+              comparison.measure != WorkoutMeasure.maxHeartRate,
+        )
+        .take(3);
 
     return Pressable(
       pressedScale: 0.98,
@@ -350,7 +354,7 @@ class WorkoutRow extends StatelessWidget {
   final Workout workout;
 
   /// Whether the row shows one number alone: the distance, or the time of
-  /// a workout that has none.
+  /// a workout that has none or is not about it.
   final bool simple;
 
   /// For a workout that was removed: the row has no page to open and ends
@@ -406,7 +410,11 @@ class WorkoutRow extends StatelessWidget {
                       formats.shortDate(workout.start),
                       if (!simple) ...[
                         formats.duration(workout.minutes),
-                        if (distance != null && distance > 0)
+                        if (distance != null &&
+                            distance > 0 &&
+                            !WorkoutMeasure.distance.isMinorFor(
+                              workout.type.focus,
+                            ))
                           WorkoutMeasure.distance.format(
                             formats,
                             workout.type,

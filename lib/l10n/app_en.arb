@@ -864,5 +864,11 @@
   "heartSoFar": "today so far",
   "stepsChartTap": "Tap a bar to see that day.",
   "activeUnit": "active {unit}",
-  "refresh": "Refresh"
+  "refresh": "Refresh",
+  "measureIntensity": "Intensity",
+  "intensityEasy": "Easy",
+  "intensityModerate": "Moderate",
+  "intensityHard": "Hard",
+  "intensityAllOut": "All out",
+  "intensityNote": "Intensity: your average heart rate against the highest for your age. A rule of thumb by Pulse, not a measurement."
 }

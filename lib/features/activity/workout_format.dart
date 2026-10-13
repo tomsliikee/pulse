@@ -14,6 +14,7 @@ extension WorkoutMeasureText on WorkoutMeasure {
     WorkoutMeasure.steps => l10n.measureSteps,
     WorkoutMeasure.avgHeartRate => l10n.measureAvgHeart,
     WorkoutMeasure.maxHeartRate => l10n.measureMaxHeart,
+    WorkoutMeasure.intensity => l10n.measureIntensity,
   };
 
   /// 5.7 minutes per kilometre become "5:42 min/km".
@@ -30,6 +31,7 @@ extension WorkoutMeasureText on WorkoutMeasure {
         WorkoutMeasure.steps => formats.integer(value.round()),
         WorkoutMeasure.avgHeartRate ||
         WorkoutMeasure.maxHeartRate => '${value.round()} bpm',
+        WorkoutMeasure.intensity => '${value.round()} %',
       };
 
   /// The size of a difference, without a sign: 0.2 minutes per kilometre
@@ -58,11 +60,23 @@ extension WorkoutMeasureText on WorkoutMeasure {
   }
 }
 
-/// The one number of [workout] in simple mode: how far it went, or how
-/// long it took where it went nowhere.
+/// How an intensity is called.
+extension IntensityLevelText on IntensityLevel {
+  String label(AppLocalizations l10n) => switch (this) {
+    IntensityLevel.easy => l10n.intensityEasy,
+    IntensityLevel.moderate => l10n.intensityModerate,
+    IntensityLevel.hard => l10n.intensityHard,
+    IntensityLevel.allOut => l10n.intensityAllOut,
+  };
+}
+
+/// The one number [workout] is about: how far it went where its kind is
+/// about distance, and how long it took otherwise.
 String workoutFigure(Formats formats, Workout workout) {
   final distance = workout.distanceKm;
-  return distance != null && distance > 0
+  return !WorkoutMeasure.distance.isMinorFor(workout.type.focus) &&
+          distance != null &&
+          distance > 0
       ? WorkoutMeasure.distance.format(formats, workout.type, distance)
       : formats.duration(workout.minutes);
 }

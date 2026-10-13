@@ -1939,5 +1939,11 @@
       }
     }
   },
-  "refresh": "Aktualisieren"
+  "refresh": "Aktualisieren",
+  "measureIntensity": "Intensität",
+  "intensityEasy": "Locker",
+  "intensityModerate": "Moderat",
+  "intensityHard": "Fordernd",
+  "intensityAllOut": "Sehr hart",
+  "intensityNote": "Intensität: dein Ø Puls gemessen am Höchstpuls für dein Alter. Eine Faustregel von Pulse, kein Messwert."
 }

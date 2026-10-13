@@ -28,85 +28,197 @@ enum FineEnergy {
   steps,
 }
 
+/// What a kind of workout is about, which decides the number shown first
+/// and what is compared.
+enum WorkoutFocus {
+  /// Covering ground on foot or by swimming: how far and at what pace.
+  distance,
+
+  /// Covering ground on wheels or by boat: how far and how fast.
+  speed,
+
+  /// Working hard in one place or on a field: how long and how hard. A
+  /// distance is a by-product there.
+  effort,
+
+  /// Calm kinds: how long.
+  calm,
+}
+
 /// The figure a workout's scene shows.
-enum WorkoutFigure { walk, run, hike, ride, swim, lift, breathe }
+enum WorkoutFigure {
+  walk,
+  run,
+  hike,
+  stairs,
+  ride,
+  wheelchair,
+  swim,
+
+  /// Rowing, in a boat or on a machine.
+  paddle,
+
+  /// Carried by wind or water: on a surfboard, in a sailing boat, under a
+  /// paraglider.
+  board,
+  dive,
+
+  /// A ball played with the foot.
+  kick,
+  racket,
+
+  /// A ball or a disc played with the hands.
+  toss,
+
+  /// A ball hit with a bat or a club.
+  bat,
+
+  /// Downhill on skis or a snowboard.
+  glide,
+  skate,
+  lift,
+
+  /// Exercises with the body's own weight.
+  bodyweight,
+  climb,
+  fight,
+  dance,
+
+  /// Yoga, pilates and breathing.
+  pose,
+}
 
 /// Every kind of workout Health Connect tells apart. The first eight are
 /// the ones the app began with; their names are in stored workouts.
 enum WorkoutType {
-  run(WorkoutFamily.run, FineEnergy.pulse, 9.8),
-  ride(WorkoutFamily.ride, FineEnergy.pulse, 7.5),
-  walk(WorkoutFamily.walk, FineEnergy.steps, 3.5),
-  hike(
-    WorkoutFamily.walk,
-    FineEnergy.steps,
-    6.0,
-    ownFigure: WorkoutFigure.hike,
+  run(WorkoutFamily.run, FineEnergy.pulse, 9.8, WorkoutFigure.run),
+  ride(WorkoutFamily.ride, FineEnergy.pulse, 7.5, WorkoutFigure.ride),
+  walk(WorkoutFamily.walk, FineEnergy.steps, 3.5, WorkoutFigure.walk),
+  hike(WorkoutFamily.walk, FineEnergy.steps, 6.0, WorkoutFigure.hike),
+  strength(WorkoutFamily.strength, FineEnergy.fixed, 3.5, WorkoutFigure.lift),
+  yoga(WorkoutFamily.calm, FineEnergy.fixed, 2.5, WorkoutFigure.pose),
+  swim(WorkoutFamily.water, FineEnergy.pulse, 6.0, WorkoutFigure.swim),
+  other(WorkoutFamily.other, FineEnergy.fixed, 3.5, WorkoutFigure.walk),
+  treadmill(
+    WorkoutFamily.run,
+    FineEnergy.pulse,
+    9.0,
+    WorkoutFigure.run,
+    oldName: 'run',
   ),
-  strength(WorkoutFamily.strength, FineEnergy.fixed, 3.5),
-  yoga(WorkoutFamily.calm, FineEnergy.fixed, 2.5),
-  swim(WorkoutFamily.water, FineEnergy.pulse, 6.0),
-  other(WorkoutFamily.other, FineEnergy.fixed, 3.5),
-  treadmill(WorkoutFamily.run, FineEnergy.pulse, 9.0, oldName: 'run'),
-  stationaryBike(WorkoutFamily.ride, FineEnergy.pulse, 7.0, oldName: 'ride'),
-  wheelchair(WorkoutFamily.walk, FineEnergy.pulse, 3.5),
-  stairs(
+  stationaryBike(
+    WorkoutFamily.ride,
+    FineEnergy.pulse,
+    7.0,
+    WorkoutFigure.ride,
+    oldName: 'ride',
+  ),
+  wheelchair(
     WorkoutFamily.walk,
     FineEnergy.pulse,
-    8.0,
-    ownFigure: WorkoutFigure.hike,
+    3.5,
+    WorkoutFigure.wheelchair,
   ),
-  openWater(WorkoutFamily.water, FineEnergy.pulse, 6.0, oldName: 'swim'),
-  waterPolo(WorkoutFamily.water, FineEnergy.pulse, 10.0),
-  surfing(WorkoutFamily.water, FineEnergy.pulse, 3.0),
-  sailing(WorkoutFamily.water, FineEnergy.fixed, 3.0),
-  scuba(WorkoutFamily.water, FineEnergy.fixed, 7.0),
-  rowing(WorkoutFamily.water, FineEnergy.pulse, 7.0),
-  americanFootball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
-  australianFootball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
-  badminton(WorkoutFamily.ball, FineEnergy.pulse, 5.5),
-  baseball(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
-  basketball(WorkoutFamily.ball, FineEnergy.pulse, 6.5),
-  cricket(WorkoutFamily.ball, FineEnergy.pulse, 4.8),
-  frisbee(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
-  golf(WorkoutFamily.ball, FineEnergy.fixed, 4.8),
-  handball(WorkoutFamily.ball, FineEnergy.pulse, 8.0),
-  racquetball(WorkoutFamily.ball, FineEnergy.pulse, 7.0),
-  rugby(WorkoutFamily.ball, FineEnergy.pulse, 8.3),
-  soccer(WorkoutFamily.ball, FineEnergy.pulse, 7.0),
-  softball(WorkoutFamily.ball, FineEnergy.pulse, 5.0),
-  squash(WorkoutFamily.ball, FineEnergy.pulse, 7.3),
-  tableTennis(WorkoutFamily.ball, FineEnergy.pulse, 4.0),
-  tennis(WorkoutFamily.ball, FineEnergy.pulse, 7.3),
-  volleyball(WorkoutFamily.ball, FineEnergy.pulse, 4.0),
-  ski(WorkoutFamily.winter, FineEnergy.pulse, 7.0),
-  snowboard(WorkoutFamily.winter, FineEnergy.pulse, 5.3),
-  snowshoe(WorkoutFamily.winter, FineEnergy.steps, 5.3),
-  iceSkating(WorkoutFamily.winter, FineEnergy.pulse, 7.0),
-  iceHockey(WorkoutFamily.winter, FineEnergy.pulse, 8.0),
-  weights(WorkoutFamily.strength, FineEnergy.fixed, 3.5, oldName: 'strength'),
-  calisthenics(WorkoutFamily.strength, FineEnergy.fixed, 3.8),
-  gymnastics(WorkoutFamily.strength, FineEnergy.fixed, 3.8),
-  climbing(WorkoutFamily.strength, FineEnergy.pulse, 5.8),
-  hiit(WorkoutFamily.studio, FineEnergy.pulse, 8.0),
-  elliptical(WorkoutFamily.studio, FineEnergy.pulse, 5.0),
-  rowingMachine(WorkoutFamily.studio, FineEnergy.pulse, 7.0),
-  stairMachine(WorkoutFamily.studio, FineEnergy.pulse, 9.0),
-  dance(WorkoutFamily.studio, FineEnergy.pulse, 6.0),
-  boxing(WorkoutFamily.studio, FineEnergy.pulse, 7.8),
-  martialArts(WorkoutFamily.studio, FineEnergy.pulse, 7.5),
-  fencing(WorkoutFamily.studio, FineEnergy.pulse, 6.0),
-  pilates(WorkoutFamily.calm, FineEnergy.fixed, 3.0, oldName: 'yoga'),
-  breathing(WorkoutFamily.calm, FineEnergy.fixed, 1.3),
-  skating(WorkoutFamily.other, FineEnergy.pulse, 7.0),
-  paragliding(WorkoutFamily.other, FineEnergy.fixed, 3.5);
+  stairs(WorkoutFamily.walk, FineEnergy.pulse, 8.0, WorkoutFigure.stairs),
+  openWater(
+    WorkoutFamily.water,
+    FineEnergy.pulse,
+    6.0,
+    WorkoutFigure.swim,
+    oldName: 'swim',
+  ),
+  waterPolo(WorkoutFamily.water, FineEnergy.pulse, 10.0, WorkoutFigure.toss),
+  surfing(WorkoutFamily.water, FineEnergy.pulse, 3.0, WorkoutFigure.board),
+  sailing(WorkoutFamily.water, FineEnergy.fixed, 3.0, WorkoutFigure.board),
+  scuba(WorkoutFamily.water, FineEnergy.fixed, 7.0, WorkoutFigure.dive),
+  rowing(WorkoutFamily.water, FineEnergy.pulse, 7.0, WorkoutFigure.paddle),
+  americanFootball(
+    WorkoutFamily.ball,
+    FineEnergy.pulse,
+    8.0,
+    WorkoutFigure.kick,
+  ),
+  australianFootball(
+    WorkoutFamily.ball,
+    FineEnergy.pulse,
+    8.0,
+    WorkoutFigure.kick,
+  ),
+  badminton(WorkoutFamily.ball, FineEnergy.pulse, 5.5, WorkoutFigure.racket),
+  baseball(WorkoutFamily.ball, FineEnergy.pulse, 5.0, WorkoutFigure.bat),
+  basketball(WorkoutFamily.ball, FineEnergy.pulse, 6.5, WorkoutFigure.toss),
+  cricket(WorkoutFamily.ball, FineEnergy.pulse, 4.8, WorkoutFigure.bat),
+  frisbee(WorkoutFamily.ball, FineEnergy.pulse, 5.0, WorkoutFigure.toss),
+  golf(WorkoutFamily.ball, FineEnergy.fixed, 4.8, WorkoutFigure.bat),
+  handball(WorkoutFamily.ball, FineEnergy.pulse, 8.0, WorkoutFigure.toss),
+  racquetball(WorkoutFamily.ball, FineEnergy.pulse, 7.0, WorkoutFigure.racket),
+  rugby(WorkoutFamily.ball, FineEnergy.pulse, 8.3, WorkoutFigure.kick),
+  soccer(WorkoutFamily.ball, FineEnergy.pulse, 7.0, WorkoutFigure.kick),
+  softball(WorkoutFamily.ball, FineEnergy.pulse, 5.0, WorkoutFigure.bat),
+  squash(WorkoutFamily.ball, FineEnergy.pulse, 7.3, WorkoutFigure.racket),
+  tableTennis(WorkoutFamily.ball, FineEnergy.pulse, 4.0, WorkoutFigure.racket),
+  tennis(WorkoutFamily.ball, FineEnergy.pulse, 7.3, WorkoutFigure.racket),
+  volleyball(WorkoutFamily.ball, FineEnergy.pulse, 4.0, WorkoutFigure.toss),
+  ski(WorkoutFamily.winter, FineEnergy.pulse, 7.0, WorkoutFigure.glide),
+  snowboard(WorkoutFamily.winter, FineEnergy.pulse, 5.3, WorkoutFigure.glide),
+  snowshoe(WorkoutFamily.winter, FineEnergy.steps, 5.3, WorkoutFigure.hike),
+  iceSkating(WorkoutFamily.winter, FineEnergy.pulse, 7.0, WorkoutFigure.skate),
+  iceHockey(WorkoutFamily.winter, FineEnergy.pulse, 8.0, WorkoutFigure.skate),
+  weights(
+    WorkoutFamily.strength,
+    FineEnergy.fixed,
+    3.5,
+    WorkoutFigure.lift,
+    oldName: 'strength',
+  ),
+  calisthenics(
+    WorkoutFamily.strength,
+    FineEnergy.fixed,
+    3.8,
+    WorkoutFigure.bodyweight,
+  ),
+  gymnastics(
+    WorkoutFamily.strength,
+    FineEnergy.fixed,
+    3.8,
+    WorkoutFigure.bodyweight,
+  ),
+  climbing(WorkoutFamily.strength, FineEnergy.pulse, 5.8, WorkoutFigure.climb),
+  hiit(WorkoutFamily.studio, FineEnergy.pulse, 8.0, WorkoutFigure.dance),
+  elliptical(WorkoutFamily.studio, FineEnergy.pulse, 5.0, WorkoutFigure.dance),
+  rowingMachine(
+    WorkoutFamily.studio,
+    FineEnergy.pulse,
+    7.0,
+    WorkoutFigure.paddle,
+  ),
+  stairMachine(
+    WorkoutFamily.studio,
+    FineEnergy.pulse,
+    9.0,
+    WorkoutFigure.stairs,
+  ),
+  dance(WorkoutFamily.studio, FineEnergy.pulse, 6.0, WorkoutFigure.dance),
+  boxing(WorkoutFamily.studio, FineEnergy.pulse, 7.8, WorkoutFigure.fight),
+  martialArts(WorkoutFamily.studio, FineEnergy.pulse, 7.5, WorkoutFigure.fight),
+  fencing(WorkoutFamily.studio, FineEnergy.pulse, 6.0, WorkoutFigure.fight),
+  pilates(
+    WorkoutFamily.calm,
+    FineEnergy.fixed,
+    3.0,
+    WorkoutFigure.pose,
+    oldName: 'yoga',
+  ),
+  breathing(WorkoutFamily.calm, FineEnergy.fixed, 1.3, WorkoutFigure.pose),
+  skating(WorkoutFamily.other, FineEnergy.pulse, 7.0, WorkoutFigure.skate),
+  paragliding(WorkoutFamily.other, FineEnergy.fixed, 3.5, WorkoutFigure.board);
 
   const WorkoutType(
     this.family,
     this.energy,
-    this.met, {
+    this.met,
+    this.figure, {
     this.oldName,
-    this.ownFigure,
   });
 
   final WorkoutFamily family;
@@ -123,27 +235,25 @@ enum WorkoutType {
 
   /// The coarser kind the app once read it as.
   final String? oldName;
-  final WorkoutFigure? ownFigure;
+
+  /// What the figure of its scene does.
+  final WorkoutFigure figure;
 
   /// The name a workout's [Workout.key] is built from. A kind the app once
   /// read as a coarser one keeps that one's, so the key of a stored workout
   /// does not change when it is read again.
   String get stem => oldName ?? (index < 8 ? name : 'other');
 
-  WorkoutFigure get figure =>
-      ownFigure ??
-      switch (family) {
-        WorkoutFamily.run => WorkoutFigure.run,
-        WorkoutFamily.ride => WorkoutFigure.ride,
-        WorkoutFamily.walk => WorkoutFigure.walk,
-        WorkoutFamily.water => WorkoutFigure.swim,
-        WorkoutFamily.ball => WorkoutFigure.run,
-        WorkoutFamily.winter => WorkoutFigure.hike,
-        WorkoutFamily.strength => WorkoutFigure.lift,
-        WorkoutFamily.studio => WorkoutFigure.run,
-        WorkoutFamily.calm => WorkoutFigure.breathe,
-        WorkoutFamily.other => WorkoutFigure.walk,
-      };
+  WorkoutFocus get focus {
+    if (family == WorkoutFamily.calm ||
+        const {sailing, scuba, golf, paragliding}.contains(this)) {
+      return WorkoutFocus.calm;
+    }
+    if (family == WorkoutFamily.ride || this == skating || this == rowing) {
+      return WorkoutFocus.speed;
+    }
+    return paced ? WorkoutFocus.distance : WorkoutFocus.effort;
+  }
 
   /// Whether its distance is swum: a pace is then per 100 metres.
   bool get swims => this == swim || this == openWater;

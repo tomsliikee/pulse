@@ -232,17 +232,26 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    test('a workout that went nowhere shows how long it took', () {
+    test('a workout shows how far it went only where that is its point', () {
       final formats = formatsOf();
-      Workout workout(double? km) => Workout(
-        type: WorkoutType.strength,
+      Workout workout(WorkoutType type, double? km) => Workout(
+        type: type,
         start: DateTime(2026, 10, 5, 18),
         minutes: 45,
         distanceKm: km,
       );
-      expect(workoutFigure(formats, workout(null)), '45 min');
-      expect(workoutFigure(formats, workout(0)), '45 min');
-      expect(workoutFigure(formats, workout(5.6)), '5,60 km');
+      expect(workoutFigure(formats, workout(WorkoutType.run, null)), '45 min');
+      expect(workoutFigure(formats, workout(WorkoutType.run, 0)), '45 min');
+      expect(workoutFigure(formats, workout(WorkoutType.run, 5.6)), '5,60 km');
+      // The few hundred metres walked in a gym are not what it was about.
+      for (final type in [
+        WorkoutType.strength,
+        WorkoutType.yoga,
+        WorkoutType.soccer,
+        WorkoutType.ski,
+      ]) {
+        expect(workoutFigure(formats, workout(type, 0.45)), '45 min');
+      }
     });
   });
 

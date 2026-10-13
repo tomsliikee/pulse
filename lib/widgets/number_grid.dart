@@ -175,7 +175,9 @@ class _Lead extends StatelessWidget {
             ],
           ),
         ),
-        ?cell.trailing,
+        // The wide pill has room beside the number for what a smaller
+        // surface puts under it.
+        ?(cell.trailing ?? cell.footer),
       ],
     );
   }

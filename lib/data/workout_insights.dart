@@ -13,14 +13,88 @@ enum WorkoutMeasure {
   energy,
   steps,
   avgHeartRate,
-  maxHeartRate;
+  maxHeartRate,
+
+  /// The average heart rate as a percentage of the highest the user's age
+  /// allows. The app's own rule of thumb, not a measurement.
+  intensity;
 
   /// Whether a higher value is the better one; null where neither is.
   bool? get higherIsBetter => switch (this) {
     duration || distance || speed || steps => true,
     pace => false,
-    energy || avgHeartRate || maxHeartRate => null,
+    energy || avgHeartRate || maxHeartRate || intensity => null,
   };
+
+  /// The measures of a workout with [focus], what it is about first.
+  static List<WorkoutMeasure> orderFor(WorkoutFocus focus) => switch (focus) {
+    WorkoutFocus.distance => const [
+      distance,
+      pace,
+      duration,
+      energy,
+      avgHeartRate,
+      maxHeartRate,
+      intensity,
+      steps,
+    ],
+    WorkoutFocus.speed => const [
+      distance,
+      speed,
+      duration,
+      energy,
+      avgHeartRate,
+      maxHeartRate,
+      intensity,
+      steps,
+    ],
+    WorkoutFocus.effort => const [
+      duration,
+      energy,
+      intensity,
+      avgHeartRate,
+      maxHeartRate,
+      distance,
+      speed,
+      steps,
+    ],
+    WorkoutFocus.calm => const [
+      duration,
+      avgHeartRate,
+      energy,
+      maxHeartRate,
+      intensity,
+      distance,
+      speed,
+      steps,
+    ],
+  };
+
+  /// Whether this measure is a by-product of a workout with [focus]: the
+  /// few hundred metres walked between the machines of a gym.
+  bool isMinorFor(WorkoutFocus focus) => switch (focus) {
+    WorkoutFocus.distance || WorkoutFocus.speed => false,
+    WorkoutFocus.effort ||
+    WorkoutFocus.calm => this == distance || this == speed || this == steps,
+  };
+}
+
+/// How hard an [WorkoutMeasure.intensity] is.
+enum IntensityLevel {
+  easy,
+  moderate,
+  hard,
+  allOut;
+
+  /// The level of [percent] of the highest heart rate. The limits are the
+  /// app's own, close to the usual training zones.
+  static IntensityLevel of(double percent) => percent < 60
+      ? easy
+      : percent < 70
+      ? moderate
+      : percent < 85
+      ? hard
+      : allOut;
 }
 
 enum Trend { better, same, worse, neutral }
@@ -31,7 +105,12 @@ enum Trend { better, same, worse, neutral }
 const double _minKmForPace = 0.1;
 
 /// The value of [measure] for [workout], or null when it was not recorded.
-double? measureOf(Workout workout, WorkoutMeasure measure) {
+/// [maxHeartRate] is the highest the user's age allows, where it is known.
+double? measureOf(
+  Workout workout,
+  WorkoutMeasure measure, {
+  int? maxHeartRate,
+}) {
   final km = workout.distanceKm;
   final moved = km != null && km >= _minKmForPace && workout.minutes > 0;
   final wheels = workout.type.rolls;
@@ -45,6 +124,10 @@ double? measureOf(Workout workout, WorkoutMeasure measure) {
     WorkoutMeasure.steps => workout.steps?.toDouble(),
     WorkoutMeasure.avgHeartRate => workout.avgBpm?.toDouble(),
     WorkoutMeasure.maxHeartRate => workout.maxBpm?.toDouble(),
+    WorkoutMeasure.intensity => switch ((workout.avgBpm, maxHeartRate)) {
+      (final bpm?, final highest?) when highest > 0 => bpm / highest * 100,
+      _ => null,
+    },
   };
 }
 
@@ -57,6 +140,7 @@ class MeasureComparison {
     this.average,
     this.isBest = false,
     this.judged = true,
+    this.minor = false,
   });
 
   final WorkoutMeasure measure;
@@ -74,6 +158,10 @@ class MeasureComparison {
   /// Whether more or less of it says anything. How long a run took does
   /// not, next to how far and how fast it went.
   final bool judged;
+
+  /// Whether it is a by-product of this kind of workout, shown last and
+  /// never judged.
+  final bool minor;
 
   Trend get againstPrevious => _trend(previous);
   Trend get againstAverage => _trend(average);
@@ -159,8 +247,13 @@ class WorkoutInsights {
     return null;
   }
 
-  /// The one comparison worth a sentence: how fast, else how far, else how
-  /// long, against the workout before. Null for the first of its kind.
+  /// The number the workout is about: how far for a run, how long for a
+  /// strength session, and how long as well for a run without a distance.
+  MeasureComparison get primary => measures.first;
+
+  /// The one comparison worth a sentence, against the workout before: how
+  /// fast, else how far, else how long, and for a kind that is not about
+  /// distance only how long. Null for the first of its kind.
   MeasureComparison? get headline {
     for (final wanted in const [
       WorkoutMeasure.pace,
@@ -169,13 +262,20 @@ class WorkoutInsights {
       WorkoutMeasure.duration,
     ]) {
       final comparison = measure(wanted);
-      if (comparison?.previous != null) return comparison;
+      if (comparison == null || comparison.minor) continue;
+      if (comparison.previous != null) return comparison;
     }
     return null;
   }
 
-  /// [workout] against [all] workouts the app knows, in any order.
-  factory WorkoutInsights.of(Workout workout, List<Workout> all) {
+  /// [workout] against [all] workouts the app knows, in any order. With
+  /// [maxHeartRate], the highest the user's age allows, it has an
+  /// intensity.
+  factory WorkoutInsights.of(
+    Workout workout,
+    List<Workout> all, {
+    int? maxHeartRate,
+  }) {
     final sameKind = [
       for (final other in all)
         if (other.type == workout.type) other,
@@ -189,21 +289,38 @@ class WorkoutInsights {
         ? earlier
         : earlier.sublist(earlier.length - averageOver);
 
+    double? of(Workout workout, WorkoutMeasure measure) =>
+        measureOf(workout, measure, maxHeartRate: maxHeartRate);
+
+    final focus = workout.type.focus;
+    // Where the workout is about its distance, how long it took says
+    // nothing next to how far and how fast it went.
+    final byDistance =
+        (focus == WorkoutFocus.distance || focus == WorkoutFocus.speed) &&
+        of(workout, WorkoutMeasure.distance) != null;
     final measures = <MeasureComparison>[];
-    for (final measure in WorkoutMeasure.values) {
-      final value = measureOf(workout, measure);
+    for (final measure in [
+      // A workout about distance that has none is about its length.
+      if (!byDistance) WorkoutMeasure.duration,
+      ...WorkoutMeasure.orderFor(focus),
+      // Whatever the order of the kind leaves out comes last.
+      ...WorkoutMeasure.values,
+    ]) {
+      if (measures.any((known) => known.measure == measure)) continue;
+      final value = of(workout, measure);
       if (value == null) continue;
-      final before = [for (final other in recent) ?measureOf(other, measure)];
+      final before = [for (final other in recent) ?of(other, measure)];
       final higher = measure.higherIsBetter;
-      final ever = [for (final other in earlier) ?measureOf(other, measure)];
+      final ever = [for (final other in earlier) ?of(other, measure)];
+      final minor = measure.isMinorFor(focus);
       final judged =
-          measure != WorkoutMeasure.duration ||
-          measureOf(workout, WorkoutMeasure.distance) == null;
+          !minor && (measure != WorkoutMeasure.duration || !byDistance);
       measures.add(
         MeasureComparison(
           measure: measure,
           value: value,
-          previous: earlier.isEmpty ? null : measureOf(earlier.last, measure),
+          minor: minor,
+          previous: earlier.isEmpty ? null : of(earlier.last, measure),
           average: before.isEmpty
               ? null
               : before.reduce((a, b) => a + b) / before.length,
@@ -257,9 +374,12 @@ class WorkoutInsights {
     double perWeekRecent,
     double? perWeekBefore,
   ) {
+    // A by-product of the kind says nothing about how much was done.
     MeasureComparison? measure(WorkoutMeasure wanted) {
       for (final comparison in measures) {
-        if (comparison.measure == wanted) return comparison;
+        if (comparison.measure == wanted && !comparison.minor) {
+          return comparison;
+        }
       }
       return null;
     }
