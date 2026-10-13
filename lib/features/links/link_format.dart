@@ -4,9 +4,11 @@ import '../../data/health_controller.dart';
 import '../../data/links.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/settings_controller.dart';
+import '../../data/supplements.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../detail/metric_spec.dart';
 import '../goals/goal_format.dart';
+import '../supplements/supplement_format.dart';
 
 final Expando<({Object state, List<Link> links})> _links = Expando();
 
@@ -14,9 +16,19 @@ final Expando<({Object state, List<Link> links})> _links = Expando();
 /// Finding them reads every day of the stretch several times and several
 /// tiles ask in one build, so the answer is kept until the data, the goals
 /// or the day change.
-List<Link> linksOf(HealthController health, SettingsController settings) {
+List<Link> linksOf(
+  HealthController health,
+  SettingsController settings, [
+  SupplementData supplements = const SupplementData(),
+]) {
   final targets = [for (final goal in Goal.values) settings.goalTarget(goal)];
-  final state = (health.revision, health.today, Object.hashAll(targets));
+  final state = (
+    health.revision,
+    health.today,
+    Object.hashAll(targets),
+    // A change makes a new one.
+    identityHashCode(supplements),
+  );
   var kept = _links[health];
   if (kept == null || kept.state != state) {
     final today = health.today;
@@ -27,6 +39,7 @@ List<Link> linksOf(HealthController health, SettingsController settings) {
         targetOf: settings.goalTarget,
         // Today is not over.
         until: DateTime(today.year, today.month, today.day - 1),
+        supplements: supplements,
       ),
     );
   }
@@ -60,6 +73,10 @@ String _cause(AppLocalizations l10n, Link link) {
           : l10n.linkCauseNightTo(_weekdays[link.weekday! - 1]),
     LinkCause.weekSteps => l10n.linkCauseWeekSteps,
     LinkCause.weekWorkouts => l10n.linkCauseWeekWorkouts,
+    LinkCause.supplement => l10n.linkCauseSupplement(
+      link.supplement?.title(l10n) ?? '',
+    ),
+    LinkCause.lateCaffeine => l10n.linkCauseLateCaffeine(lateCaffeineHour),
   };
 }
 

@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../background/morning_notice.dart';
+import '../background/supplement_notice.dart';
 import '../background/week_notice.dart';
 import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
 import '../data/settings_controller.dart';
+import '../data/supplement_controller.dart';
 import '../data/weather.dart';
 import '../data/weather_controller.dart';
 import '../features/week/week_page.dart';
@@ -63,6 +65,10 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     source: widget.weatherSource,
     clock: widget.clock,
   );
+  late final SupplementController _supplements = SupplementController(
+    widget.store,
+    clock: widget.clock,
+  );
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
   final FrameLog _frames = FrameLog();
   final GlobalKey<NavigatorState> _navigator = GlobalKey();
@@ -80,7 +86,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         ..birthDate = _settings.birthDate
         ..sex = _settings.sex
         ..heightCm = _settings.heightCm
-        ..fineValues = _settings.fineValues;
+        ..fineValues = _settings.fineValues
+        ..stepCounting = _settings.stepCounting;
     });
     _settings.addListener(() => _weather.place = _settings.place);
     _palette.addListener(() => _frames.mark('palette'));
@@ -88,7 +95,9 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _settings.addListener(_keepMorningAlarm);
     // The alarms speak the app's language, which Android may keep itself.
     _language.addListener(_keepMorningAlarm);
+    _supplements.addListener(_keepMorningAlarm);
     _settings.load();
+    _supplements.load();
     _language.refresh();
     _health.start();
     _loadPalette();
@@ -169,9 +178,16 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         language:
             WidgetsBinding.instance.platformDispatcher.locale.languageCode,
       );
+      final supplementsChanged = await leaveSupplementAlarm(
+        widget.store,
+        _supplements.data,
+        language:
+            _settings.language ??
+            WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+      );
       // Once in every start as well: an alarm does not outlive everything
       // that can happen to the app while it is closed.
-      if (changed || weekChanged || !_alarmSet) {
+      if (changed || weekChanged || supplementsChanged || !_alarmSet) {
         await MorningNotices.schedule();
       }
       _alarmSet = true;
@@ -196,6 +212,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _health.dispose();
     _language.dispose();
     _weather.dispose();
+    _supplements.dispose();
     _settings.dispose();
     _palette.dispose();
     super.dispose();
@@ -208,6 +225,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       settings: _settings,
       language: _language,
       weather: _weather,
+      supplements: _supplements,
       systemPalette: _palette,
       files: widget.files,
       child: ListenableBuilder(

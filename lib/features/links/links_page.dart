@@ -44,7 +44,7 @@ class LinksPage extends StatelessWidget {
     final health = scope.health;
     final settings = scope.settings;
     return ListenableBuilder(
-      listenable: Listenable.merge([health, settings]),
+      listenable: Listenable.merge([health, settings, scope.supplements]),
       builder: (context, _) {
         final formats = Formats.of(context);
         final l10n = formats.l10n;
@@ -59,7 +59,11 @@ class LinksPage extends StatelessWidget {
                   )
                 : Builder(
                     builder: (context) {
-                      final links = linksOf(health, settings);
+                      final links = linksOf(
+                        health,
+                        settings,
+                        scope.supplements.data,
+                      );
                       final nights = linkNights(health.nights, health.today);
                       final sections = <Widget>[
                         OpenRow(

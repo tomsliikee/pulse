@@ -14,6 +14,8 @@ import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/theme/color_style.dart';
 import 'package:pulse/features/today/day_format.dart';
 
+import 'package:pulse/data/step_counting.dart';
+
 import 'support/fixtures.dart';
 
 HealthController _controller(FixtureRepository repository, JsonStore store) =>
@@ -36,6 +38,30 @@ void main() {
       expect(controller.isTodaySelected, isTrue);
       expect(controller.value(Metric.steps), 7432);
       expect(store.documents, contains(StoreKeys.snapshot));
+    });
+
+    test('counts steps the saved way, and reads in full again once the '
+        'way changes', () async {
+      final store = MemoryJsonStore();
+      await store.write(StoreKeys.settings, {'stepCounting': 'hourMean'});
+      final repository = FixtureRepository();
+      final controller = _controller(repository, store);
+
+      await controller.start();
+      await controller.refresh();
+      expect(repository.stepCountings, [
+        StepCounting.hourMean,
+        StepCounting.hourMean,
+      ]);
+      expect(repository.loadedWith.last, isNotNull);
+
+      // The same way again is no change.
+      controller.stepCounting = StepCounting.hourMean;
+      controller.stepCounting = StepCounting.wearable;
+      await pumpEventQueue();
+      expect(repository.stepCountings.length, 3);
+      expect(repository.stepCountings.last, StepCounting.wearable);
+      expect(repository.loadedWith.last, isNull);
     });
 
     test('reads with the maximum heart rate of the profile\'s age, and '
@@ -405,7 +431,7 @@ void main() {
       final store = MemoryJsonStore();
       await store.write(StoreKeys.settings, {
         'todayTiles': ['water', 'unicorns', 7, 'water', 'workout'],
-        'todayTilesVersion': 4,
+        'todayTilesVersion': 5,
         'largeTiles': ['water', 'unicorns'],
       });
       final settings = SettingsController(store);
@@ -430,13 +456,15 @@ void main() {
         return settings;
       }
 
-      // The week's tile and the connections come with it, see below.
+      // The week's tile, the connections and the supplements come with it,
+      // see below.
       expect((await loadedWith([dayTileId, 'water'])).todayTiles, [
         dayTileId,
         morningTileId,
         weekTileId,
         'water',
         linksTileId,
+        supplementsTileId,
       ]);
       expect((await loadedWith(['water', dayTileId])).todayTiles, [
         morningTileId,
@@ -444,11 +472,13 @@ void main() {
         'water',
         dayTileId,
         linksTileId,
+        supplementsTileId,
       ]);
       expect((await loadedWith([])).todayTiles, [
         morningTileId,
         weekTileId,
         linksTileId,
+        supplementsTileId,
       ]);
 
       // Removed and saved, it stays away.
@@ -485,6 +515,7 @@ void main() {
           goalsTileId,
           linksTileId,
           'water',
+          supplementsTileId,
         ],
       );
       // Without the morning's tile below the day's, without the goals last.
@@ -493,11 +524,13 @@ void main() {
         weekTileId,
         'water',
         linksTileId,
+        supplementsTileId,
       ]);
       expect((await loadedWith(['water'])).todayTiles, [
         weekTileId,
         'water',
         linksTileId,
+        supplementsTileId,
       ]);
 
       // Removed and saved, they stay away.
@@ -515,6 +548,45 @@ void main() {
       expect(again.todayTiles, isNot(contains(weekTileId)));
       expect(again.todayTiles, isNot(contains(linksTileId)));
       expect(again.weekReport, isFalse);
+    });
+
+    test('a list saved before the supplements gets their tile once: below '
+        'the nutrition, or before the earlier days, or last', () async {
+      Future<SettingsController> loadedWith(List<String> tiles) async {
+        final store = MemoryJsonStore();
+        await store.write(StoreKeys.settings, {
+          'todayTiles': tiles,
+          'todayTilesVersion': 4,
+        });
+        final settings = SettingsController(store);
+        await settings.load();
+        return settings;
+      }
+
+      expect(
+        (await loadedWith(['water', 'energyIntake', daysTileId])).todayTiles,
+        ['water', 'energyIntake', supplementsTileId, daysTileId],
+      );
+      expect((await loadedWith(['water', daysTileId])).todayTiles, [
+        'water',
+        supplementsTileId,
+        daysTileId,
+      ]);
+      expect((await loadedWith(['water'])).todayTiles, [
+        'water',
+        supplementsTileId,
+      ]);
+
+      // Removed and saved, it stays away.
+      final store = MemoryJsonStore();
+      final settings = SettingsController(store);
+      await settings.load();
+      expect(settings.todayTiles, contains(supplementsTileId));
+      settings.removeTodayTile(supplementsTileId);
+      await pumpEventQueue();
+      final again = SettingsController(store);
+      await again.load();
+      expect(again.todayTiles, isNot(contains(supplementsTileId)));
     });
 
     test(
@@ -538,6 +610,7 @@ void main() {
           linksTileId,
           'water',
           'steps',
+          supplementsTileId,
           daysTileId,
         ]);
 

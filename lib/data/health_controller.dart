@@ -15,6 +15,7 @@ import 'models.dart';
 import 'night_archive.dart';
 import 'routes.dart';
 import 'settings_controller.dart';
+import 'step_counting.dart';
 import 'sync_report.dart';
 import 'workout_archive.dart';
 
@@ -83,6 +84,7 @@ class HealthController extends ChangeNotifier {
   Sex? _sex;
   int? _heightCm;
   bool _fineValues = false;
+  StepCounting _stepCounting = StepCounting.store;
   HealthSnapshot? _fineOf;
   HealthSnapshot? _fineSnapshot;
   List<Workout>? _fineWorkoutsOf;
@@ -146,6 +148,16 @@ class HealthController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  /// How the steps are counted. A change is read in by the next [refresh],
+  /// which then reads every day of the window again.
+  StepCounting get stepCounting => _stepCounting;
+
+  set stepCounting(StepCounting value) {
+    if (value == _stepCounting) return;
+    _stepCounting = value;
+    _readAgain();
+  }
+
   /// The highest heart rate the user's age allows; null without a date of
   /// birth.
   int? get maxHeartRate => _maxHeartRate;
@@ -176,8 +188,13 @@ class HealthController extends ChangeNotifier {
 
   /// What of the profile changes the values a read gives. The weight is not
   /// part of it: each day is judged by its own.
-  Object? _readsWith(int? maxHeartRate, FineProfile? profile) =>
-      (maxHeartRate, profile?.age, profile?.sex, profile?.heightCm);
+  Object? _readsWith(int? maxHeartRate, FineProfile? profile) => (
+    maxHeartRate,
+    profile?.age,
+    profile?.sex,
+    profile?.heightCm,
+    _stepCounting,
+  );
 
   /// Whether [shown] is without fine values that a full read with [profile]
   /// would give: it was read before there were any, or in the background,
@@ -342,6 +359,7 @@ class HealthController extends ChangeNotifier {
     // The profile may not be loaded yet, and the first read needs it.
     final settings = await _store.read(StoreKeys.settings);
     _birthDate ??= savedBirthDate(settings);
+    _stepCounting = savedStepCounting(settings);
     final profile = savedFineProfile(settings, _clock());
     _sex ??= profile?.sex;
     _heightCm ??= profile?.heightCm;
@@ -440,6 +458,7 @@ class HealthController extends ChangeNotifier {
             : shown,
         maxHeartRate: maxHeartRate,
         fine: profile,
+        steps: _stepCounting,
       );
       _readWith = readWith;
       final fresh = withoutWorkouts(read, _removedWorkouts);
@@ -653,7 +672,11 @@ class HealthController extends ChangeNotifier {
     ].firstWhere((other) => other.key == shown.key, orElse: () => shown);
     var totals = const <Metric, Map<DateTime, double>>{};
     try {
-      totals = await _repository.loadTotalsDuring(workout.start, workout.end);
+      totals = await _repository.loadTotalsDuring(
+        workout.start,
+        workout.end,
+        steps: _stepCounting,
+      );
     } on Exception catch (error) {
       debugPrint('Reading the totals of a workout failed: $error');
     }
@@ -833,7 +856,11 @@ class HealthController extends ChangeNotifier {
       while (!to.isBefore(limit)) {
         var from = DateTime(to.year, to.month, to.day - backfillChunkDays + 1);
         if (from.isBefore(limit)) from = limit;
-        final workouts = await _repository.loadWorkouts(from, to);
+        final workouts = await _repository.loadWorkouts(
+          from,
+          to,
+          steps: _stepCounting,
+        );
         if (_disposed) return;
         if (workouts.isNotEmpty) {
           await _archiveWorkouts(workouts);

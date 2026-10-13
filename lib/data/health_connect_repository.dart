@@ -13,6 +13,7 @@ import 'metric_catalog.dart';
 import 'models.dart';
 import 'routes.dart';
 import 'snapshot_builder.dart';
+import 'step_counting.dart';
 
 /// Reads from and writes to Android's Health Connect. The only file that
 /// knows the `health` plugin.
@@ -193,9 +194,10 @@ class HealthConnectRepository implements HealthRepository {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps,
   ) => _inWorker(
     token,
-    (repository) => repository._load(now, previous, maxHeartRate, fine),
+    (repository) => repository._load(now, previous, maxHeartRate, fine, steps),
   );
 
   static Future<DailyValues> _loadHistoryInWorker(
@@ -208,25 +210,44 @@ class HealthConnectRepository implements HealthRepository {
     RootIsolateToken token,
     DateTime from,
     DateTime to,
-  ) => _inWorker(token, (repository) => repository._loadWorkouts(from, to));
+    StepCounting steps,
+  ) => _inWorker(
+    token,
+    (repository) => repository._loadWorkouts(from, to, steps),
+  );
 
   @override
-  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) {
+  Future<List<Workout>> loadWorkouts(
+    DateTime from,
+    DateTime to, {
+    StepCounting steps = StepCounting.store,
+  }) {
     final token = RootIsolateToken.instance;
     return token == null
-        ? _loadWorkouts(from, to)
-        : _loadWorkoutsInWorker(token, from, to);
+        ? _loadWorkouts(from, to, steps)
+        : _loadWorkoutsInWorker(token, from, to, steps);
   }
 
-  Future<List<Workout>> _loadWorkouts(DateTime from, DateTime to) async {
+  Future<List<Workout>> _loadWorkouts(
+    DateTime from,
+    DateTime to,
+    StepCounting steps,
+  ) async {
     await _configure();
     final start = DateTime(from.year, from.month, from.day);
     final end = DateTime(to.year, to.month, to.day, 23, 59, 59);
-    return _workouts(await _read(HealthDataType.WORKOUT, start, end));
+    return _workouts(
+      await _read(HealthDataType.WORKOUT, start, end),
+      steps: steps,
+    );
   }
 
   @override
-  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async {
+  Future<DailyValues> loadTotalsDuring(
+    DateTime start,
+    DateTime end, {
+    StepCounting steps = StepCounting.store,
+  }) async {
     await _configure();
     final values = <Metric, Map<DateTime, double>>{};
     void add(Metric metric, DateTime at, double amount) {
@@ -236,7 +257,7 @@ class HealthConnectRepository implements HealthRepository {
       days[day] = (days[day] ?? 0) + amount;
     }
 
-    final totals = await _totalsDuring(start, end, _totals.keys);
+    final totals = await _totalsDuring(start, end, _totals.keys, steps);
     for (final MapEntry(key: metric, value: days) in totals.entries) {
       for (final MapEntry(key: day, value: total) in days.entries) {
         add(metric, day, total);
@@ -262,16 +283,26 @@ class HealthConnectRepository implements HealthRepository {
 
   /// The store's own totals of [metrics] from [start] to [end], by the day
   /// they fell on. Asked for day by day, so a stretch across midnight is
-  /// counted to both of its days.
+  /// counted to both of its days. The steps are counted the [steps] way.
   Future<DailyValues> _totalsDuring(
     DateTime start,
     DateTime end,
     Iterable<Metric> metrics,
+    StepCounting steps,
   ) async {
     final values = <Metric, Map<DateTime, double>>{};
+    final own = steps != StepCounting.store && metrics.contains(Metric.steps);
+    final records = own ? await _stepRecords(start, end) : const <StepRecord>[];
     for (final (from, to) in daySlices(start, end)) {
       final day = DateTime(from.year, from.month, from.day);
+      if (own) {
+        final counted = stepsDuring(records, from, to, steps);
+        if (counted > 0) {
+          values.putIfAbsent(Metric.steps, () => {})[day] = counted;
+        }
+      }
       for (final metric in metrics) {
+        if (own && metric == Metric.steps) continue;
         final totals = await _totalsBy(
           _totals[metric]!,
           metric,
@@ -292,6 +323,7 @@ class HealthConnectRepository implements HealthRepository {
   Future<List<Workout>> _workouts(
     List<HealthDataPoint> points, {
     List<Workout> known = const [],
+    required StepCounting steps,
   }) => correctWorkouts(
     [
       for (final point in points)
@@ -303,7 +335,7 @@ class HealthConnectRepository implements HealthRepository {
         Metric.steps,
         Metric.distance,
         Metric.totalEnergy,
-      ]);
+      ], steps);
       return {
         for (final MapEntry(key: metric, value: byDay) in days.entries)
           metric: byDay.values.fold<double>(0, (sum, value) => sum + value),
@@ -470,11 +502,12 @@ class HealthConnectRepository implements HealthRepository {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps = StepCounting.store,
   }) {
     final token = RootIsolateToken.instance;
     return token == null
-        ? _load(now, previous, maxHeartRate, fine)
-        : _loadInWorker(token, now, previous, maxHeartRate, fine);
+        ? _load(now, previous, maxHeartRate, fine, steps)
+        : _loadInWorker(token, now, previous, maxHeartRate, fine, steps);
   }
 
   @override
@@ -490,6 +523,7 @@ class HealthConnectRepository implements HealthRepository {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps,
   ) async {
     await _configure();
     const dayCount = HealthSnapshot.defaultDayCount;
@@ -512,7 +546,30 @@ class HealthConnectRepository implements HealthRepository {
     }
 
     final hourly = <Metric, Map<DateTime, double>>{};
+    Map<DateTime, double>? stepDays;
+    if (steps != StepCounting.store) {
+      // The single records are many, so as with the heart rate only the
+      // days since [previous] are read; the ones before keep their count.
+      final from = previous == null ? start : heartFrom;
+      final hours = stepsByHour(await _stepRecords(from, now), steps);
+      final days = stepDays = <DateTime, double>{};
+      for (var day = start; day.isBefore(from); day = _dayAfter(day)) {
+        final kept = switch (previous?.indexOf(day)) {
+          final int index => previous?.value(Metric.steps, index),
+          null => null,
+        };
+        if (kept != null) days[day] = kept;
+      }
+      hours.removeWhere((hour, _) => hour.isBefore(from));
+      for (final MapEntry(key: hour, value: count) in hours.entries) {
+        final day = DateTime(hour.year, hour.month, hour.day);
+        days[day] = (days[day] ?? 0) + count;
+      }
+      hours.removeWhere((hour, _) => hour.isBefore(heartFrom));
+      if (hours.isNotEmpty) hourly[Metric.steps] = hours;
+    }
     for (final MapEntry(key: metric, value: type) in _totals.entries) {
+      if (stepDays != null && metric == Metric.steps) continue;
       final hours = await _totalsBy(
         type,
         metric,
@@ -537,6 +594,8 @@ class HealthConnectRepository implements HealthRepository {
         withEntries: true,
         knownWorkouts: previous?.workouts ?? const [],
         hourly: hourly,
+        steps: steps,
+        stepDays: stepDays,
       ),
     );
     return previous == null
@@ -590,11 +649,17 @@ class HealthConnectRepository implements HealthRepository {
     bool withEntries = false,
     List<Workout> knownWorkouts = const [],
     Map<Metric, Map<DateTime, double>> hourly = const {},
+    StepCounting steps = StepCounting.store,
+    Map<DateTime, double>? stepDays,
   }) async {
     final skin = await _health.isSkinTemperatureAvailable();
 
     final totals = <Metric, Map<DateTime, double>>{};
+    if (stepDays != null && stepDays.isNotEmpty) {
+      totals[Metric.steps] = stepDays;
+    }
     for (final MapEntry(key: metric, value: type) in _totals.entries) {
+      if (stepDays != null && metric == Metric.steps) continue;
       final days = await _totalsBy(
         type,
         metric,
@@ -685,6 +750,7 @@ class HealthConnectRepository implements HealthRepository {
           ? await _workouts(
               await _read(HealthDataType.WORKOUT, start, end),
               known: knownWorkouts,
+              steps: steps,
             )
           : const [],
       entries: entries,
@@ -771,6 +837,31 @@ class HealthConnectRepository implements HealthRepository {
       return const [];
     }
   }
+
+  /// Every record of steps from [start] to [end], with who wrote it. Read
+  /// a day at a time, as the heart rate is.
+  Future<List<StepRecord>> _stepRecords(DateTime start, DateTime end) async {
+    final records = <StepRecord>[];
+    var before = <(String, int)>{};
+    for (final (from, to) in daySlices(start, end)) {
+      final seen = <(String, int)>{};
+      for (final point in await _read(HealthDataType.STEPS, from, to)) {
+        final count = _numeric(point);
+        if (count == null || count <= 0) continue;
+        // A record that lies across midnight may come with both days.
+        final key = (point.sourceName, point.dateFrom.microsecondsSinceEpoch);
+        if (before.contains(key) || !seen.add(key)) continue;
+        records.add(
+          StepRecord(point.sourceName, point.dateFrom, point.dateTo, count),
+        );
+      }
+      before = seen;
+    }
+    return records;
+  }
+
+  static DateTime _dayAfter(DateTime day) =>
+      DateTime(day.year, day.month, day.day + 1);
 
   /// Totals per slice of [seconds], keyed by the start of the slice (a day
   /// or an hour), aggregated by the store.

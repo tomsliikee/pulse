@@ -7,7 +7,9 @@ import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/features/detail/energy_balance_card.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/detail/metric_spec.dart';
+import 'package:pulse/data/step_counting.dart';
 import 'package:pulse/features/profile/profile_page.dart';
+import 'package:pulse/features/profile/step_counting_sheet.dart';
 import 'package:pulse/features/today/today_page.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 
@@ -110,6 +112,37 @@ void main() {
           await _scrollThrough(tester);
           expect(tester.takeException(), isNull, reason: destination);
         }
+      });
+
+      testWidgets('the profile lets the way of counting steps be picked in '
+          '$label', (tester) async {
+        final l10n = lookupAppLocalizations(Locale(language));
+        final (:repository, :store) = await pumpApp(
+          tester,
+          size: size,
+          locale: Locale(language),
+        );
+        await tester.tap(find.bySemanticsLabel(l10n.profile));
+        await advance(tester);
+        final scope = AppScope.of(tester.element(find.byType(ProfilePage)));
+        await bringIntoView(tester, find.text(l10n.stepCounting));
+        expect(find.text(l10n.stepsStore), findsOneWidget);
+
+        await tapInView(tester, find.text(l10n.stepCounting));
+        for (final way in StepCounting.values) {
+          expect(find.text(way.note(l10n)), findsOneWidget);
+        }
+        expect(find.text(l10n.stepCountingNote), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.text(l10n.stepsHourMean));
+        await advance(tester);
+        expect(scope.settings.stepCounting, StepCounting.hourMean);
+        expect(scope.health.stepCounting, StepCounting.hourMean);
+        expect(repository.stepCountings.last, StepCounting.hourMean);
+        expect(repository.loadedWith.last, isNull);
+        expect(store.documents['settings'], contains('hourMean'));
+        expect(tester.takeException(), isNull);
       });
 
       testWidgets('the profile switches between coarse and fine in $label', (

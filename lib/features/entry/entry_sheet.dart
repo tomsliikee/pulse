@@ -27,7 +27,10 @@ Future<void> showEntrySheet(
   if (kind == EntryKind.meal && existing == null) {
     final health = AppScope.of(context).health;
     if (health.foods.any((food) => !food.hidden)) {
-      var choice = await _showSheet<Object>(context, (_) => const FoodSheet());
+      var choice = await showAppSheet<Object>(
+        context,
+        (_) => const FoodSheet(),
+      );
       if (!context.mounted) return;
       if (choice == FoodChoice.more) {
         choice = await Navigator.of(context)
@@ -44,13 +47,14 @@ Future<void> showEntrySheet(
       }
     }
   }
-  await _showSheet<void>(
+  await showAppSheet<void>(
     context,
     (_) => EntrySheet(kind: kind, existing: existing, template: template),
   );
 }
 
-Future<T?> _showSheet<T>(BuildContext context, WidgetBuilder builder) {
+/// Shows [builder] as the sheet entries are made on.
+Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) {
   final navigator = Navigator.of(context);
   final localizations = MaterialLocalizations.of(context);
   return navigator.push(

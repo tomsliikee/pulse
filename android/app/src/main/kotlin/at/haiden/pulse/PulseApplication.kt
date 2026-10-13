@@ -24,6 +24,7 @@ class PulseApplication : Application() {
                     MorningNotice.showPending(context)
                     MorningAlarm.schedule(context)
                     WeekAlarm.schedule(context)
+                    SupplementAlarm.schedule(context)
                 }
             }
         })

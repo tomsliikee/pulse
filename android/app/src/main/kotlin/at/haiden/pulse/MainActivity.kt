@@ -112,6 +112,7 @@ class MainActivity : FlutterFragmentActivity() {
                     // The app left a new time or text for one of its alarms.
                     MorningAlarm.schedule(this)
                     WeekAlarm.schedule(this)
+                    SupplementAlarm.schedule(this)
                     result.success(null)
                     return@setMethodCallHandler
                 }

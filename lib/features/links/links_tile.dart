@@ -31,14 +31,22 @@ class LinksTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
     return ListenableBuilder(
-      listenable: Listenable.merge([scope.health, scope.settings]),
+      listenable: Listenable.merge([
+        scope.health,
+        scope.settings,
+        scope.supplements,
+      ]),
       builder: (context, _) {
         final theme = Theme.of(context);
         final scheme = theme.colorScheme;
         final formats = Formats.of(context);
         final l10n = formats.l10n;
         final accent = PageAccent.colorsOf(context);
-        final links = linksOf(scope.health, scope.settings);
+        final links = linksOf(
+          scope.health,
+          scope.settings,
+          scope.supplements.data,
+        );
         if (scope.settings.simple && links.isNotEmpty) {
           return Pressable(
             pressedScale: 0.98,

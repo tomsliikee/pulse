@@ -8,6 +8,7 @@ import 'models.dart';
 import 'night_insights.dart';
 import 'recovery.dart';
 import 'sleep_insights.dart';
+import 'supplements.dart';
 
 /// What is set against what.
 enum LinkKind {
@@ -38,6 +39,12 @@ enum LinkCause {
   weekday,
   weekSteps,
   weekWorkouts,
+
+  /// A day on which [Link.supplement] was taken.
+  supplement,
+
+  /// A day with caffeine from [lateCaffeineHour] on.
+  lateCaffeine,
 }
 
 /// Where the line between the two sides lies.
@@ -99,6 +106,7 @@ class Link {
     required this.countWithout,
     required this.strength,
     this.weekday,
+    this.supplement,
   });
 
   final LinkKind kind;
@@ -120,6 +128,9 @@ class Link {
   /// [DateTime.weekday] for [LinkCause.weekday]. For a night it is the day
   /// the night ended on.
   final int? weekday;
+
+  /// What was taken, for [LinkCause.supplement].
+  final Supplement? supplement;
 
   double get difference => withMean - withoutMean;
 }
@@ -215,6 +226,7 @@ Link? _linkOf(
   bool Function(double cause) onSide,
   int atLeast, {
   int? weekday,
+  Supplement? supplement,
 }) {
   final judged = _judge(
     [
@@ -244,6 +256,7 @@ Link? _linkOf(
     countWithout: pairs.length - yes,
     strength: judged.strength,
     weekday: weekday,
+    supplement: supplement,
   );
 }
 
@@ -325,6 +338,7 @@ List<Link> findLinks({
   required GoalData data,
   required double Function(Goal goal) targetOf,
   required DateTime until,
+  SupplementData supplements = const SupplementData(),
   Set<LinkKind> kinds = const {
     LinkKind.dayToNight,
     LinkKind.nightToDay,
@@ -341,6 +355,19 @@ List<Link> findLinks({
   void add(Link? link) {
     if (link != null) links.add(link);
   }
+
+  double? dayEffect(LinkEffect effect, DateTime day) => switch (effect) {
+    LinkEffect.recovery => recoveryOf(
+      day: day,
+      valueOf: data.valueOf,
+      nights: data.nights,
+      sleepGoalHours: data.sleepGoalHours,
+    ).total?.toDouble(),
+    LinkEffect.restingPulse => data.valueOf(Metric.restingHeartRate, day),
+    LinkEffect.variability => data.valueOf(Metric.heartRateVariability, day),
+    LinkEffect.steps => data.valueOf(Metric.steps, day),
+    _ => null,
+  };
 
   if (kinds.contains(LinkKind.dayToNight)) {
     final workoutDays = {
@@ -391,19 +418,75 @@ List<Link> findLinks({
     }
   }
 
+  if (kinds.contains(LinkKind.dayToNight) && supplements.intakes.isNotEmpty) {
+    // A day of a supplement against the night after it and the day that
+    // night ends on. Only days since it was first on the list or taken
+    // count: of the days before, nobody knows.
+    final taken = <String, Set<DateTime>>{};
+    final late = <DateTime>{};
+    DateTime? firstCaffeine;
+    for (final intake in supplements.intakes) {
+      taken.putIfAbsent(intake.key, () => {}).add(intake.day);
+      if (intake.caffeineMg != null) {
+        firstCaffeine ??= intake.day;
+        if (intake.at.hour >= lateCaffeineHour) late.add(intake.day);
+      }
+    }
+    for (final effect in [..._nightEffects, ..._dayEffects]) {
+      // The steps of the day after say nothing about a supplement.
+      if (effect == LinkEffect.steps) continue;
+      final results = [
+        for (final night in nights)
+          if (_nightEffect(effect, night, data) ?? dayEffect(effect, night.date)
+              case final value?)
+            (_day(night.date, -1), value),
+      ];
+      for (final supplement in supplements.supplements) {
+        final days = taken[supplement.key];
+        if (days == null) continue;
+        var since = _day(supplement.addedAt);
+        for (final day in days) {
+          if (day.isBefore(since)) since = day;
+        }
+        add(
+          _linkOf(
+            LinkKind.dayToNight,
+            LinkCause.supplement,
+            LinkSplit.yesNo,
+            effect,
+            [
+              for (final (day, value) in results)
+                if (!day.isBefore(since))
+                  (days.contains(day) ? 1.0 : 0.0, value),
+            ],
+            (value) => value > 0,
+            linkDaysAtLeast,
+            supplement: supplement,
+          ),
+        );
+      }
+      final from = firstCaffeine;
+      if (from != null) {
+        add(
+          _linkOf(
+            LinkKind.dayToNight,
+            LinkCause.lateCaffeine,
+            LinkSplit.yesNo,
+            effect,
+            [
+              for (final (day, value) in results)
+                if (!day.isBefore(from))
+                  (late.contains(day) ? 1.0 : 0.0, value),
+            ],
+            (value) => value > 0,
+            linkDaysAtLeast,
+          ),
+        );
+      }
+    }
+  }
+
   if (kinds.contains(LinkKind.nightToDay)) {
-    double? dayEffect(LinkEffect effect, DateTime day) => switch (effect) {
-      LinkEffect.recovery => recoveryOf(
-        day: day,
-        valueOf: data.valueOf,
-        nights: data.nights,
-        sleepGoalHours: data.sleepGoalHours,
-      ).total?.toDouble(),
-      LinkEffect.restingPulse => data.valueOf(Metric.restingHeartRate, day),
-      LinkEffect.variability => data.valueOf(Metric.heartRateVariability, day),
-      LinkEffect.steps => data.valueOf(Metric.steps, day),
-      _ => null,
-    };
     for (final effect in _dayEffects) {
       final results = [
         for (final night in nights)

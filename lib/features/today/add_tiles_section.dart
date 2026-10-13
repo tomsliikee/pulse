@@ -4,11 +4,14 @@ import 'package:material_ui/material_ui.dart';
 import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/settings_controller.dart';
+import '../../data/supplements.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/shape_badge.dart';
 import '../activity/workout_style.dart';
 import '../detail/metric_spec.dart';
+import '../supplements/caffeine_tile.dart';
+import '../supplements/supplement_row.dart';
 import 'today_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../app/formatters.dart';
@@ -20,7 +23,10 @@ class AddTilesSection extends StatelessWidget {
     super.key,
     required this.health,
     required this.settings,
+    this.supplements = const SupplementData(),
   });
+
+  final SupplementData supplements;
 
   final HealthController health;
   final SettingsController settings;
@@ -32,7 +38,8 @@ class AddTilesSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final shown = settings.todayTiles.toSet();
     bool open(String id) =>
-        !shown.contains(id) && todayTileAvailable(id, health, settings);
+        !shown.contains(id) &&
+        todayTileAvailable(id, health, settings, supplements);
 
     final groups = [
       (
@@ -46,6 +53,8 @@ class AddTilesSection extends StatelessWidget {
             nightTileId,
             goalsTileId,
             linksTileId,
+            supplementsTileId,
+            caffeineTileId,
             daysTileId,
           ])
             if (open(id)) id,
@@ -112,6 +121,8 @@ class AddTilesSection extends StatelessWidget {
       tipsTileId => Icons.lightbulb_outline_rounded,
       nightTileId => Icons.bedtime_rounded,
       goalsTileId => Icons.flag_rounded,
+      supplementsTileId => supplementIcon,
+      caffeineTileId => caffeineIcon,
       daysTileId => Icons.calendar_month_rounded,
       _ => null,
     };

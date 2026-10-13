@@ -4,6 +4,7 @@ import 'package:pulse/data/health_history.dart';
 import 'package:pulse/data/links.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
+import 'package:pulse/data/supplements.dart';
 import 'package:pulse/features/links/link_format.dart';
 
 import 'support/fixtures.dart';
@@ -51,8 +52,10 @@ List<Link> _find(
   double Function(Goal goal)? targetOf,
   Set<LinkKind>? kinds,
   DateTime? until,
+  SupplementData supplements = const SupplementData(),
 }) => findLinks(
   data: data,
+  supplements: supplements,
   targetOf: targetOf ?? (goal) => goal.defaultTarget,
   until: until ?? _until,
   kinds: kinds ?? LinkKind.values.toSet(),
@@ -68,6 +71,88 @@ Link? _one(List<Link> links, LinkCause cause, LinkEffect effect) {
 }
 
 void main() {
+  group('a day with a supplement and the night after', () {
+    // Sixty nights. The night that ends on day n follows day n + 1, and on
+    // every other of those days magnesium was taken.
+    bool took(int ago) => ago.isEven;
+    final magnesium = presetOf('magnesium')!.added(_ago(61));
+    final coffee = presetOf('coffee')!.added(_ago(61));
+    List<SleepNight> nights({int more = 30}) => [
+      for (var ago = 0; ago < 60; ago++)
+        _night(ago, 430 + (took(ago) ? more : 0) + _noise(ago)),
+    ];
+    Intake intake(Supplement supplement, int ago, int hour) => Intake(
+      key: supplement.key,
+      at: _ago(ago).add(Duration(hours: hour)),
+      caffeineMg: supplement.caffeineMg,
+    );
+    SupplementData taken({int from = 60}) => SupplementData(
+      supplements: [magnesium, coffee],
+      intakes: [
+        for (var ago = from - 1; ago >= 0; ago--)
+          if (took(ago)) intake(magnesium, ago + 1, 21),
+      ]..sort((a, b) => a.at.compareTo(b.at)),
+    );
+
+    test('nights after it are set against the others, by its name', () {
+      final links = _find(_data(nights: nights()), supplements: taken());
+      final link = _one(links, LinkCause.supplement, LinkEffect.asleep)!;
+      expect(link.kind, LinkKind.dayToNight);
+      expect(link.split, LinkSplit.yesNo);
+      expect(link.supplement?.key, 'magnesium');
+      expect(link.countWith, 30);
+      expect(link.countWithout, 30);
+      expect(link.difference, closeTo(30, 3));
+      expect(
+        linkSentence(formatsOf(), link),
+        startsWith('Nach Tagen mit Magnesium '),
+      );
+    });
+
+    test('days before it was first taken or listed do not count', () {
+      // On the list for twenty days: ten nights on each side at most.
+      final late = SupplementData(
+        supplements: [magnesium.copyWith()],
+        intakes: taken(from: 16).intakes,
+      );
+      final listed = SupplementData(
+        supplements: [presetOf('magnesium')!.added(_ago(17))],
+        intakes: late.intakes,
+      );
+      final links = _find(_data(nights: nights()), supplements: listed);
+      expect(links.where((l) => l.cause == LinkCause.supplement), isEmpty);
+    });
+
+    test('no difference, no connection', () {
+      final links = _find(_data(nights: nights(more: 0)), supplements: taken());
+      expect(links.where((l) => l.cause == LinkCause.supplement), isEmpty);
+    });
+
+    test('caffeine late in the day is a cause of its own', () {
+      // Coffee every morning, and after two on the days that end badly.
+      final data = SupplementData(
+        supplements: [coffee],
+        intakes: [
+          for (var ago = 60; ago >= 1; ago--) ...[
+            intake(coffee, ago, 8),
+            if (took(ago - 1)) intake(coffee, ago, 15),
+          ],
+        ],
+      );
+      final links = _find(_data(nights: nights(more: -35)), supplements: data);
+      final link = _one(links, LinkCause.lateCaffeine, LinkEffect.asleep)!;
+      expect(link.countWith, 30);
+      expect(link.difference, closeTo(-35, 3));
+      expect(link.supplement, isNull);
+      expect(
+        linkSentence(formatsOf(), link),
+        startsWith('Nach Tagen mit Koffein ab 14 Uhr '),
+      );
+      // Coffee itself was taken every day: nothing to compare.
+      expect(_one(links, LinkCause.supplement, LinkEffect.asleep), isNull);
+    });
+  });
+
   group('a day and the night after', () {
     // Sixty nights; the night that ends on day n follows day n + 1 (counted
     // back), and every third day had a workout.

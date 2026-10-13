@@ -11,6 +11,7 @@ import '../data/health_snapshot.dart';
 import '../data/json_store.dart';
 import '../data/night_archive.dart';
 import '../data/settings_controller.dart';
+import '../data/step_counting.dart';
 import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
 import 'morning_notice.dart';
@@ -79,6 +80,7 @@ Future<void> syncOnce(
         now,
         removedWorkouts: {for (final entry in removed) entry.workout.key},
       ),
+      steps: savedStepCounting(settings),
     ),
     removed,
   );

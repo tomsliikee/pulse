@@ -35,7 +35,8 @@ class TodayPage extends StatelessWidget {
     final health = scope.health;
     final settings = scope.settings;
     return ListenableBuilder(
-      listenable: Listenable.merge([health, settings]),
+      // The supplements too: their tile grows with the list.
+      listenable: Listenable.merge([health, settings, scope.supplements]),
       builder: (context, _) {
         final scheme = Theme.of(context).colorScheme;
         final formats = Formats.of(context);
@@ -48,7 +49,13 @@ class TodayPage extends StatelessWidget {
             builder: (context) {
               final shown = [
                 for (final id in settings.todayTiles)
-                  if (todayTileAvailable(id, health, settings)) id,
+                  if (todayTileAvailable(
+                    id,
+                    health,
+                    settings,
+                    scope.supplements.data,
+                  ))
+                    id,
               ];
               return BoardPage(
                 pageId: 'today',
@@ -86,7 +93,11 @@ class TodayPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                editFooter: AddTilesSection(health: health, settings: settings),
+                editFooter: AddTilesSection(
+                  health: health,
+                  settings: settings,
+                  supplements: scope.supplements.data,
+                ),
                 footer: !settings.showAllData
                     ? null
                     : Column(
@@ -115,6 +126,7 @@ class TodayPage extends StatelessWidget {
                       id: id,
                       health: health,
                       settings: settings,
+                      supplements: scope.supplements.data,
                     ),
                 ],
               );

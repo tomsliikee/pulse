@@ -4,6 +4,7 @@ import 'health_history.dart';
 import 'json_store.dart';
 import 'night_archive.dart';
 import 'routes.dart';
+import 'supplements.dart';
 import 'workout_archive.dart';
 
 /// What reading a backup added to the app's own data.
@@ -19,6 +20,7 @@ bool _kept(String name) =>
     name.startsWith(_nightsPrefix) ||
     name.startsWith(RouteArchive.prefix) ||
     name == StoreKeys.workouts ||
+    name == StoreKeys.supplements ||
     name == StoreKeys.settings;
 
 /// The name a backup made at [now] is offered under.
@@ -29,8 +31,7 @@ String backupFileName(DateTime now) {
 
 /// Everything that cannot be read again from the health store, as one JSON
 /// text: the years of the history, the nights, the workouts with their
-/// routes and the settings,
-/// each as the app keeps it.
+/// routes, the supplements and the settings, each as the app keeps it.
 Future<String> exportBackup(JsonStore store, DateTime now) async {
   final names = [
     for (final name in await store.names())
@@ -100,6 +101,18 @@ Future<BackupResult> importBackup(
       ).load()).entries)
         if (route != null && ownRoutes[key] == null) key: route,
     });
+
+    // Supplements and what was taken of them exist nowhere else.
+    final ownSupplements = SupplementData.fromJson(
+      await store.read(StoreKeys.supplements),
+    );
+    final supplements = ownSupplements.mergedWith(
+      SupplementData.fromJson(documents[StoreKeys.supplements]),
+    );
+    if (supplements.intakes.length != ownSupplements.intakes.length ||
+        supplements.supplements.length != ownSupplements.supplements.length) {
+      await store.write(StoreKeys.supplements, supplements.toJson());
+    }
 
     final settings = documents[StoreKeys.settings];
     final restore =

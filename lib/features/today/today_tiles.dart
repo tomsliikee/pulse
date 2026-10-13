@@ -12,6 +12,7 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/morning.dart';
 import '../../data/settings_controller.dart';
+import '../../data/supplements.dart';
 import '../../data/week_report.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
@@ -25,6 +26,8 @@ import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
 import '../activity/workout_tiles.dart';
 import '../sleep/night_tiles.dart';
+import '../supplements/caffeine_tile.dart';
+import '../supplements/supplement_card.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
@@ -47,9 +50,15 @@ const int _moreDays = 5;
 bool todayTileAvailable(
   String id,
   HealthController health,
-  SettingsController settings,
-) {
+  SettingsController settings, [
+  SupplementData supplements = const SupplementData(),
+]) {
   switch (id) {
+    case supplementsTileId:
+      return true;
+    case caffeineTileId:
+      // Only for someone who logs caffeine at all.
+      return supplements.intakes.any((intake) => intake.caffeineMg != null);
     case dayTileId || tipsTileId || goalsTileId:
       return true;
     case morningTileId:
@@ -83,6 +92,8 @@ String todayTileTitle(AppLocalizations l10n, String id) =>
         morningTileId => l10n.morningTitle,
         weekTileId => l10n.weekTitle,
         linksTileId => l10n.linksTitle,
+        supplementsTileId => l10n.supplements,
+        caffeineTileId => l10n.metricCaffeine,
         tipsTileId => l10n.dayTipsTitle,
         nightTileId => l10n.lastNight,
         goalsTileId => l10n.goals,
@@ -107,8 +118,9 @@ BoardTile? buildTodayTile(
   required String id,
   required HealthController health,
   required SettingsController settings,
+  SupplementData supplements = const SupplementData(),
 }) {
-  if (!todayTileAvailable(id, health, settings)) return null;
+  if (!todayTileAvailable(id, health, settings, supplements)) return null;
   void remove() => settings.removeTodayTile(id);
 
   final metric = Metric.byName(id);
@@ -142,11 +154,30 @@ BoardTile? buildTodayTile(
           id: id,
           height: LinksTile.heightFor(
             simple: settings.simple,
-            hasLink: settings.simple && linksOf(health, settings).isNotEmpty,
+            hasLink:
+                settings.simple &&
+                linksOf(health, settings, supplements).isNotEmpty,
           ),
           entersInPlace: true,
           onRemove: remove,
           child: const LinksTile(),
+        );
+      case supplementsTileId:
+        return BoardTile(
+          id: id,
+          height: SupplementsCard.heightFor(
+            supplements.mine.length,
+            simple: settings.simple,
+          ),
+          onRemove: remove,
+          child: SupplementsCard(simple: settings.simple),
+        );
+      case caffeineTileId:
+        return BoardTile(
+          id: id,
+          height: CaffeineTile.height,
+          onRemove: remove,
+          child: const CaffeineTile(),
         );
       case dayTileId:
         return BoardTile(

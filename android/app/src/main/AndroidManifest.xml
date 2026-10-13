@@ -86,6 +86,7 @@
         <!-- The morning's alarm and the week's, and what sets them again after a restart or an update. -->
         <receiver android:name=".MorningAlarmReceiver" android:exported="false"/>
         <receiver android:name=".WeekAlarmReceiver" android:exported="false"/>
+        <receiver android:name=".SupplementAlarmReceiver" android:exported="false"/>
         <receiver android:name=".MorningAlarmRestorer" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

@@ -9,6 +9,7 @@ import 'health_history.dart' show dayKey;
 import 'json_store.dart';
 import 'metric_catalog.dart';
 import 'models.dart';
+import 'step_counting.dart';
 import 'weather.dart';
 import '../theme/color_style.dart';
 
@@ -31,6 +32,11 @@ const String morningTileId = 'morning';
 const String weekTileId = 'week';
 const String linksTileId = 'links';
 
+/// The Today tile of the supplements taken and open today, and the one of
+/// the day's caffeine.
+const String supplementsTileId = 'supplements';
+const String caffeineTileId = 'caffeine';
+
 /// The tiles that came with the reworked Today page, and where they go on a
 /// page that was arranged before: these to the top, in this order.
 const List<String> _dayTilesOnTop = [
@@ -42,7 +48,7 @@ const List<String> _dayTilesOnTop = [
 
 /// Counts the changes to what a saved [SettingsController.todayTiles]
 /// means; see [SettingsController.load].
-const int _todayTilesVersion = 4;
+const int _todayTilesVersion = 5;
 
 /// A tile of the Today page is named by its metric, or is one of the tiles
 /// that show no single measurement.
@@ -52,6 +58,8 @@ bool isTodayTileId(String id) =>
     id == morningTileId ||
     id == weekTileId ||
     id == linksTileId ||
+    id == supplementsTileId ||
+    id == caffeineTileId ||
     _dayTilesOnTop.contains(id) ||
     Metric.byName(id) != null;
 
@@ -81,6 +89,7 @@ final List<String> defaultTodayTiles = List.unmodifiable([
   Metric.weight.name,
   Metric.oxygenSaturation.name,
   Metric.energyIntake.name,
+  supplementsTileId,
   daysTileId,
 ]);
 
@@ -196,6 +205,7 @@ class SettingsController extends ChangeNotifier {
   bool _routeClimb = true;
   bool _routeOnTiles = true;
   bool _fineValues = false;
+  StepCounting _stepCounting = StepCounting.store;
   bool _simple = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
@@ -257,6 +267,9 @@ class SettingsController extends ChangeNotifier {
   /// Whether active energy, total energy and intensity minutes are shown as
   /// the app works them out itself, more strictly than the sources do.
   bool get fineValues => _fineValues;
+
+  /// How the steps are counted where several sources wrote them.
+  StepCounting get stepCounting => _stepCounting;
 
   /// Whether the large cards of the four main pages show their few most
   /// important numbers only. Tiles and detail pages show all in both modes.
@@ -359,6 +372,7 @@ class SettingsController extends ChangeNotifier {
     if (json['routeClimb'] case final bool v) _routeClimb = v;
     if (json['routeOnTiles'] case final bool v) _routeOnTiles = v;
     if (json['fineValues'] case final bool v) _fineValues = v;
+    _stepCounting = savedStepCounting(json);
     // Settings from before the mode existed, a restored backup too, keep
     // every number.
     _simple = json['simple'] == true;
@@ -426,6 +440,17 @@ class SettingsController extends ChangeNotifier {
           _todayTiles = [..._todayTiles]
             ..insert(goals >= 0 ? goals + 1 : _todayTiles.length, linksTileId);
         }
+      }
+      // The supplements came after that: below the nutrition, or before
+      // the earlier days, or at the end.
+      if ((version is! int || version < 5) &&
+          !_todayTiles.contains(supplementsTileId)) {
+        final food = _todayTiles.indexOf(Metric.energyIntake.name);
+        final days = _todayTiles.indexOf(daysTileId);
+        final at = food >= 0
+            ? food + 1
+            : (days >= 0 ? days : _todayTiles.length);
+        _todayTiles = [..._todayTiles]..insert(at, supplementsTileId);
       }
     }
     if (json['largeTiles'] case final List<Object?> ids) {
@@ -530,6 +555,9 @@ class SettingsController extends ChangeNotifier {
 
   void setFineValues(bool value) => _update(() => _fineValues = value);
 
+  void setStepCounting(StepCounting value) =>
+      _update(() => _stepCounting = value);
+
   void setSimple(bool value) => _update(() => _simple = value);
 
   /// Remembers that the morning's cards opened by themselves on [day].
@@ -616,6 +644,7 @@ class SettingsController extends ChangeNotifier {
             'routeClimb': _routeClimb,
             'routeOnTiles': _routeOnTiles,
             'fineValues': _fineValues,
+            'stepCounting': _stepCounting.name,
             'simple': _simple,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,

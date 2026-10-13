@@ -3,6 +3,7 @@ import 'health_history.dart';
 import 'health_snapshot.dart';
 import 'models.dart';
 import 'routes.dart';
+import 'step_counting.dart';
 
 enum HealthAccess {
   granted,
@@ -42,12 +43,14 @@ abstract interface class HealthRepository {
   /// changed since it was loaded may be taken from it instead of read again.
   /// With [maxHeartRate], days without recorded intensity minutes get the
   /// ones estimated from their heart rate. With [fine], the days whose heart
-  /// rate is read get their fine values as well.
+  /// rate is read get their fine values as well. The steps are counted the
+  /// [steps] way; a [previous] must have been read the same way.
   Future<HealthSnapshot> load(
     DateTime now, {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps = StepCounting.store,
   });
 
   Future<void> add(EntryDraft draft);
@@ -70,12 +73,20 @@ abstract interface class HealthRepository {
 
   /// The workouts that started from [from] to [to], both days inclusive.
   /// Used once to fill the workout archive with what the store already has.
-  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to);
+  Future<List<Workout>> loadWorkouts(
+    DateTime from,
+    DateTime to, {
+    StepCounting steps = StepCounting.store,
+  });
 
   /// What the store counted from [start] to [end], by the day it fell on:
   /// its totals, the minutes of activity and the floors. Used to take a
   /// removed workout out of its days.
-  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end);
+  Future<DailyValues> loadTotalsDuring(
+    DateTime start,
+    DateTime end, {
+    StepCounting steps = StepCounting.store,
+  });
 
   /// The nights that ended on the days from [from] to [to], both inclusive,
   /// as the archive keeps them. Used once to fill the night archive.
@@ -114,6 +125,7 @@ class UnsupportedHealthRepository implements HealthRepository {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps = StepCounting.store,
   }) => throw StateError('No health store on this platform.');
 
   @override
@@ -140,12 +152,18 @@ class UnsupportedHealthRepository implements HealthRepository {
   Future<DailyValues> loadHistory(DateTime from, DateTime to) async => const {};
 
   @override
-  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) async =>
-      const [];
+  Future<List<Workout>> loadWorkouts(
+    DateTime from,
+    DateTime to, {
+    StepCounting steps = StepCounting.store,
+  }) async => const [];
 
   @override
-  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async =>
-      const {};
+  Future<DailyValues> loadTotalsDuring(
+    DateTime start,
+    DateTime end, {
+    StepCounting steps = StepCounting.store,
+  }) async => const {};
 
   @override
   Future<List<SleepNight>> loadNights(DateTime from, DateTime to) async =>

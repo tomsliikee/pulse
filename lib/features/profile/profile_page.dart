@@ -15,12 +15,15 @@ import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import '../goals/goal_format.dart';
 import '../goals/goals_page.dart';
+import '../supplements/supplement_format.dart';
+import '../supplements/supplements_page.dart';
 import 'birth_date_sheet.dart';
 import 'color_style_row.dart';
 import 'height_sheet.dart';
 import 'language_sheet.dart';
 import 'name_sheet.dart';
 import 'place_sheet.dart';
+import 'step_counting_sheet.dart';
 
 /// Goals, appearance and background refresh.
 class ProfilePage extends StatelessWidget {
@@ -50,7 +53,9 @@ class ProfilePage extends StatelessWidget {
   }
 
   static Future<void> _openBackup(BuildContext context) async {
-    final AppScope(:health, :settings, :files) = AppScope.of(context);
+    final AppScope(:health, :settings, :files, :supplements) = AppScope.of(
+      context,
+    );
     final formats = Formats.of(context);
     final l10n = formats.l10n;
     final messenger = ScaffoldMessenger.of(context);
@@ -63,6 +68,7 @@ class ProfilePage extends StatelessWidget {
       if (text == null) return;
       final result = await health.restore(text);
       if (result.settings) await settings.load();
+      await supplements.load();
       final (:days, :nights, :workouts, settings: _) = result;
       say(
         days + nights + workouts == 0
@@ -276,6 +282,38 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
+              SectionTitle(l10n.supplements),
+              ListenableBuilder(
+                listenable: scope.supplements,
+                builder: (context, _) {
+                  final mine = scope.supplements.data.mine;
+                  return M3ESegmentedColumn(
+                    color: scheme.surfaceBright,
+                    haptic: M3EHapticFeedback.light,
+                    onTap: (_) => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SupplementsPage(),
+                      ),
+                    ),
+                    children: [
+                      M3EListItem(
+                        headline: Text(l10n.supplementsChoose),
+                        supportingText: Text(
+                          mine.isEmpty
+                              ? l10n.supplementsNone
+                              : [
+                                  for (final supplement in mine)
+                                    supplement.title(l10n),
+                                ].join(' · '),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                      ),
+                    ],
+                  );
+                },
+              ),
               SectionTitle(l10n.morningTitle),
               SegmentGroup(
                 padding: EdgeInsets.zero,
@@ -488,6 +526,34 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ),
+              const SizedBox(height: 12),
+              SegmentGroup(
+                padding: EdgeInsets.zero,
+                children: [
+                  InkWell(
+                    onTap: () => showStepCountingSheet(context),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.stepCounting,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            settings.stepCounting.label(l10n),
+                            style: context.emphasizedTextTheme.titleMedium
+                                ?.copyWith(color: scheme.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               SectionTitle(l10n.appearance),
               Align(
                 alignment: Alignment.centerLeft,

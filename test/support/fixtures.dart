@@ -19,6 +19,7 @@ import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/data/models.dart';
 import 'package:pulse/data/routes.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/data/step_counting.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
 import 'package:pulse/widgets/metric_card.dart';
@@ -153,6 +154,7 @@ class FixtureRepository implements HealthRepository {
   final List<HealthSnapshot?> loadedWith = [];
   final List<int?> maxHeartRates = [];
   final List<FineProfile?> fineProfiles = [];
+  final List<StepCounting> stepCountings = [];
 
   final List<EntryDraft> added = [];
   final List<HealthEntry> deleted = [];
@@ -177,10 +179,12 @@ class FixtureRepository implements HealthRepository {
     HealthSnapshot? previous,
     int? maxHeartRate,
     FineProfile? fine,
+    StepCounting steps = StepCounting.store,
   }) async {
     if (failLoads) throw const FormatException('store unavailable');
     await gate?.future;
     loadedWith.add(previous);
+    stepCountings.add(steps);
     maxHeartRates.add(maxHeartRate);
     fineProfiles.add(fine);
     return buildSnapshot(
@@ -243,7 +247,11 @@ class FixtureRepository implements HealthRepository {
   }
 
   @override
-  Future<List<Workout>> loadWorkouts(DateTime from, DateTime to) async {
+  Future<List<Workout>> loadWorkouts(
+    DateTime from,
+    DateTime to, {
+    StepCounting steps = StepCounting.store,
+  }) async {
     workoutRequests.add((from, to));
     final end = DateTime(to.year, to.month, to.day + 1);
     return [
@@ -254,7 +262,11 @@ class FixtureRepository implements HealthRepository {
   }
 
   @override
-  Future<DailyValues> loadTotalsDuring(DateTime start, DateTime end) async {
+  Future<DailyValues> loadTotalsDuring(
+    DateTime start,
+    DateTime end, {
+    StepCounting steps = StepCounting.store,
+  }) async {
     totalsRequests.add((start, end));
     return totalsDuring;
   }

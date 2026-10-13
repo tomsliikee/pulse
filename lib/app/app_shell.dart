@@ -7,6 +7,8 @@ import '../data/models.dart';
 import '../features/access/access_page.dart';
 import '../features/activity/activity_page.dart';
 import '../features/entry/entry_sheet.dart';
+import '../features/supplements/supplement_row.dart';
+import '../features/supplements/supplement_sheet.dart';
 import '../features/heart/heart_page.dart';
 import '../features/sleep/sleep_page.dart';
 import '../features/today/today_page.dart';
@@ -148,6 +150,11 @@ class _AppShellState extends State<AppShell> {
                                 label: kind.label(l10n),
                                 onPressed: () => showEntrySheet(context, kind),
                               ),
+                            GlassFabMenuItem(
+                              icon: supplementIcon,
+                              label: l10n.supplement,
+                              onPressed: () => showSupplementSheet(context),
+                            ),
                           ],
                         )
                       else
@@ -164,6 +171,14 @@ class _AppShellState extends State<AppShell> {
                                   showEntrySheet(context, kind);
                                 },
                               ),
+                            M3EFabMenuItem(
+                              icon: const Icon(supplementIcon),
+                              label: l10n.supplement,
+                              onPressed: () {
+                                Haptics.tap();
+                                showSupplementSheet(context);
+                              },
+                            ),
                           ],
                         ),
                     ],

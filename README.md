@@ -74,6 +74,18 @@ A new installation starts in simple mode. An installation that already has setti
 
 ![Goals and tiles on Today, the page about one day, and the list of all days](readmestuff/today.png)
 
+### Supplements
+
+Health Connect has no place for supplements, so Pulse keeps them itself: in the app's own directory and in the backup, and nowhere else.
+
+- **Your List:** **Profile → Supplements** offers some forty well-known ones by what they are, never by a brand (creatine, magnesium, ashwagandha and so on), and takes any of your own. Each can have a dose in capsules, tablets, scoops, drops, pieces, g, mg, ml or IU, or none at all, in which case it is only "taken". The amounts filled in are a start to change, not advice on a dose.
+- **On Today:** A card lists them, taken or open; a tap on the circle notes one as taken now, a second tap takes that back.
+- **At the Plus:** The ones you take most often, to tap; each can also be logged once at another time or in another dose.
+- **Per Supplement:** The days in a row, the last 30 days and a calendar of six weeks.
+- **Caffeine:** A supplement or drink with caffeine adds to the day's milligrams; its tile shows the sum and the time of the last one. Only what you log in Pulse counts.
+- **Reminders:** A supplement with a time of day can remind you at the time you set for the morning, midday or evening, while it is still open. The alarm is an inexact one and may come some minutes late.
+- **Connections:** Days with a supplement, and days with caffeine from two in the afternoon on, are set against the night after, by the same rule as every other connection.
+
 ### Good Morning
 
 Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. They begin with a **sunrise**, behind which Pulse reads what your watch wrote since, so the night is there when the cards come. Around the time you usually get up, an alarm of the app sends a **notification**; where the hourly refresh found the night before that, it tells of it.
@@ -100,6 +112,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Kinds of Workout:** Each kind Health Connect tells apart has its own name and icon. The fine values count endurance and ball sports by heart rate, walking and hiking by steps, and calm or static kinds such as strength, yoga or golf at a fixed rate; a minute without a heart rate counts at the rate of its kind.
 - **All Activities:** Month by month, with a filter for the kind.
 - **Steps by Week and Month:** The average per day stands large above the chart.
+- **Counting Steps:** Where a watch and the phone both write steps, the profile lets you pick how a day is counted: **Health Connect**'s own total, the **mean of the day** across the sources, the **mean of each hour** across the sources that counted in it, or the **watch only**. It applies to the last 30 days and to everything new; older days keep Health Connect's total.
 - **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
 
 ![Activity with a run as the latest workout, the page about that run, the page about a strength session, and Activity with a yoga session](readmestuff/activities.png)
@@ -222,7 +235,7 @@ Three switches in the profile change the look further, all **off by default**:
 - **Tiles:** In edit mode every tile has a **minus**; a list below offers what you removed and every measurement with data. Hold a tile to drag it. A measurement tile is **small** or **large**.
 - **History:** One value per day and metric for up to **ten years**. Data already in Health Connect is loaded once on first start.
 - **Background Refresh:** About once an hour, so no day is lost when the app stays closed.
-- **Backup:** **Profile → Backup** writes history, nights, workouts and settings into one JSON file at a place you choose, and reads such a file again without overwriting what is already there.
+- **Backup:** **Profile → Backup** writes history, nights, workouts, supplements and settings into one JSON file at a place you choose, and reads such a file again without overwriting what is already there.
 - **Languages:** Numbers, dates and plurals follow the language (**7.432** / **7,432** / **7 432**). On **Android 13** and newer the choice is Android's own per-app language.
 
 ---
@@ -284,7 +297,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **953** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **1016** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

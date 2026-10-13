@@ -25,6 +25,7 @@ abstract final class StoreKeys {
   static const String workoutBackfill = 'workoutBackfill';
   static const String nightBackfill = 'nightBackfill';
   static const String foods = 'foods';
+  static const String supplements = 'supplements';
   static const String foodBackfill = 'foodBackfill';
   static const String routeBackfill = 'routeBackfill';
   static const String sync = 'sync';
@@ -36,6 +37,7 @@ abstract final class StoreKeys {
 
   /// Read by the platform, which sets its alarm for the morning by it.
   static const String morningAlarm = 'morningAlarm';
+  static const String supplementAlarm = 'supplementAlarm';
 
   /// Read by the platform, which sets its alarm for Sunday evening by it.
   static const String weekAlarm = 'weekAlarm';
