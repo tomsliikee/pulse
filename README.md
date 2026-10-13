@@ -86,6 +86,10 @@ Health Connect has no place for supplements, so Pulse keeps them itself: in the 
 - **Reminders:** A supplement with a time of day can remind you at the time you set for the morning, midday or evening, while it is still open. The alarm is an inexact one and may come some minutes late.
 - **Connections:** Days with a supplement, and days with caffeine from two in the afternoon on, are set against the night after, by the same rule as every other connection.
 
+![The card and the caffeine tile on Today, the list in the profile, the page of one supplement, and the sheet at the plus](readmestuff/supplements.png)
+
+![The day's caffeine, a supplement with its dose and reminder, logging one at another time, and the four ways of counting steps](readmestuff/caffeine_steps.png)
+
 ### Good Morning
 
 Like the morning brief of a watch, on the phone: the first time you open Pulse within **three hours** of getting up, a few cards to swipe through appear by themselves. They begin with a **sunrise**, behind which Pulse reads what your watch wrote since, so the night is there when the cards come. Around the time you usually get up, an alarm of the app sends a **notification**; where the hourly refresh found the night before that, it tells of it.
@@ -116,6 +120,8 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
 
 ![Activity with a run as the latest workout, the page about that run, the page about a strength session, and Activity with a yoga session](readmestuff/activities.png)
+
+![Eight of the settings: a pool, a pitch, snow, a rock face, the road, a hall with a punching bag, a court and a basket](readmestuff/kinds.png)
 
 ![All activities with their routes, a run's route tinted by speed, its kilometres and elevation, and a new meal starting at the foods logged before](readmestuff/routes_foods.png)
 
