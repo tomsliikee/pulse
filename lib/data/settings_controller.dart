@@ -171,6 +171,10 @@ const int maxNameLength = 30;
 const int minHeightCm = 100;
 const int maxHeightCm = 250;
 
+/// The lightest and the heaviest weight the profile accepts as a target.
+const double minTargetWeightKg = 20;
+const double maxTargetWeightKg = 400;
+
 String? _isoDate(DateTime? date) => date == null
     ? null
     : '${date.year.toString().padLeft(4, '0')}-'
@@ -196,6 +200,7 @@ class SettingsController extends ChangeNotifier {
   DateTime? _birthDate;
   Sex? _sex;
   int? _heightCm;
+  double? _targetWeightKg;
   String? _name;
   Place? _place;
   bool _morningBrief = true;
@@ -214,6 +219,7 @@ class SettingsController extends ChangeNotifier {
   bool _liquidGlass = false;
   bool _edgeToEdgeHero = false;
   bool _flexFont = false;
+  bool _haptics = true;
   String? _language;
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
@@ -236,6 +242,9 @@ class SettingsController extends ChangeNotifier {
 
   /// The height as typed into the profile, for when the store holds none.
   int? get heightCm => _heightCm;
+
+  /// The weight the user wants to reach; null where none is set.
+  double? get targetWeightKg => _targetWeightKg;
   ThemeMode get themeMode => _themeMode;
 
   /// Whether colours follow the system palette when the system offers one.
@@ -293,6 +302,9 @@ class SettingsController extends ChangeNotifier {
   /// Whether the type uses the axes of the variable font: width, weight,
   /// slant and grade. Off, the font is a plain typeface.
   bool get flexFont => _flexFont;
+
+  /// Whether the app gives haptic signals.
+  bool get haptics => _haptics;
 
   /// The chosen language, or null to follow the system. Only used where the
   /// system keeps no language per app; see `LanguageController`.
@@ -360,6 +372,10 @@ class SettingsController extends ChangeNotifier {
         when v >= minHeightCm && v <= maxHeightCm) {
       _heightCm = v;
     }
+    if (json['targetWeightKg'] case final num v
+        when v >= minTargetWeightKg && v <= maxTargetWeightKg) {
+      _targetWeightKg = v.toDouble();
+    }
     if (json['name'] case final String v
         when v.isNotEmpty && v.length <= maxNameLength) {
       _name = v;
@@ -396,6 +412,7 @@ class SettingsController extends ChangeNotifier {
     if (json['liquidGlass'] case final bool v) _liquidGlass = v;
     if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
     if (json['flexFont'] case final bool v) _flexFont = v;
+    if (json['haptics'] case final bool v) _haptics = v;
     if (json['language'] case final String v when appLanguages.contains(v)) {
       _language = v;
     }
@@ -532,6 +549,14 @@ class SettingsController extends ChangeNotifier {
     _update(() => _heightCm = value);
   }
 
+  void setTargetWeightKg(double? value) {
+    if (value != null &&
+        (value < minTargetWeightKg || value > maxTargetWeightKg)) {
+      return;
+    }
+    _update(() => _targetWeightKg = value);
+  }
+
   void setName(String? value) {
     final name = value?.trim();
     if (name != null && name.length > maxNameLength) return;
@@ -575,6 +600,8 @@ class SettingsController extends ChangeNotifier {
   void setEdgeToEdgeHero(bool value) => _update(() => _edgeToEdgeHero = value);
 
   void setFlexFont(bool value) => _update(() => _flexFont = value);
+
+  void setHaptics(bool value) => _update(() => _haptics = value);
 
   void setLanguage(String? value) {
     if (value != null && !appLanguages.contains(value)) return;
@@ -635,6 +662,7 @@ class SettingsController extends ChangeNotifier {
             'birthDate': ?_isoDate(_birthDate),
             'sex': ?_sex?.name,
             'heightCm': ?_heightCm,
+            'targetWeightKg': ?_targetWeightKg,
             'name': ?_name,
             'place': ?_place?.toJson(),
             'morningBrief': _morningBrief,
@@ -653,6 +681,7 @@ class SettingsController extends ChangeNotifier {
             'liquidGlass': _liquidGlass,
             'edgeToEdgeHero': _edgeToEdgeHero,
             'flexFont': _flexFont,
+            'haptics': _haptics,
             'language': ?_language,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,

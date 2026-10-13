@@ -417,7 +417,7 @@ class _ProgressState extends State<_Progress> {
               type: M3EButtonGroupType.connected,
               style: M3EButtonStyle.tonal,
               size: M3EButtonSize.sm,
-              haptic: M3EHapticFeedback.light,
+              haptic: Haptics.widget,
               selectedIndex: offered.indexOf(measure),
               onSelectedIndexChanged: (index) {
                 if (index != null) setState(() => _shown = index);

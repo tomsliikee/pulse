@@ -187,6 +187,9 @@ void main() {
     await advance(tester);
     await tester.tap(find.text('Gewicht'));
     await advance(tester);
+    // The weight opens on its week.
+    await tester.tap(find.text('Heute').last);
+    await advance(tester);
 
     expect(find.textContaining('Zuletzt gemessen: '), findsOneWidget);
     expect(find.text('73,5 kg'), findsOneWidget);

@@ -441,7 +441,7 @@ class _RemovedTiles extends StatelessWidget {
         SectionTitle(AppLocalizations.of(context).add),
         M3ESegmentedColumn(
           color: scheme.surfaceBright,
-          haptic: M3EHapticFeedback.light,
+          haptic: Haptics.widget,
           onTap: (i) => onAdd(tiles[i].id),
           children: [
             for (final tile in tiles)

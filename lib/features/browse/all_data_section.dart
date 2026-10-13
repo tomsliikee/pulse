@@ -1,3 +1,5 @@
+import '../../app/haptics.dart';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -44,7 +46,7 @@ class AllDataSection extends StatelessWidget {
             Builder(
               builder: (context) => M3ESegmentedColumn(
                 color: scheme.surfaceBright,
-                haptic: M3EHapticFeedback.light,
+                haptic: Haptics.widget,
                 onTap: (i) {
                   // The page grows out of the whole group; the rows have no
                   // rectangle of their own to start from.

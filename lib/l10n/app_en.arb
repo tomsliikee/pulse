@@ -991,5 +991,46 @@
   "intensityModerate": "Moderate",
   "intensityHard": "Hard",
   "intensityAllOut": "All out",
-  "intensityNote": "Intensity: your average heart rate against the highest for your age. A rule of thumb by Pulse, not a measurement."
+  "intensityNote": "Intensity: your average heart rate against the highest for your age. A rule of thumb by Pulse, not a measurement.",
+  "targetWeightLabel": "Target weight",
+  "targetWeightHint": "Weight in kg",
+  "targetWeightInvalid": "Please enter a weight between 20 and 400 kg.",
+  "trendLost": "Lost {value} over the period",
+  "@trendLost": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "trendGained": "Gained {value} over the period",
+  "@trendGained": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "trendSame": "Unchanged over the period",
+  "trendRows": "Over time",
+  "valueAtDate": "{value} · {date}",
+  "@valueAtDate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "targetNamed": "Target {value}",
+  "@targetNamed": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "hapticsLabel": "Haptics"
 }

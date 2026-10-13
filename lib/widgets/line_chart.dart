@@ -10,6 +10,8 @@ class LineChart extends StatelessWidget {
     required this.values,
     required this.color,
     this.positions,
+    this.low,
+    this.high,
     this.height = 160,
     this.strokeWidth = 4,
   });
@@ -19,6 +21,11 @@ class LineChart extends StatelessWidget {
   /// Where each value sits across the width, from 0 to 1. Null spaces them
   /// evenly.
   final List<double>? positions;
+
+  /// The values at the foot and the top of the chart, where they are to
+  /// reach beyond those of [values]; null takes the lowest and the highest.
+  final double? low;
+  final double? high;
   final Color color;
 
   /// Null lets the chart fill the height it is given.
@@ -52,6 +59,8 @@ class LineChart extends StatelessWidget {
           painter: _LinePainter(
             values: values,
             positions: positions,
+            low: low,
+            high: high,
             color: color,
             strokeWidth: strokeWidth,
             reveal: reveal.clamp(0, 1).toDouble(),
@@ -66,6 +75,8 @@ class _LinePainter extends CustomPainter {
   const _LinePainter({
     required this.values,
     required this.positions,
+    required this.low,
+    required this.high,
     required this.color,
     required this.strokeWidth,
     required this.reveal,
@@ -73,6 +84,8 @@ class _LinePainter extends CustomPainter {
 
   final List<double> values;
   final List<double>? positions;
+  final double? low;
+  final double? high;
   final Color color;
   final double strokeWidth;
   final double reveal;
@@ -80,8 +93,8 @@ class _LinePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (values.length < 2) return;
-    var low = values.first;
-    var high = values.first;
+    var low = this.low ?? values.first;
+    var high = this.high ?? values.first;
     for (final value in values) {
       if (value < low) low = value;
       if (value > high) high = value;
@@ -114,8 +127,8 @@ class _LinePainter extends CustomPainter {
       );
     }
     final fill = Path.from(line)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
+      ..lineTo(point(values.length - 1).dx, size.height)
+      ..lineTo(point(0).dx, size.height)
       ..close();
 
     canvas
@@ -146,6 +159,8 @@ class _LinePainter extends CustomPainter {
   bool shouldRepaint(_LinePainter oldDelegate) =>
       oldDelegate.values != values ||
       oldDelegate.positions != positions ||
+      oldDelegate.low != low ||
+      oldDelegate.high != high ||
       oldDelegate.color != color ||
       oldDelegate.strokeWidth != strokeWidth ||
       oldDelegate.reveal != reveal;

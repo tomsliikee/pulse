@@ -991,5 +991,46 @@
   "intensityModerate": "Umiarkowanie",
   "intensityHard": "Mocno",
   "intensityAllOut": "Bardzo mocno",
-  "intensityNote": "Intensywność: twoje średnie tętno wobec maksymalnego dla twojego wieku. Reguła Pulse, nie pomiar."
+  "intensityNote": "Intensywność: twoje średnie tętno wobec maksymalnego dla twojego wieku. Reguła Pulse, nie pomiar.",
+  "targetWeightLabel": "Waga docelowa",
+  "targetWeightHint": "Waga w kg",
+  "targetWeightInvalid": "Podaj wagę od 20 do 400 kg.",
+  "trendLost": "Spadek o {value} w tym okresie",
+  "@trendLost": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "trendGained": "Wzrost o {value} w tym okresie",
+  "@trendGained": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "trendSame": "Bez zmian w tym okresie",
+  "trendRows": "Przebieg",
+  "valueAtDate": "{value} · {date}",
+  "@valueAtDate": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "targetNamed": "Cel {value}",
+  "@targetNamed": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "hapticsLabel": "Haptyka"
 }

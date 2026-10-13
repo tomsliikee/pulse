@@ -9,6 +9,7 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../data/period.dart';
+import '../../data/trend.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/app_type.dart';
@@ -21,6 +22,7 @@ import '../../widgets/bar_chart.dart';
 import '../../widgets/floating_tab_bar.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
+import '../../widgets/pick_curve.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../entry/entry_sheet.dart';
@@ -61,7 +63,8 @@ extension PeriodKindLabel on PeriodKind {
 
 /// One measurement over a day, a week, a month, a year or everything that
 /// has been collected, chosen with the tabs floating at the bottom. For what the app can
-/// record itself, a day also lists its single entries.
+/// record itself, a day also lists its single entries. The weight opens on
+/// its week and has a line above the bars, with the target weight across it.
 class MetricDetailPage extends StatefulWidget {
   const MetricDetailPage({super.key, required this.metric});
 
@@ -72,7 +75,12 @@ class MetricDetailPage extends StatefulWidget {
 }
 
 class _MetricDetailPageState extends State<MetricDetailPage> {
-  PeriodKind _kind = PeriodKind.today;
+  /// Whether a span shows the line of its days, with the bars and a list of
+  /// its parts below.
+  bool get _trend => widget.metric == Metric.weight;
+
+  // A weight says little on one day, so its page opens on the week.
+  late PeriodKind _kind = _trend ? PeriodKind.week : PeriodKind.today;
 
   /// How many spans back from the current one.
   int _offset = 0;
@@ -192,6 +200,57 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
         _ => null,
       };
 
+  /// The labels along the foot of the line, each with its place across it.
+  List<(double, String)> _marks(
+    Formats formats,
+    PeriodView view,
+  ) => switch (view.kind) {
+    PeriodKind.week => [
+      for (final b in view.buckets)
+        (
+          trendPosition(view, b.start),
+          formats.weekdayShort[b.start.weekday - 1],
+        ),
+    ],
+    PeriodKind.month => [
+      for (var day = 1; day <= view.end.day; day += 7)
+        (
+          trendPosition(view, DateTime(view.start.year, view.start.month, day)),
+          '$day.',
+        ),
+    ],
+    PeriodKind.year => [
+      for (final (i, b) in view.buckets.indexed)
+        (
+          trendPosition(view, b.start, days: b.end.day.toDouble()),
+          formats.monthInitials[i],
+        ),
+    ],
+    PeriodKind.all => [
+      // Every year where they are few, else every second one.
+      for (final (i, b) in view.buckets.indexed)
+        if (view.buckets.length <= 6 || (view.buckets.length - 1 - i).isEven)
+          (trendPosition(view, b.start, days: 365), '${b.start.year}'),
+    ],
+    _ => const [],
+  };
+
+  /// What a row of the list below the bars is called.
+  String _rowLabel(Formats formats, PeriodView view, PeriodBucket row) {
+    final today = AppScope.of(context).health.snapshot.today;
+    return switch (view.kind) {
+      PeriodKind.month =>
+        !today.isBefore(row.start) && !today.isAfter(row.end)
+            ? formats.l10n.thisWeek
+            : row.start == row.end
+            ? formats.shortDate(row.start)
+            : formats.dayRange(row.start, row.end),
+      PeriodKind.year => formats.month(row.start),
+      PeriodKind.all => '${row.start.year}',
+      _ => formats.longDate(row.start),
+    };
+  }
+
   /// "412 mehr als in der Woche davor", or null without a span to compare.
   String? _comparison(Formats formats, PeriodView view) {
     final current = view.headline;
@@ -249,6 +308,14 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
         ? l10n.lastMeasured(latestNote)
         : _comparison(formats, view);
     final kind = metric.entryKind;
+    final points = _trend
+        ? trendPoints(history: health.history!, metric: metric, view: view)
+        : const <TrendPoint>[];
+    final change = trendChange(points);
+    final target = _trend ? AppScope.of(context).settings.targetWeightKg : null;
+    final rows = _trend && !view.kind.isDay
+        ? trendRows(history: health.history!, metric: metric, view: view)
+        : const <PeriodBucket>[];
 
     var low = known.isEmpty ? 0.0 : known.first;
     var high = low;
@@ -321,6 +388,17 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                         ),
                       },
                     ),
+                    if (change != null && bucket == null)
+                      Text(switch (metric.format(formats, change.abs())) {
+                        final shown when shown == metric.format(formats, 0) =>
+                          l10n.trendSame,
+                        _ when change < 0 => l10n.trendLost(
+                          metric.formatWithUnit(formats, -change),
+                        ),
+                        _ => l10n.trendGained(
+                          metric.formatWithUnit(formats, change),
+                        ),
+                      }, style: muted),
                   ],
                 ),
               ),
@@ -398,7 +476,34 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                   SizedBox(height: 96, child: EmptyNote(l10n.noDataThatDay)),
               ] else if (known.isEmpty)
                 SizedBox(height: 180, child: EmptyNote(l10n.noDataInPeriod))
-              else
+              else ...[
+                if (points.isNotEmpty) ...[
+                  // Room for the pill, which hangs over the line's top edge.
+                  const SizedBox(height: PickCurve.pillRoom),
+                  SizedBox(
+                    height: 220,
+                    child: PickCurve(
+                      values: [for (final point in points) point.value],
+                      positions: [for (final point in points) point.position],
+                      drawKey: (view.kind, view.start),
+                      dots: points.length <= 12,
+                      guide: target,
+                      guideLabel: target == null
+                          ? null
+                          : l10n.targetNamed(
+                              metric.formatWithUnit(formats, target),
+                            ),
+                      marks: _marks(formats, view),
+                      labelOf: (index) => l10n.valueAtDate(
+                        metric.formatWithUnit(formats, points[index].value),
+                        view.kind == PeriodKind.all
+                            ? formats.month(points[index].day)
+                            : formats.shortDate(points[index].day),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 BarChart(
                   // Bars grow again for every span.
                   key: ValueKey((view.kind, view.start)),
@@ -414,8 +519,9 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                   baseline: (high - low) < high * 0.4 && low > 0
                       ? low - (high - low) * 0.6
                       : 0,
-                  height: 200,
+                  height: points.isEmpty ? 200 : 140,
                 ),
+              ],
             ],
           ),
         ),
@@ -482,6 +588,18 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
               entries: snapshot.entriesOn(dayIndex, kind),
               kind: kind,
               health: health,
+            ),
+          ),
+        ],
+        if (rows.isNotEmpty) ...[
+          SectionTitle(l10n.trendRows),
+          Entrance(
+            order: 1,
+            child: SegmentGroup(
+              children: [
+                for (final part in rows)
+                  row(_rowLabel(formats, view, part), part.value!),
+              ],
             ),
           ),
         ],

@@ -1,3 +1,5 @@
+import '../../app/haptics.dart';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -100,7 +102,7 @@ class AddTilesSection extends StatelessWidget {
           ),
           M3ESegmentedColumn(
             color: scheme.surfaceBright,
-            haptic: M3EHapticFeedback.light,
+            haptic: Haptics.widget,
             onTap: (i) => settings.addTodayTile(ids[i]),
             children: [for (final id in ids) _row(context, id)],
           ),

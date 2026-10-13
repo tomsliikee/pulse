@@ -1,3 +1,5 @@
+import '../../app/haptics.dart';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -58,7 +60,7 @@ class _StepCountingSheet extends StatelessWidget {
                 const SizedBox(height: 20),
                 M3ESegmentedColumn(
                   color: scheme.surfaceBright,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   onTap: (i) =>
                       settings.setStepCounting(StepCounting.values[i]),
                   children: [

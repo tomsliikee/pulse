@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:pulse/app/haptics.dart';
+import 'package:pulse/data/settings_controller.dart';
 
 import 'support/fixtures.dart';
 
@@ -94,4 +96,77 @@ void main() {
 
     expect(played.last, 'HapticFeedbackType.heavyImpact');
   });
+
+  test(
+    'the haptics are on until switched off, and the choice is kept',
+    () async {
+      final store = MemoryJsonStore();
+      final settings = SettingsController(store);
+      expect(settings.haptics, isTrue);
+      settings.setHaptics(false);
+      await Future<void>.delayed(Duration.zero);
+      final loaded = SettingsController(store);
+      await loaded.load();
+      expect(loaded.haptics, isFalse);
+    },
+  );
+
+  testWidgets('switched off in the settings, nothing is played', (
+    tester,
+  ) async {
+    addTearDown(() => Haptics.enabled = true);
+    final store = MemoryJsonStore()
+      ..documents['settings'] = '{"simple":false,"haptics":false}';
+    await pumpApp(tester, store: store);
+    final played = _recordHaptics(tester);
+
+    await tester.tap(find.bySemanticsLabel('Schlaf'));
+    await advance(tester);
+    final gesture = await tester.startGesture(const Offset(200, 400));
+    await tester.pump();
+    await gesture.cancel();
+    await advance(tester);
+    Haptics.selection();
+    Haptics.tap();
+    Haptics.lift();
+    Haptics.confirm();
+    Haptics.scaled(0.5);
+    expect(played, isEmpty);
+    expect(Haptics.widget.value, 0);
+  });
+
+  for (final (language, label) in const [
+    ('de', 'Haptik'),
+    ('en', 'Haptics'),
+    ('pl', 'Haptyka'),
+  ]) {
+    for (final size in const [Size(360, 640), Size(412, 915)]) {
+      testWidgets('the profile switches the haptics off and on in $language at '
+          '${size.width.round()}', (tester) async {
+        addTearDown(() => Haptics.enabled = true);
+        final app = await pumpApp(tester, size: size, locale: Locale(language));
+        await tester.tap(find.byIcon(Icons.person_rounded).first);
+        await advance(tester);
+        await bringIntoView(tester, find.text(label));
+        final toggle = find.descendant(
+          of: find.ancestor(of: find.text(label), matching: find.byType(Row)),
+          matching: find.byType(Switch),
+        );
+        final played = _recordHaptics(tester);
+
+        // Silent on the way off, felt on the way back on.
+        await tester.tap(toggle);
+        await advance(tester);
+        expect(Haptics.enabled, isFalse);
+        expect(played, isEmpty);
+        expect(app.store.documents['settings'], contains('"haptics":false'));
+
+        await tester.tap(toggle);
+        await advance(tester);
+        expect(Haptics.enabled, isTrue);
+        expect(played, ['HapticFeedbackType.selectionClick']);
+        expect(app.store.documents['settings'], contains('"haptics":true'));
+      });
+    }
+  }
 }

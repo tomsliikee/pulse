@@ -1,3 +1,5 @@
+import '../../app/haptics.dart';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -55,7 +57,7 @@ class _LanguageSheet extends StatelessWidget {
                 const SizedBox(height: 20),
                 M3ESegmentedColumn(
                   color: scheme.surfaceBright,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   onTap: (i) => language.choose(choices[i]),
                   children: [
                     for (final code in choices)

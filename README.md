@@ -230,6 +230,8 @@ Three switches in the profile change the look further, all **off by default**:
 | **Edge-to-edge scene** | The scene of each main page runs from the top of the screen behind the title |
 | **Flex font** | Large numbers and titles use the width and weight axes of **Google Sans Flex** |
 
+A fourth switch, **Haptics**, is **on by default**; switched off, Pulse plays no haptic signal at all.
+
 ![The four main pages with Liquid Glass switched on](readmestuff/glass.png)
 
 ---
@@ -237,6 +239,7 @@ Three switches in the profile change the look further, all **off by default**:
 ## Your Data
 
 - **Entries:** **Water**, **weight** and **meals** from the **+** button, written to Health Connect. The water tile adds a glass of **250 ml** with one tap. Your own entries can be edited and deleted.
+- **Weight:** The page of the weight opens on its week. Week, month, year and everything show a **line** through the measured days above the bars, and below them a list of the days, weeks, months or years with their average. Tap the line or hold and move along it to read a weight and its day. A **target weight** from the profile is drawn across the line.
 - **Foods:** A new meal starts at the five foods eaten most often in the last 90 days; a tap fills the form with the name and values of the last time. **More** opens every food ever logged, including those other apps wrote, to search, sort (latest, most often, A–Z, calories) and filter (time of day, high in protein, calories, only from Pulse). A swipe takes a food out of the lists until it is eaten again.
 - **Tiles:** In edit mode every tile has a **minus**; a list below offers what you removed and every measurement with data. Hold a tile to drag it. A measurement tile is **small** or **large**.
 - **History:** One value per day and metric for up to **ten years**. Data already in Health Connect is loaded once on first start.
@@ -303,7 +306,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **1016** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **1045** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

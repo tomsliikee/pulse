@@ -20,6 +20,7 @@ import '../theme/app_type.dart';
 import '../theme/system_palette.dart';
 import 'app_language.dart';
 import 'app_scope.dart';
+import 'haptics.dart';
 import 'app_shell.dart';
 import 'backup_files.dart';
 import 'frame_log.dart';
@@ -90,6 +91,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         ..stepCounting = _settings.stepCounting;
     });
     _settings.addListener(() => _weather.place = _settings.place);
+    Haptics.enabled = _settings.haptics;
+    _settings.addListener(() => Haptics.enabled = _settings.haptics);
     _palette.addListener(() => _frames.mark('palette'));
     _health.addListener(_keepMorningAlarm);
     _settings.addListener(_keepMorningAlarm);

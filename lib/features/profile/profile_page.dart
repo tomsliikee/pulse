@@ -20,6 +20,7 @@ import '../supplements/supplements_page.dart';
 import 'birth_date_sheet.dart';
 import 'color_style_row.dart';
 import 'height_sheet.dart';
+import 'target_weight_sheet.dart';
 import 'language_sheet.dart';
 import 'name_sheet.dart';
 import 'place_sheet.dart';
@@ -150,7 +151,7 @@ class ProfilePage extends StatelessWidget {
                   type: M3EButtonGroupType.connected,
                   style: M3EButtonStyle.tonal,
                   size: M3EButtonSize.md,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   selectedIndex: settings.simple ? 0 : 1,
                   onSelectedIndexChanged: (index) {
                     if (index != null) settings.setSimple(index == 0);
@@ -208,6 +209,14 @@ class ProfilePage extends StatelessWidget {
                       showHeightSheet,
                     ),
                     (
+                      l10n.targetWeightLabel,
+                      switch (settings.targetWeightKg) {
+                        final kg? => '${formats.decimal(kg)} kg',
+                        null => l10n.notGiven,
+                      },
+                      showTargetWeightSheet,
+                    ),
+                    (
                       l10n.placeLabel,
                       settings.place?.name ?? l10n.notGiven,
                       showPlaceSheet,
@@ -249,7 +258,7 @@ class ProfilePage extends StatelessWidget {
                   type: M3EButtonGroupType.connected,
                   style: M3EButtonStyle.tonal,
                   size: M3EButtonSize.md,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   selectedIndex: switch (settings.sex) {
                     final sex? => _sexes.indexOf(sex),
                     null => null,
@@ -265,7 +274,7 @@ class ProfilePage extends StatelessWidget {
               SectionTitle(l10n.goals),
               M3ESegmentedColumn(
                 color: scheme.surfaceBright,
-                haptic: M3EHapticFeedback.light,
+                haptic: Haptics.widget,
                 onTap: (_) => Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => const GoalsPage()),
                 ),
@@ -289,7 +298,7 @@ class ProfilePage extends StatelessWidget {
                   final mine = scope.supplements.data.mine;
                   return M3ESegmentedColumn(
                     color: scheme.surfaceBright,
-                    haptic: M3EHapticFeedback.light,
+                    haptic: Haptics.widget,
                     onTap: (_) => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const SupplementsPage(),
@@ -488,7 +497,7 @@ class ProfilePage extends StatelessWidget {
                   type: M3EButtonGroupType.connected,
                   style: M3EButtonStyle.tonal,
                   size: M3EButtonSize.md,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   selectedIndex: settings.fineValues ? 1 : 0,
                   onSelectedIndexChanged: (index) {
                     if (index != null) settings.setFineValues(index == 1);
@@ -561,7 +570,7 @@ class ProfilePage extends StatelessWidget {
                   type: M3EButtonGroupType.connected,
                   style: M3EButtonStyle.tonal,
                   size: M3EButtonSize.md,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   selectedIndex: _modes.indexOf(settings.themeMode),
                   onSelectedIndexChanged: (index) {
                     if (index != null) settings.setThemeMode(_modes[index]);
@@ -595,6 +604,7 @@ class ProfilePage extends StatelessWidget {
                       settings.setEdgeToEdgeHero,
                     ),
                     (l10n.flexFont, settings.flexFont, settings.setFlexFont),
+                    (l10n.hapticsLabel, settings.haptics, settings.setHaptics),
                   ])
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
@@ -609,8 +619,10 @@ class ProfilePage extends StatelessWidget {
                           Switch(
                             value: value,
                             onChanged: (value) {
-                              Haptics.selection();
+                              // After the change, so switching the haptics
+                              // off is silent and switching them on is felt.
                               set(value);
+                              Haptics.selection();
                             },
                           ),
                         ],

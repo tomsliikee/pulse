@@ -1,3 +1,5 @@
+import '../../app/haptics.dart';
+
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -215,7 +217,7 @@ class _StepsChartState extends State<_StepsChart> {
                   type: M3EButtonGroupType.connected,
                   style: M3EButtonStyle.tonal,
                   size: M3EButtonSize.sm,
-                  haptic: M3EHapticFeedback.light,
+                  haptic: Haptics.widget,
                   selectedIndex: _month ? 1 : 0,
                   onSelectedIndexChanged: (index) {
                     if (index != null) setState(() => _month = index == 1);

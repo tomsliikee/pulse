@@ -181,7 +181,7 @@ class _SupplementsPageState extends State<SupplementsPage> {
                     SectionTitle(l10n.supplementReminders),
                     M3ESegmentedColumn(
                       color: scheme.surfaceBright,
-                      haptic: M3EHapticFeedback.light,
+                      haptic: Haptics.widget,
                       onTap: (i) => _pickMinute(SupplementTime.reminded[i]),
                       children: [
                         for (final time in SupplementTime.reminded)
