@@ -124,6 +124,11 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(what)
                     return@setMethodCallHandler
                 }
+                if (call.method == "allowed") {
+                    // Whether notifications may be shown, without asking.
+                    result.success(NotificationManagerCompat.from(this).areNotificationsEnabled())
+                    return@setMethodCallHandler
+                }
                 if (call.method != "allow") {
                     result.notImplemented()
                     return@setMethodCallHandler

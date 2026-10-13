@@ -88,7 +88,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         ..sex = _settings.sex
         ..heightCm = _settings.heightCm
         ..fineValues = _settings.fineValues
-        ..stepCounting = _settings.stepCounting;
+        ..stepCounting = _settings.stepCounting
+        ..askHistory = _settings.introDone;
     });
     _settings.addListener(() => _weather.place = _settings.place);
     Haptics.enabled = _settings.haptics;

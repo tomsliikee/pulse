@@ -17,9 +17,18 @@ class MorningSunrise extends StatefulWidget {
     required this.name,
     required this.syncing,
     required this.onRisen,
+    this.greeting,
+    this.syncingLabel,
   });
 
   final String? name;
+
+  /// Said instead of the morning's greeting, where it is not the morning
+  /// that begins.
+  final String? greeting;
+
+  /// Said instead of the night being read.
+  final String? syncingLabel;
 
   /// Whether the read is still running, which the lower edge then says.
   final bool syncing;
@@ -102,7 +111,7 @@ class _MorningSunriseState extends State<MorningSunrise>
                 FadeTransition(
                   opacity: _lit,
                   child: Text(
-                    morningGreeting(l10n, widget.name),
+                    widget.greeting ?? morningGreeting(l10n, widget.name),
                     textAlign: TextAlign.center,
                     style: type.title(
                       context.emphasizedTextTheme.displaySmall?.copyWith(
@@ -127,7 +136,7 @@ class _MorningSunriseState extends State<MorningSunrise>
                         ),
                         Flexible(
                           child: Text(
-                            l10n.morningSyncing,
+                            widget.syncingLabel ?? l10n.morningSyncing,
                             style: type.label(
                               theme.textTheme.labelLarge?.copyWith(
                                 color: scheme.onSurfaceVariant,

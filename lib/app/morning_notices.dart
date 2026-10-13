@@ -21,6 +21,18 @@ abstract final class MorningNotices {
     }
   }
 
+  /// Whether notifications may be shown, without asking for it.
+  static Future<bool> allowed() async {
+    try {
+      return await _channel.invokeMethod<bool>('allowed') ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException catch (error) {
+      debugPrint('Asking whether notifications are allowed failed: $error');
+      return false;
+    }
+  }
+
   /// What the notification the app was opened from was about ("week"), or
   /// null when it was opened another way. Told once.
   static Future<String?> opened() async {

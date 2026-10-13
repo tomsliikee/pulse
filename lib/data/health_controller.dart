@@ -66,6 +66,7 @@ class HealthController extends ChangeNotifier {
   int _selectedIndex = 0;
   bool _refreshing = false;
   bool _backgroundAccess = false;
+  bool _historyAccess = false;
   HealthHistory? _history;
   DateTime? _backfillReached;
   bool _backfilling = false;
@@ -225,6 +226,13 @@ class HealthController extends ChangeNotifier {
   HealthStatus get status => _status;
   bool get refreshing => _refreshing;
   bool get backgroundAccess => _backgroundAccess;
+
+  /// Whether data from before the store's own window may be read.
+  bool get historyAccess => _historyAccess;
+
+  /// Whether the question for older data may be put without a word. Not
+  /// while the introduction is open, which puts it behind a switch.
+  bool askHistory = true;
 
   /// What the last refresh in the background reported, if one has run.
   SyncReport? get backgroundSync => _backgroundSync;
@@ -463,9 +471,11 @@ class HealthController extends ChangeNotifier {
       _readWith = readWith;
       final fresh = withoutWorkouts(read, _removedWorkouts);
       final background = await _repository.backgroundAccessGranted();
+      final older = await _repository.historyAccessGranted();
       final sync = SyncReport.fromJson(await _store.read(StoreKeys.sync));
       if (_disposed) return;
       _backgroundAccess = background;
+      _historyAccess = older;
       _backgroundSync = sync;
       _show(fresh);
       await _store.write(StoreKeys.snapshot, fresh.toJson());
@@ -777,7 +787,7 @@ class HealthController extends ChangeNotifier {
 
     try {
       var granted = await _repository.historyAccessGranted();
-      if (!granted && !asked) {
+      if (!granted && !asked && askHistory) {
         // Asked once. If it is refused the app simply collects from now on.
         asked = true;
         granted = await _repository.requestHistoryAccess();
@@ -1000,6 +1010,36 @@ class HealthController extends ChangeNotifier {
     if (_disposed) return;
     _backgroundAccess = granted;
     notifyListeners();
+  }
+
+  /// Asks for the data from before the store's window and, where it is
+  /// allowed, reads it. The question is then not put by itself again.
+  Future<void> requestHistoryAccess() async {
+    var granted = false;
+    try {
+      granted = await _repository.requestHistoryAccess();
+    } on Exception catch (error) {
+      debugPrint('Requesting older data failed: $error');
+    }
+    await leaveHistory();
+    if (_disposed) return;
+    _historyAccess = granted;
+    notifyListeners();
+    if (!granted || _status != HealthStatus.ready) return;
+    await _backfill();
+    await _backfillWorkouts();
+    await _backfillNights();
+    await _backfillFoods();
+  }
+
+  /// Notes that the question for older data has been put, so the app does
+  /// not put it by itself later.
+  Future<void> leaveHistory() async {
+    final state = await _store.read(StoreKeys.backfill);
+    await _store.write(StoreKeys.backfill, {
+      if (state is Map<String, Object?>) ...state,
+      'asked': true,
+    });
   }
 
   void selectDay(int index) {

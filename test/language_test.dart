@@ -287,7 +287,7 @@ void main() {
         );
         await advance(tester);
         expect(find.text(l10n.lastUpdated), findsOneWidget);
-        await tester.tap(find.text(l10n.language));
+        await tapInView(tester, find.text(l10n.language));
         await advance(tester);
         for (final name in const ['Deutsch', 'English', 'Polski']) {
           expect(find.text(name), findsOneWidget);

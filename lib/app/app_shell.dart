@@ -10,6 +10,7 @@ import '../features/entry/entry_sheet.dart';
 import '../features/supplements/supplement_row.dart';
 import '../features/supplements/supplement_sheet.dart';
 import '../features/heart/heart_page.dart';
+import '../features/intro/intro_page.dart';
 import '../features/sleep/sleep_page.dart';
 import '../features/today/today_page.dart';
 import '../theme/app_motion.dart';
@@ -91,6 +92,14 @@ class _AppShellState extends State<AppShell> {
         body: ListenableBuilder(
           listenable: Listenable.merge([health, settings]),
           builder: (context, _) {
+            // A new installation is led through its first start, where
+            // there is a health store to lead it to.
+            if (settings.loaded &&
+                !settings.introDone &&
+                health.status != HealthStatus.loading &&
+                health.status != HealthStatus.unsupported) {
+              return const IntroPage();
+            }
             if (health.status != HealthStatus.ready) {
               return SafeArea(child: AccessPage(status: health.status));
             }

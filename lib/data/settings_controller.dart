@@ -220,6 +220,7 @@ class SettingsController extends ChangeNotifier {
   bool _edgeToEdgeHero = false;
   bool _flexFont = false;
   bool _haptics = true;
+  bool _introDone = true;
   String? _language;
   Map<String, List<String>> _tileOrder = {};
   List<String> _todayTiles = defaultTodayTiles;
@@ -306,6 +307,10 @@ class SettingsController extends ChangeNotifier {
   /// Whether the app gives haptic signals.
   bool get haptics => _haptics;
 
+  /// Whether the introduction of the first start is over. False only on a
+  /// new installation that has not been through it.
+  bool get introDone => _introDone;
+
   /// The chosen language, or null to follow the system. Only used where the
   /// system keeps no language per app; see `LanguageController`.
   String? get language => _language;
@@ -347,6 +352,7 @@ class SettingsController extends ChangeNotifier {
       // Nothing saved yet: a new installation starts with the few numbers.
       // One that saved its settings before the mode existed keeps them all.
       _simple = true;
+      _introDone = false;
       notifyListeners();
       return;
     }
@@ -413,6 +419,7 @@ class SettingsController extends ChangeNotifier {
     if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
     if (json['flexFont'] case final bool v) _flexFont = v;
     if (json['haptics'] case final bool v) _haptics = v;
+    if (json['introDone'] case final bool v) _introDone = v;
     if (json['language'] case final String v when appLanguages.contains(v)) {
       _language = v;
     }
@@ -603,6 +610,8 @@ class SettingsController extends ChangeNotifier {
 
   void setHaptics(bool value) => _update(() => _haptics = value);
 
+  void setIntroDone(bool value) => _update(() => _introDone = value);
+
   void setLanguage(String? value) {
     if (value != null && !appLanguages.contains(value)) return;
     _update(() => _language = value);
@@ -682,6 +691,7 @@ class SettingsController extends ChangeNotifier {
             'edgeToEdgeHero': _edgeToEdgeHero,
             'flexFont': _flexFont,
             'haptics': _haptics,
+            'introDone': _introDone,
             'language': ?_language,
             'tileOrder': _tileOrder,
             'todayTiles': _todayTiles,

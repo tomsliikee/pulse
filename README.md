@@ -51,6 +51,21 @@ The screenshots on this page show sample data.
 
 ## The Pages
 
+### First Start
+
+A new installation begins with seven cards to swipe through. Each can be passed and the whole can be skipped; everything on them is in the profile as well.
+
+- **Where the Data Stays:** No account, no server, everything on the phone. The one exception is the weather, and only once a place is set.
+- **Health Connect:** What Pulse reads, in five groups, and the three kinds of entries it writes, said before Android's own dialog opens.
+- **Optional:** Notifications, the refresh in the background and data older than 30 days each have a switch. A switch asks Android at once and shows its answer. Older data that is left off is not asked for by itself later; the profile has a button for it.
+- **About You:** Name, date of birth, sex, height and place, each with what it is used for.
+- **Goals and Mode:** Steps, sleep and water with a suggestion, then the choice between simple and advanced.
+- **The End:** The sun rises while the data is read for the first time.
+
+An installation that already has settings does not see it. **See the introduction** in the profile opens it again.
+
+![The welcome, what Pulse reads from Health Connect, the optional switches, and the choice of the mode](readmestuff/intro.png)
+
 ### Simple and Advanced
 
 The large cards of the four pages come in two modes, chosen at the top of the profile.
@@ -296,9 +311,9 @@ flutter test
 | **26 `READ_*`** health permissions | One per data type the app shows |
 | **`WRITE_HYDRATION`**, **`WRITE_WEIGHT`**, **`WRITE_NUTRITION`** | The three kinds of entries you can add |
 | **`READ_EXERCISE_ROUTES`** | The routes of workouts other apps recorded. Asked for through Health Connect's own dialog; if declined, workouts have no line |
-| **`READ_HEALTH_DATA_HISTORY`** | Loading data older than 30 days once. If declined, history grows from today |
-| **`READ_HEALTH_DATA_IN_BACKGROUND`** | The hourly refresh. If declined, data is refreshed when the app is opened |
-| **`POST_NOTIFICATIONS`** | The notification that says good morning. Asked for after the cards first opened by themselves; if declined, they still open in the app |
+| **`READ_HEALTH_DATA_HISTORY`** | Loading data older than 30 days once. Asked for by a switch at the first start or a button in the profile; if declined, history grows from today |
+| **`READ_HEALTH_DATA_IN_BACKGROUND`** | The hourly refresh. Asked for by a switch at the first start or a button in the profile; if declined, data is refreshed when the app is opened |
+| **`POST_NOTIFICATIONS`** | The notification that says good morning. Asked for by a switch at the first start, or after the cards first opened by themselves; if declined, they still open in the app |
 | **`RECEIVE_BOOT_COMPLETED`** | Sets the alarm for that notification again after the phone restarted |
 | **`INTERNET`** | The weather and the search for a place, both from **Open-Meteo**. Not used until a place is set |
 
@@ -306,7 +321,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **1045** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **1074** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD

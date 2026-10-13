@@ -576,6 +576,7 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   BackupFiles files = const SystemBackupFiles(),
   WeatherSource? weather,
   bool simple = false,
+  bool fresh = false,
 }) async {
   // The system's language; the tests read German unless they ask otherwise.
   tester.platformDispatcher.localesTestValue = [locale];
@@ -587,7 +588,8 @@ Future<({FixtureRepository repository, MemoryJsonStore store})> pumpApp(
   final memory = store ?? MemoryJsonStore();
   // A new installation starts in simple mode. The tests read every number
   // unless they ask otherwise, so a store without settings gets the mode.
-  if (await memory.read(StoreKeys.settings) == null) {
+  // Nor do they begin with the introduction, unless they are [fresh].
+  if (!fresh && await memory.read(StoreKeys.settings) == null) {
     await memory.write(StoreKeys.settings, {'simple': simple});
   }
   await tester.pumpWidget(

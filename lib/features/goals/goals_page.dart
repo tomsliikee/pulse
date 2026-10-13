@@ -231,7 +231,7 @@ class _GoalsPageState extends State<GoalsPage> {
             children: [
               for (final goal in Goal.values)
                 if (goal.group == group)
-                  _GoalSetting(goal: goal, settings: settings),
+                  GoalSetting(goal: goal, settings: settings),
             ],
           ),
         ],
@@ -605,8 +605,8 @@ class _YearBars extends StatelessWidget {
 }
 
 /// The switch of a goal and, while it is on, the slider of its target.
-class _GoalSetting extends StatelessWidget {
-  const _GoalSetting({required this.goal, required this.settings});
+class GoalSetting extends StatelessWidget {
+  const GoalSetting({super.key, required this.goal, required this.settings});
 
   final Goal goal;
   final SettingsController settings;

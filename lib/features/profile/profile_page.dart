@@ -15,6 +15,7 @@ import '../../widgets/page_header.dart';
 import '../../widgets/stat_tile.dart';
 import '../goals/goal_format.dart';
 import '../goals/goals_page.dart';
+import '../intro/intro_page.dart';
 import '../supplements/supplement_format.dart';
 import '../supplements/supplements_page.dart';
 import 'birth_date_sheet.dart';
@@ -652,6 +653,28 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ),
                   ),
+                  InkWell(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        fullscreenDialog: true,
+                        builder: (_) => const IntroPage(again: true),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              l10n.introAgain,
+                              style: theme.textTheme.titleMedium,
+                            ),
+                          ),
+                          const Icon(Icons.chevron_right_rounded),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
               if (ready) ...[
@@ -709,6 +732,15 @@ class ProfilePage extends StatelessWidget {
                         M3EFilledButton.tonal(
                           onPressed: health.requestBackgroundAccess,
                           child: Text(l10n.refreshInBackground),
+                        ),
+                      ],
+                      if (!health.historyAccess) ...[
+                        const SizedBox(height: 16),
+                        Text(l10n.historyOff, style: muted),
+                        const SizedBox(height: 12),
+                        M3EFilledButton.tonal(
+                          onPressed: health.requestHistoryAccess,
+                          child: Text(l10n.historyLoad),
                         ),
                       ],
                     ],
