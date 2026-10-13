@@ -29,7 +29,7 @@ The screenshots on this page show sample data.
 
 ## Features
 
-- **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape. The scene comes in when the page opens, and a button at the top reloads the data.
+- **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape. The scene comes in when the page opens: the land rises, the sun or the moon climbs to its place and the figure appears.
 - **Simple or Advanced:** The large cards show their few most important numbers, or all of them. A new installation starts simple.
 - **Good Morning:** A few cards when you get up: last night, your recovery, the weather and your goals.
 - **Weekly Report:** On Sunday evening, the week from Monday to Sunday against the weeks before, with a score of its own.
@@ -39,6 +39,7 @@ The screenshots on this page show sample data.
 - **Body Age:** Your real age plus or minus the years your last 30 days are worth.
 - **Ten Years of History:** Every metric by day, week, month, year and in total.
 - **Your Own Layout:** Remove, add, resize and reorder the tiles of every page.
+- **Reload by a Button:** The arrow beside the edit pencil reads everything again. Pulling the page down does nothing, so a scroll never reloads by mistake.
 - **Every Kind of Workout:** 56 kinds, from running to table tennis, each counted in the way that fits it.
 - **Routes:** The way a workout took, drawn by its speed, with the time of each kilometre and the climb.
 - **Entries:** Add **water**, **weight** and **meals**; they are written to Health Connect. A meal starts at the foods you logged before.
@@ -64,7 +65,7 @@ A new installation starts in simple mode. An installation that already has setti
 
 ### Today
 
-- **The Day as a Scene:** The sky follows the time of day, and the figure stands in it at the time it is.
+- **The Day as a Scene:** The sky follows the time of day, with the sun or the moon where the hour puts it. By day the figure walks, livelier in an hour with many steps, past three rows of hills and swaying grass; at night it stands and breathes.
 - **Recovery:** How rested the day began, from 0 to 100 %, in red, yellow or green. From nine in the evening the **day score** joins it.
 - **Two Rings:** **Steps** outside and **active calories** inside, each against its goal, around the **body age**. A ring that reaches its goal turns into a travelling wave.
 - **The Hours So Far:** Small bars from midnight to now beside each ring, and one sentence that sets your steps against yesterday at the same time.
@@ -90,7 +91,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 ### Activity
 
-- **The Latest Workout as a Scene:** A figure walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape.
+- **The Latest Workout as a Scene:** A figure walks, runs, hikes, rides, swims, lifts or breathes in front of a passing landscape. A runner and a rider leave the wind behind them, and a runner raises dust with every step.
 - **A Page per Workout:** Every number against the workout before and the average of the last ones, a chart of the last twelve of its kind, and marks for personal bests.
 - **The Route:** Where a workout has one, its line tinted from slow to fast, the time of each kilometre as bars with the fastest marked (a speed for rides, stretches of five or ten kilometres for long ways), and the altitude as a profile with the metres climbed and descended. Rows and the latest workout show the line small. Three switches in the profile take the kilometres, the climb and the small lines away.
 - **Allowing Routes:** Health Connect hands out the routes other apps recorded only with your consent. While it holds them back, a workout's page and the profile show a button that opens Health Connect's own dialog; choose **Allow all routes** there. The line is kept as at most 200 points in the app's own directory; no map is loaded.
@@ -105,7 +106,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 ### Sleep
 
-- **The Night Played Back:** The latest night runs in twelve seconds. The sky follows the stages, and the figure snores in deep sleep, dreams in REM and sits up when you were awake.
+- **The Night Played Back:** The latest night runs in twelve seconds. The sky follows the stages, and the figure snores in deep sleep, dreams in REM and sits up when you were awake. The blanket rises with each breath, the moon has a light around it, and now and then a star falls.
 - **Tonight:** A bedtime counted back from your usual time of getting up, a little earlier while the week is in debt.
 - **A Page per Night:** The score in its four parts, the stages as blocks and against a guide range, bedtime and waking of the last 30 nights, and the sleep debt of seven.
 - **Observations:** How your nights after a workout, or after a day above the step goal, differ from the others, by the rule of [What Goes Together](#what-goes-together).
@@ -114,7 +115,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 ### Heart
 
-- **A Heart That Beats at Your Rate:** The heart on the page swells at the last measured rate, and a monitor line passes behind the figure with one spike per beat.
+- **A Heart That Beats at Your Rate:** A bright dot draws a monitor line behind the figure, one spike in the time of one beat at the last measured rate, and the line fades behind it. With every spike the heart swells and a ring leaves it.
 - **Over the Day:** The day's heart rate as a curve from the first measurement to the last, true to time. Tap it and a bar stays at that measurement, with a pill that says the rate and the time; hold and drag, and the bar follows your finger. Each step is felt, fainter for a low rate and firmer for a high one.
 - **The Day in Detail:** Tap the top of the page for the day's own page: lowest, average and highest with their times, the zones, the parts of the day, each number against the days before, hints from your own numbers, and the day hour by hour. A bar at the bottom leads to the other days that have a curve.
 - **The Days Before and the Week:** Earlier days as cards to swipe and the week's averages as bars; each opens its day.
@@ -281,7 +282,7 @@ flutter test
 
 ## How It Works
 
-One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **913** unit and widget tests that need no device.
+One file in the code base talks to the **`health`** plugin. Everything above it works on plain Dart values and is covered by **949** unit and widget tests that need no device.
 
 ```mermaid
 flowchart TD
