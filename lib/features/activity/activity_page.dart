@@ -33,6 +33,7 @@ class ActivityPage extends StatelessWidget {
         listenable: Listenable.merge([health, scope.settings]),
         builder: (context, _) {
           final l10n = AppLocalizations.of(context);
+          final simple = scope.settings.simple;
           final snapshot = health.snapshot;
           final workouts = health.workouts;
           // The latest has a tile of its own; these are the ones before it.
@@ -58,9 +59,9 @@ class ActivityPage extends StatelessWidget {
                 BoardTile(
                   id: 'lastWorkout',
                   title: l10n.lastActivity,
-                  height: LatestWorkoutCard.height,
+                  height: LatestWorkoutCard.heightFor(simple: simple),
                   entersInPlace: true,
-                  child: LatestWorkoutCard(workouts: workouts),
+                  child: LatestWorkoutCard(workouts: workouts, simple: simple),
                 ),
               if (workouts.length > 1)
                 BoardTile(
@@ -71,6 +72,7 @@ class ActivityPage extends StatelessWidget {
                   child: RecentWorkoutsCard(
                     workouts: earlier,
                     total: workouts.length,
+                    simple: simple,
                   ),
                 ),
               BoardTile(
@@ -80,6 +82,7 @@ class ActivityPage extends StatelessWidget {
                 child: _StepsChart(
                   health: health,
                   stepGoal: scope.settings.stepGoal,
+                  simple: simple,
                 ),
               ),
               for (final metric in const [
@@ -122,10 +125,17 @@ class ActivityPage extends StatelessWidget {
 }
 
 class _StepsChart extends StatefulWidget {
-  const _StepsChart({required this.health, required this.stepGoal});
+  const _StepsChart({
+    required this.health,
+    required this.stepGoal,
+    required this.simple,
+  });
 
   final HealthController health;
   final int stepGoal;
+
+  /// Whether the chosen day's steps are said only once a bar was tapped.
+  final bool simple;
 
   @override
   State<_StepsChart> createState() => _StepsChartState();
@@ -133,6 +143,9 @@ class _StepsChart extends StatefulWidget {
 
 class _StepsChartState extends State<_StepsChart> {
   bool _month = false;
+
+  /// Whether a bar was tapped since the page was opened.
+  bool _tapped = false;
 
   @override
   Widget build(BuildContext context) {
@@ -225,21 +238,34 @@ class _StepsChartState extends State<_StepsChart> {
                                 1],
                         ],
                   selectedIndex: selected >= 0 ? selected : null,
-                  onSelected: (i) => health.selectDay(start + i),
+                  onSelected: (i) {
+                    setState(() => _tapped = true);
+                    health.selectDay(start + i);
+                  },
                   color: accent.container,
                   selectedColor: accent.accent,
                   goal: widget.stepGoal.toDouble(),
                 ),
                 const SizedBox(height: 16),
-                Text(
-                  '${formats.shortDate(health.selectedDate)}  ·  '
-                  '${Metric.steps.formatWithUnit(formats, health.value(Metric.steps))}',
-                  style: type.strong(
-                    context.emphasizedTextTheme.titleSmall?.copyWith(
-                      color: accent.accent,
+                if (widget.simple && !_tapped)
+                  Text(
+                    l10n.stepsChartTap,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  Text(
+                    '${formats.shortDate(health.selectedDate)}  ·  '
+                    '${Metric.steps.formatWithUnit(formats, health.value(Metric.steps))}',
+                    style: type.strong(
+                      context.emphasizedTextTheme.titleSmall?.copyWith(
+                        color: accent.accent,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

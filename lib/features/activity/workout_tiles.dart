@@ -69,13 +69,24 @@ class WorkoutBackdrop extends StatelessWidget {
 /// of workout sits on its shape over the scene's edge, and below it its
 /// name and numbers stand free.
 class LatestWorkoutCard extends StatelessWidget {
-  const LatestWorkoutCard({super.key, required this.workouts});
+  const LatestWorkoutCard({
+    super.key,
+    required this.workouts,
+    this.simple = false,
+  });
 
   /// Every workout the app knows, oldest first, and not empty.
   final List<Workout> workouts;
 
+  /// Whether the card shows one number alone: how far, or how long.
+  final bool simple;
+
   static const double sceneHeight = 132;
   static const double height = sceneHeight + 232;
+
+  /// Without its row of numbers the card ends sooner.
+  static double heightFor({required bool simple}) =>
+      simple ? sceneHeight + simpleHeroBody : height;
 
   static const double _shape = 104;
   static const double _overlap = 48;
@@ -166,7 +177,9 @@ class LatestWorkoutCard extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              workout.type.label(l10n),
+                              simple
+                                  ? workoutFigure(formats, workout)
+                                  : workout.type.label(l10n),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: type.hero(
@@ -175,8 +188,11 @@ class LatestWorkoutCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${formats.shortDate(workout.start)} · '
-                              '${formats.duration(workout.minutes)}',
+                              simple
+                                  ? '${workout.type.label(l10n)} · '
+                                        '${formats.shortDate(workout.start)}'
+                                  : '${formats.shortDate(workout.start)} · '
+                                        '${formats.duration(workout.minutes)}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: type.label(
@@ -186,31 +202,35 @@ class LatestWorkoutCard extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            Row(
-                              children: [
-                                for (final comparison in shown)
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      child: FreeFigure(
-                                        label: comparison.measure.label(l10n),
-                                        value: AnimatedNumber(
-                                          value: comparison.value,
-                                          format: (value) =>
-                                              comparison.measure.format(
-                                                formats,
-                                                workout.type,
-                                                value,
-                                              ),
+                            if (!simple) ...[
+                              Row(
+                                children: [
+                                  for (final comparison in shown)
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
+                                        ),
+                                        child: FreeFigure(
+                                          label: comparison.measure.label(l10n),
+                                          value: AnimatedNumber(
+                                            value: comparison.value,
+                                            format: (value) =>
+                                                comparison.measure.format(
+                                                  formats,
+                                                  workout.type,
+                                                  value,
+                                                ),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                            const Spacer(),
+                                ],
+                              ),
+                              const Spacer(),
+                            ],
                             Text(
-                              workoutHeadline(formats, insights),
+                              workoutHeadline(formats, insights, plain: simple),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: type.strong(
@@ -257,6 +277,7 @@ class RecentWorkoutsCard extends StatelessWidget {
     super.key,
     required this.workouts,
     required this.total,
+    this.simple = false,
   });
 
   /// Newest first.
@@ -264,6 +285,9 @@ class RecentWorkoutsCard extends StatelessWidget {
 
   /// How many workouts there are altogether.
   final int total;
+
+  /// Whether a workout shows its length alone, and the count is left out.
+  final bool simple;
 
   /// A [WorkoutRow] in a list.
   static const double rowHeight = 64;
@@ -296,14 +320,15 @@ class RecentWorkoutsCard extends StatelessWidget {
               iconColor: accent.onAccent,
             ),
             title: workout.type.label(l10n),
-            subtitle:
-                '${formats.shortDate(workout.start)} · '
-                '${formats.duration(workout.minutes)}',
+            subtitle: simple
+                ? formats.duration(workout.minutes)
+                : '${formats.shortDate(workout.start)} · '
+                      '${formats.duration(workout.minutes)}',
             onTap: (origin) => openWorkout(context, workout, origin),
           ),
         CarouselEndChip(
           title: l10n.allActivities,
-          subtitle: l10n.activitiesCount(total),
+          subtitle: simple ? null : l10n.activitiesCount(total),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const WorkoutListPage()),
           ),
@@ -315,9 +340,18 @@ class RecentWorkoutsCard extends StatelessWidget {
 
 /// One workout in a list. Tapping it opens the page about it.
 class WorkoutRow extends StatelessWidget {
-  const WorkoutRow({super.key, required this.workout, this.onRestore});
+  const WorkoutRow({
+    super.key,
+    required this.workout,
+    this.onRestore,
+    this.simple = false,
+  });
 
   final Workout workout;
+
+  /// Whether the row shows one number alone: the distance, or the time of
+  /// a workout that has none.
+  final bool simple;
 
   /// For a workout that was removed: the row has no page to open and ends
   /// with a button that brings the workout back.
@@ -370,13 +404,15 @@ class WorkoutRow extends StatelessWidget {
                   Text(
                     [
                       formats.shortDate(workout.start),
-                      formats.duration(workout.minutes),
-                      if (distance != null && distance > 0)
-                        WorkoutMeasure.distance.format(
-                          formats,
-                          workout.type,
-                          distance,
-                        ),
+                      if (!simple) ...[
+                        formats.duration(workout.minutes),
+                        if (distance != null && distance > 0)
+                          WorkoutMeasure.distance.format(
+                            formats,
+                            workout.type,
+                            distance,
+                          ),
+                      ],
                     ].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -395,7 +431,17 @@ class WorkoutRow extends StatelessWidget {
                 icon: const Icon(Icons.restore_rounded),
               ),
             ] else ...[
-              if (workout.kcal case final kcal?) ...[
+              if (simple) ...[
+                const SizedBox(width: 8),
+                Text(
+                  workoutFigure(formats, workout),
+                  style: type.figure(
+                    context.emphasizedTextTheme.labelLarge?.copyWith(
+                      color: activity.accent,
+                    ),
+                  ),
+                ),
+              ] else if (workout.kcal case final kcal?) ...[
                 const SizedBox(width: 8),
                 Text(
                   '${formats.integer(kcal)} kcal',

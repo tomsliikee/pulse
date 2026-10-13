@@ -46,8 +46,12 @@ class HeartPage extends StatelessWidget {
             BoardTile(
               id: 'hero',
               title: l10n.shortHeartRate,
-              height: HeartDayCard.height,
-              child: HeartDayCard(date: date, samples: samples),
+              height: HeartDayCard.heightFor(simple: settings.simple),
+              child: HeartDayCard(
+                date: date,
+                samples: samples,
+                simple: settings.simple,
+              ),
             ),
             BoardTile(
               id: 'day',
@@ -60,9 +64,13 @@ class HeartPage extends StatelessWidget {
               BoardTile(
                 id: 'recentDays',
                 title: l10n.moreDays,
-                height: HeartDaysCard.height,
+                height: HeartDaysCard.heightFor(simple: settings.simple),
                 entersInPlace: true,
-                child: HeartDaysCard(title: l10n.moreDays, date: date),
+                child: HeartDaysCard(
+                  title: l10n.moreDays,
+                  date: date,
+                  simple: settings.simple,
+                ),
               ),
             if (samples.isNotEmpty)
               BoardTile(
@@ -137,7 +145,7 @@ class HeartPage extends StatelessWidget {
                 height: HeartZones.tileHeight,
                 child: TitledTile(
                   title: l10n.timeInZones,
-                  child: HeartZones(samples: samples),
+                  child: HeartZones(samples: samples, plain: settings.simple),
                 ),
               ),
             BoardTile(

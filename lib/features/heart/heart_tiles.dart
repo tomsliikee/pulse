@@ -46,13 +46,25 @@ void openHeartDay(BuildContext context, DateTime date, Rect origin) {
 /// day ranged, its numbers and how it went against the days before. Tapped,
 /// it opens the day in detail.
 class HeartDayCard extends StatelessWidget {
-  const HeartDayCard({super.key, required this.date, required this.samples});
+  const HeartDayCard({
+    super.key,
+    required this.date,
+    required this.samples,
+    this.simple = false,
+  });
 
   final DateTime date;
   final List<HeartSample> samples;
 
+  /// Whether the card shows the latest rate and the day's range alone.
+  final bool simple;
+
   static const double sceneHeight = 132;
   static const double height = sceneHeight + 232;
+
+  /// Without its row of numbers the card ends sooner.
+  static double heightFor({required bool simple}) =>
+      simple ? sceneHeight + simpleHeroBody : height;
 
   static const double _shape = 104;
   static const double _overlap = 48;
@@ -117,6 +129,8 @@ class HeartDayCard extends StatelessWidget {
                               child: Text(
                                 current == null
                                     ? l10n.noPulseThatDay
+                                    : simple
+                                    ? l10n.metricHeartRate
                                     : l10n.lastAtTime(
                                         formatClock(current.minuteOfDay),
                                       ),
@@ -166,47 +180,58 @@ class HeartDayCard extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    l10n.measuredFromTo(
-                                      formatClock(samples.first.minuteOfDay),
-                                      formatClock(samples.last.minuteOfDay),
-                                    ),
+                                    simple
+                                        ? (date == health.today
+                                              ? l10n.heartSoFar
+                                              : formats.shortDate(date))
+                                        : l10n.measuredFromTo(
+                                            formatClock(
+                                              samples.first.minuteOfDay,
+                                            ),
+                                            formatClock(
+                                              samples.last.minuteOfDay,
+                                            ),
+                                          ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: quiet,
                                   ),
                                   const Spacer(),
-                                  Row(
-                                    children: [
-                                      for (final (label, value) in [
-                                        (
-                                          l10n.heartAverage,
-                                          bpmText(summary.average),
-                                        ),
-                                        (
-                                          l10n.heartActive,
-                                          formats.duration(
-                                            activeMinutes(samples),
+                                  if (!simple) ...[
+                                    Row(
+                                      children: [
+                                        for (final (label, value) in [
+                                          (
+                                            l10n.heartAverage,
+                                            bpmText(summary.average),
                                           ),
-                                        ),
-                                      ])
-                                        Expanded(
-                                          child: Padding(
-                                            padding: const EdgeInsets.only(
-                                              right: 10,
-                                            ),
-                                            child: FreeFigure(
-                                              label: label,
-                                              value: Text(value),
+                                          (
+                                            l10n.heartActive,
+                                            formats.duration(
+                                              activeMinutes(samples),
                                             ),
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                  const Spacer(),
+                                        ])
+                                          Expanded(
+                                            child: Padding(
+                                              padding: const EdgeInsets.only(
+                                                right: 10,
+                                              ),
+                                              child: FreeFigure(
+                                                label: label,
+                                                value: Text(value),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const Spacer(),
+                                  ],
                                   Text(
                                     heartHeadline(
                                       formats,
                                       heartInsightsOf(health, date),
+                                      plain: simple,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -261,12 +286,23 @@ class HeartDayCard extends StatelessWidget {
 /// The days before [date] that have a curve, to swipe through, each a small
 /// card with the figure and the day's average on a heart.
 class HeartDaysCard extends StatelessWidget {
-  const HeartDaysCard({super.key, required this.title, required this.date});
+  const HeartDaysCard({
+    super.key,
+    required this.title,
+    required this.date,
+    this.simple = false,
+  });
 
   final String title;
   final DateTime date;
 
+  /// Whether a day shows its average alone, without its range.
+  final bool simple;
+
   static const double height = ChipCarousel.height;
+
+  static double heightFor({required bool simple}) =>
+      ChipCarousel.heightFor(oneLine: simple);
 
   /// The days shown, newest first.
   static List<DateTime> daysBefore(HealthController health, DateTime date) => [
@@ -282,6 +318,7 @@ class HeartDaysCard extends StatelessWidget {
     final type = AppType.of(context);
     return ChipCarousel(
       title: title,
+      oneLine: simple,
       children: [
         for (final day in daysBefore(health, date))
           if (heartSummary(heartSamplesOn(health, day)) case final summary?)
@@ -312,7 +349,9 @@ class HeartDaysCard extends StatelessWidget {
                 ),
               ),
               title: formats.shortDate(day),
-              subtitle: formats.l10n.bpmRange(summary.low, summary.high),
+              subtitle: simple
+                  ? null
+                  : formats.l10n.bpmRange(summary.low, summary.high),
               onTap: (origin) => openHeartDay(context, day, origin),
             ),
       ],
@@ -392,12 +431,20 @@ class HeartNoteCard extends StatelessWidget {
 /// How long the heart spent in each zone, a wavy line a zone, the one with
 /// the most time the loud one.
 class HeartZones extends StatelessWidget {
-  const HeartZones({super.key, required this.samples, this.detailed = false});
+  const HeartZones({
+    super.key,
+    required this.samples,
+    this.detailed = false,
+    this.plain = false,
+  });
 
   final List<HeartSample> samples;
 
   /// Also says the rates each zone covers and its share of the time.
   final bool detailed;
+
+  /// Whether the lines stand alone, without the time spent in a zone.
+  final bool plain;
 
   static const double _row = 68;
 
@@ -448,13 +495,14 @@ class HeartZones extends StatelessWidget {
                 style: type.strong(theme.textTheme.titleSmall),
               ),
             ),
-            Text(
-              detailed && total > 0
-                  ? '${formats.duration(minutes[i])} · '
-                        '${l10n.percentValue((minutes[i] * 100 / total).round())}'
-                  : formats.duration(minutes[i]),
-              style: type.figure(context.emphasizedTextTheme.labelLarge),
-            ),
+            if (!plain)
+              Text(
+                detailed && total > 0
+                    ? '${formats.duration(minutes[i])} · '
+                          '${l10n.percentValue((minutes[i] * 100 / total).round())}'
+                    : formats.duration(minutes[i]),
+                style: type.figure(context.emphasizedTextTheme.labelLarge),
+              ),
           ],
         ),
         const SizedBox(height: 8),

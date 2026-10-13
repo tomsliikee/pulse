@@ -19,6 +19,9 @@ class MorningTile extends StatelessWidget {
 
   static const double height = 88;
 
+  /// In simple mode the tile is its greeting alone.
+  static double heightFor({required bool simple}) => simple ? 72 : height;
+
   // The board holds this tile as a constant, so it listens for itself.
   @override
   Widget build(BuildContext context) {
@@ -85,14 +88,15 @@ class MorningTile extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              Text(
-                                line.isEmpty ? l10n.morningOpen : line,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: scheme.onPrimaryContainer,
+                              if (!settings.simple)
+                                Text(
+                                  line.isEmpty ? l10n.morningOpen : line,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: scheme.onPrimaryContainer,
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ),

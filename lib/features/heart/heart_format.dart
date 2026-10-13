@@ -10,13 +10,24 @@ import '../../theme/app_theme.dart';
 /// A rate with its unit.
 String bpmText(int bpm) => '$bpm bpm';
 
-/// How the day went against the days before, in a line.
-String heartHeadline(Formats formats, HeartDayInsights insights) {
+/// How the day went against the days before, in a line; [plain] leaves the
+/// number out.
+String heartHeadline(
+  Formats formats,
+  HeartDayInsights insights, {
+  bool plain = false,
+}) {
   final l10n = formats.l10n;
   return switch (insights.headline) {
     HeartHeadline.first => l10n.heartFirst,
-    HeartHeadline.calmer => l10n.heartCalmer(insights.difference.abs()),
-    HeartHeadline.livelier => l10n.heartLivelier(insights.difference.abs()),
+    HeartHeadline.calmer =>
+      plain
+          ? l10n.heartCalmerPlain
+          : l10n.heartCalmer(insights.difference.abs()),
+    HeartHeadline.livelier =>
+      plain
+          ? l10n.heartLivelierPlain
+          : l10n.heartLivelier(insights.difference.abs()),
     HeartHeadline.usual => l10n.heartUsual,
   };
 }

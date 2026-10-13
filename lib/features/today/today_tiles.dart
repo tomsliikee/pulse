@@ -28,6 +28,7 @@ import '../sleep/night_tiles.dart';
 import '../detail/large_metric_tile.dart';
 import '../detail/metric_spec.dart';
 import '../detail/metric_tiles.dart';
+import '../links/link_format.dart';
 import '../links/links_tile.dart';
 import '../morning/morning_tile.dart';
 import '../week/week_tile.dart';
@@ -123,7 +124,7 @@ BoardTile? buildTodayTile(
       case morningTileId:
         return BoardTile(
           id: id,
-          height: MorningTile.height,
+          height: MorningTile.heightFor(simple: settings.simple),
           entersInPlace: true,
           onRemove: remove,
           child: const MorningTile(),
@@ -139,7 +140,10 @@ BoardTile? buildTodayTile(
       case linksTileId:
         return BoardTile(
           id: id,
-          height: LinksTile.height,
+          height: LinksTile.heightFor(
+            simple: settings.simple,
+            hasLink: settings.simple && linksOf(health, settings).isNotEmpty,
+          ),
           entersInPlace: true,
           onRemove: remove,
           child: const LinksTile(),
@@ -147,7 +151,7 @@ BoardTile? buildTodayTile(
       case dayTileId:
         return BoardTile(
           id: id,
-          height: DayCard.height,
+          height: DayCard.heightFor(simple: settings.simple),
           entersInPlace: true,
           onRemove: remove,
           child: const DayCard(),
@@ -171,6 +175,7 @@ BoardTile? buildTodayTile(
             NightRow(
               night: health.latestNight!,
               title: AppLocalizations.of(context).lastNight,
+              simple: settings.simple,
             ),
           ),
         );
@@ -187,16 +192,22 @@ BoardTile? buildTodayTile(
         final earlier = days.reversed.skip(1).take(_moreDays).toList();
         return BoardTile(
           id: id,
-          height: DaysCard.height,
+          height: DaysCard.heightFor(simple: settings.simple),
           onRemove: remove,
-          child: DaysCard(days: earlier, total: days.length),
+          child: DaysCard(
+            days: earlier,
+            total: days.length,
+            simple: settings.simple,
+          ),
         );
     }
     return BoardTile(
       id: id,
       height: _rowTileHeight,
       onRemove: remove,
-      child: row(WorkoutRow(workout: health.latestWorkout!)),
+      child: row(
+        WorkoutRow(workout: health.latestWorkout!, simple: settings.simple),
+      ),
     );
   }
 

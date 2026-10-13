@@ -196,6 +196,7 @@ class SettingsController extends ChangeNotifier {
   bool _routeClimb = true;
   bool _routeOnTiles = true;
   bool _fineValues = false;
+  bool _simple = false;
   int? _morningSeen;
   ThemeMode _themeMode = ThemeMode.system;
   ColorStyle _colorStyle = ColorStyle.wallpaper;
@@ -257,6 +258,10 @@ class SettingsController extends ChangeNotifier {
   /// the app works them out itself, more strictly than the sources do.
   bool get fineValues => _fineValues;
 
+  /// Whether the large cards of the four main pages show their few most
+  /// important numbers only. Tiles and detail pages show all in both modes.
+  bool get simple => _simple;
+
   /// The day (as a day key) the morning's cards last opened by themselves.
   int? get morningSeen => _morningSeen;
 
@@ -314,6 +319,9 @@ class SettingsController extends ChangeNotifier {
     if (_disposed) return;
     _loaded = true;
     if (json is! Map<String, Object?>) {
+      // Nothing saved yet: a new installation starts with the few numbers.
+      // One that saved its settings before the mode existed keeps them all.
+      _simple = true;
       notifyListeners();
       return;
     }
@@ -351,6 +359,9 @@ class SettingsController extends ChangeNotifier {
     if (json['routeClimb'] case final bool v) _routeClimb = v;
     if (json['routeOnTiles'] case final bool v) _routeOnTiles = v;
     if (json['fineValues'] case final bool v) _fineValues = v;
+    // Settings from before the mode existed, a restored backup too, keep
+    // every number.
+    _simple = json['simple'] == true;
     if (json['morningSeen'] case final int v) _morningSeen = v;
     if (json['themeMode'] case final String v) {
       for (final mode in ThemeMode.values) {
@@ -519,6 +530,8 @@ class SettingsController extends ChangeNotifier {
 
   void setFineValues(bool value) => _update(() => _fineValues = value);
 
+  void setSimple(bool value) => _update(() => _simple = value);
+
   /// Remembers that the morning's cards opened by themselves on [day].
   void setMorningSeen(DateTime day) =>
       _update(() => _morningSeen = dayKey(day));
@@ -603,6 +616,7 @@ class SettingsController extends ChangeNotifier {
             'routeClimb': _routeClimb,
             'routeOnTiles': _routeOnTiles,
             'fineValues': _fineValues,
+            'simple': _simple,
             'morningSeen': ?_morningSeen,
             'themeMode': _themeMode.name,
             'colorStyle': _colorStyle.name,

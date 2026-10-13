@@ -1905,5 +1905,38 @@
   "routeDescent": "Abstieg",
   "routeSlow": "langsam",
   "routeFast": "schnell",
-  "routeSpeedPerKm": "Geschwindigkeit pro Kilometer"
+  "routeSpeedPerKm": "Geschwindigkeit pro Kilometer",
+  "simpleTitle": "Zahlen",
+  "simpleOn": "Einfach",
+  "simpleOff": "Erweitert",
+  "simpleOnNote": "Einfach zeigt in den großen Karten nur die wichtigsten Zahlen.",
+  "simpleOffNote": "Erweitert zeigt in den großen Karten alle Zahlen.",
+  "simpleTilesTitle": "Kacheln und Detailseiten",
+  "simpleTilesBody": "Zeigen in beiden Modi alle ihre Zahlen. Tippe auf eine große Karte, um alles dahinter zu sehen.",
+  "daySoFarAheadPlain": "Mehr Schritte als gestern um diese Zeit",
+  "daySoFarBehindPlain": "Weniger Schritte als gestern um diese Zeit",
+  "dayMoreStepsPlain": "Mehr Schritte als am Tag davor",
+  "dayFewerStepsPlain": "Weniger Schritte als am Tag davor",
+  "nightLongerPlain": "Länger als die Nacht davor",
+  "nightShorterPlain": "Kürzer als die Nacht davor",
+  "cmpFasterPlain": "Schneller als letztes Mal",
+  "cmpSlowerPlain": "Langsamer als letztes Mal",
+  "cmpFartherPlain": "Weiter als letztes Mal",
+  "cmpLessFarPlain": "Weniger weit als letztes Mal",
+  "cmpLongerPlain": "Länger als letztes Mal",
+  "cmpShorterPlain": "Kürzer als letztes Mal",
+  "heartCalmerPlain": "Ruhiger als die Tage davor",
+  "heartLivelierPlain": "Höher als die Tage davor",
+  "tonightWhyPlain": "So bekommst du genug Schlaf bis zu deiner üblichen Aufstehzeit.",
+  "asleepPlain": "geschlafen",
+  "heartSoFar": "heute bisher",
+  "stepsChartTap": "Tippe auf einen Balken, um den Tag zu sehen.",
+  "activeUnit": "aktive {unit}",
+  "@activeUnit": {
+    "placeholders": {
+      "unit": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -12,6 +12,10 @@ EdgeInsets pagePadding(BuildContext context) => EdgeInsets.fromLTRB(
   kFloatingNavClearance + MediaQuery.paddingOf(context).bottom,
 );
 
+/// What the large card of a page takes below its scene in simple mode: the
+/// overhanging shape, one large number with its line, and a sentence.
+const double simpleHeroBody = 180;
+
 /// The rectangle [context]'s widget occupies on screen, if it is laid out.
 Rect? globalRectOf(BuildContext context) {
   final box = context.findRenderObject();

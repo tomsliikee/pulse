@@ -30,6 +30,7 @@ The screenshots on this page show sample data.
 ## Features
 
 - **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape.
+- **Simple or Advanced:** The large cards show their few most important numbers, or all of them. A new installation starts simple.
 - **Good Morning:** A few cards when you get up: last night, your recovery, the weather and your goals.
 - **Weekly Report:** On Sunday evening, the week from Monday to Sunday against the weeks before, with a score of its own.
 - **What Goes Together:** Connections found in your own numbers, such as how you sleep after a day with a workout.
@@ -48,6 +49,18 @@ The screenshots on this page show sample data.
 ---
 
 ## The Pages
+
+### Simple and Advanced
+
+The large cards of the four pages come in two modes, chosen at the top of the profile.
+
+- **Simple:** Each card keeps its drawing and one to three numbers: recovery, steps and active calories on Today, the distance of the latest workout, the score and length of the night, the latest heart rate and the day's range. Sentences say how it went without a number.
+- **Advanced:** The same cards with everything: goals, hours, times, pace, sleep stages and minutes per zone.
+- **Nothing Is Lost:** Tiles and detail pages show all their numbers in both modes. Tap a large card to see everything behind it.
+
+A new installation starts in simple mode. An installation that already has settings stays advanced.
+
+![Today in advanced and in simple mode, then Activity and Sleep in simple mode](readmestuff/simple.png)
 
 ### Today
 

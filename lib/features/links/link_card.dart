@@ -14,9 +14,13 @@ import 'link_format.dart';
 /// One connection: its sentence, and below it the two sides as bars, each
 /// with its mean and how many days, nights or weeks stand behind it.
 class LinkCard extends StatelessWidget {
-  const LinkCard({super.key, required this.link});
+  const LinkCard({super.key, required this.link, this.plain = false});
 
   final Link link;
+
+  /// Whether the bars stand without their values and counts, and the
+  /// sentence keeps to three lines.
+  final bool plain;
 
   @override
   Widget build(BuildContext context) {
@@ -34,21 +38,25 @@ class LinkCard extends StatelessWidget {
       children: [
         Text(
           linkSentence(formats, link),
+          maxLines: plain ? 3 : null,
+          overflow: plain ? TextOverflow.ellipsis : null,
           style: AppType.of(context).strong(theme.textTheme.titleSmall),
         ),
         const SizedBox(height: 14),
         _Side(
           label: sides.with_,
-          count: link.countWith,
-          value: linkValue(formats, link.effect, link.withMean),
+          count: plain ? null : link.countWith,
+          value: plain ? null : linkValue(formats, link.effect, link.withMean),
           share: share(link.withMean),
           color: accent.accent,
         ),
         const SizedBox(height: 10),
         _Side(
           label: sides.without,
-          count: link.countWithout,
-          value: linkValue(formats, link.effect, link.withoutMean),
+          count: plain ? null : link.countWithout,
+          value: plain
+              ? null
+              : linkValue(formats, link.effect, link.withoutMean),
           share: share(link.withoutMean),
           color: scheme.outline,
         ),
@@ -67,8 +75,12 @@ class _Side extends StatelessWidget {
   });
 
   final String label;
-  final int count;
-  final String value;
+
+  /// Null leaves it out.
+  final int? count;
+
+  /// Null leaves it out.
+  final String? value;
   final double share;
   final Color color;
 
@@ -88,7 +100,10 @@ class _Side extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                '$label · ${l10n.linkCount(count)}',
+                switch (count) {
+                  final count? => '$label · ${l10n.linkCount(count)}',
+                  null => label,
+                },
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: type.label(
@@ -98,11 +113,13 @@ class _Side extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
-            Text(
-              value,
-              style: type.figure(context.emphasizedTextTheme.labelLarge),
-            ),
+            if (value case final value?) ...[
+              const SizedBox(width: 12),
+              Text(
+                value,
+                style: type.figure(context.emphasizedTextTheme.labelLarge),
+              ),
+            ],
           ],
         ),
         ClipRRect(

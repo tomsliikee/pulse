@@ -137,6 +137,44 @@ class ProfilePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             // The sections come in one after the other.
             children: staggered([
+              SectionTitle(l10n.simpleTitle),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: M3EToggleButtonGroup(
+                  type: M3EButtonGroupType.connected,
+                  style: M3EButtonStyle.tonal,
+                  size: M3EButtonSize.md,
+                  haptic: M3EHapticFeedback.light,
+                  selectedIndex: settings.simple ? 0 : 1,
+                  onSelectedIndexChanged: (index) {
+                    if (index != null) settings.setSimple(index == 0);
+                  },
+                  actions: [
+                    M3EToggleButtonGroupAction(label: Text(l10n.simpleOn)),
+                    M3EToggleButtonGroupAction(label: Text(l10n.simpleOff)),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
+                child: Text(
+                  settings.simple ? l10n.simpleOnNote : l10n.simpleOffNote,
+                  style: muted,
+                ),
+              ),
+              SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: 4,
+                  children: [
+                    Text(
+                      l10n.simpleTilesTitle,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                    Text(l10n.simpleTilesBody, style: muted),
+                  ],
+                ),
+              ),
               SectionTitle(l10n.aboutYou),
               SegmentGroup(
                 padding: EdgeInsets.zero,

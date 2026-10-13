@@ -10,6 +10,7 @@ import '../../theme/page_accent.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/tile_surface.dart';
+import 'link_card.dart';
 import 'link_format.dart';
 import 'links_page.dart';
 
@@ -19,6 +20,11 @@ class LinksTile extends StatelessWidget {
   const LinksTile({super.key});
 
   static const double height = 96;
+
+  /// The height in simple mode, where the strongest link shows its two
+  /// bars; without a link the tile is the row it always was.
+  static double heightFor({required bool simple, required bool hasLink}) =>
+      simple && hasLink ? 236 : height;
 
   // The board holds this tile as a constant, so it listens for itself.
   @override
@@ -33,6 +39,62 @@ class LinksTile extends StatelessWidget {
         final l10n = formats.l10n;
         final accent = PageAccent.colorsOf(context);
         final links = linksOf(scope.health, scope.settings);
+        if (scope.settings.simple && links.isNotEmpty) {
+          return Pressable(
+            pressedScale: 0.98,
+            child: TileSurface(
+              color: scheme.surfaceBright,
+              radius: AppRadii.extraLarge,
+              child: Material(
+                type: MaterialType.transparency,
+                child: Builder(
+                  builder: (context) => InkWell(
+                    onTap: () {
+                      final origin = globalRectOf(context);
+                      if (origin != null) openLinks(context, origin);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              ShapeBadge(
+                                shape: Shapes.l4LeafClover,
+                                icon: Icons.link_rounded,
+                                size: 36,
+                                color: accent.container,
+                                iconColor: accent.onContainer,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  l10n.linksTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              Icon(
+                                Icons.chevron_right_rounded,
+                                color: scheme.onSurfaceVariant,
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          LinkCard(link: links.first, plain: true),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
         return Pressable(
           pressedScale: 0.98,
           child: TileSurface(

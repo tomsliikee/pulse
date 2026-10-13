@@ -75,12 +75,19 @@ class NightBackdrop extends StatelessWidget {
 /// the score sits on a shape that hangs over the sky's edge, and below it
 /// the length of the night and its numbers stand free.
 class LatestNightCard extends StatelessWidget {
-  const LatestNightCard({super.key, required this.night});
+  const LatestNightCard({super.key, required this.night, this.simple = false});
 
   final SleepNight night;
 
+  /// Whether the card shows the score and the length of the night alone.
+  final bool simple;
+
   static const double sceneHeight = 132;
   static const double height = sceneHeight + 232;
+
+  /// Without its row of numbers the card ends sooner.
+  static double heightFor({required bool simple}) =>
+      simple ? sceneHeight + simpleHeroBody : height;
 
   static const double _shape = 104;
   static const double _overlap = 48;
@@ -186,10 +193,12 @@ class LatestNightCard extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              l10n.asleepFromTo(
-                                formatClock(night.bedtimeMinute),
-                                formatClock(night.wakeMinute),
-                              ),
+                              simple
+                                  ? l10n.asleepPlain
+                                  : l10n.asleepFromTo(
+                                      formatClock(night.bedtimeMinute),
+                                      formatClock(night.wakeMinute),
+                                    ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: type.label(
@@ -199,27 +208,32 @@ class LatestNightCard extends StatelessWidget {
                               ),
                             ),
                             const Spacer(),
-                            Row(
-                              children: [
-                                for (final comparison in shown)
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      child: FreeFigure(
-                                        label: comparison.measure.label(l10n),
-                                        value: AnimatedNumber(
-                                          value: comparison.value,
-                                          format: (value) => comparison.measure
-                                              .format(formats, value),
+                            if (!simple) ...[
+                              Row(
+                                children: [
+                                  for (final comparison in shown)
+                                    Expanded(
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
+                                        ),
+                                        child: FreeFigure(
+                                          label: comparison.measure.label(l10n),
+                                          value: AnimatedNumber(
+                                            value: comparison.value,
+                                            format: (value) => comparison
+                                                .measure
+                                                .format(formats, value),
+                                          ),
                                         ),
                                       ),
                                     ),
-                                  ),
-                              ],
-                            ),
-                            const Spacer(),
+                                ],
+                              ),
+                              const Spacer(),
+                            ],
                             Text(
-                              nightHeadline(formats, insights),
+                              nightHeadline(formats, insights, plain: simple),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: type.strong(
@@ -260,6 +274,7 @@ class NightsCard extends StatelessWidget {
     required this.title,
     required this.nights,
     required this.total,
+    this.simple = false,
   });
 
   final String title;
@@ -269,6 +284,10 @@ class NightsCard extends StatelessWidget {
 
   /// How many nights there are altogether.
   final int total;
+
+  /// Whether a night shows its length alone: the mark keeps its shape and
+  /// loses the score, and the count is left out.
+  final bool simple;
 
   /// A [NightRow] in a list.
   static const double rowHeight = 64;
@@ -302,7 +321,10 @@ class NightsCard extends StatelessWidget {
                     height: CarouselChip.pictureHeight,
                   ),
                 ),
-                mark: ScoreMark(score: score),
+                mark: ScoreMark(
+                  score: score,
+                  icon: simple ? Icons.bedtime_rounded : null,
+                ),
                 title: formats.shortDate(night.date),
                 subtitle: formats.duration(night.asleepMinutes),
                 onTap: (origin) => openNight(context, night, origin),
@@ -311,7 +333,7 @@ class NightsCard extends StatelessWidget {
           ),
         CarouselEndChip(
           title: l10n.allNights,
-          subtitle: l10n.nightsTotal(total),
+          subtitle: simple ? null : l10n.nightsTotal(total),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute<void>(builder: (_) => const NightListPage()),
           ),
@@ -324,12 +346,21 @@ class NightsCard extends StatelessWidget {
 /// One night in a list: its score, date, length and times. Tapping it opens
 /// the page about it.
 class NightRow extends StatelessWidget {
-  const NightRow({super.key, required this.night, this.title});
+  const NightRow({
+    super.key,
+    required this.night,
+    this.title,
+    this.simple = false,
+  });
 
   final SleepNight night;
 
   /// Shown instead of the night's date, where the row stands alone.
   final String? title;
+
+  /// Whether the row shows the length of the night alone: no score and no
+  /// times.
+  final bool simple;
 
   @override
   Widget build(BuildContext context) {
@@ -359,14 +390,20 @@ class NightRow extends StatelessWidget {
               width: 44,
               height: 44,
               color: sleep.container,
-              child: Text(
-                '$score',
-                style: type.figure(
-                  context.emphasizedTextTheme.titleSmall?.copyWith(
-                    color: sleep.onContainer,
-                  ),
-                ),
-              ),
+              child: simple
+                  ? Icon(
+                      Icons.bedtime_rounded,
+                      size: 22,
+                      color: sleep.onContainer,
+                    )
+                  : Text(
+                      '$score',
+                      style: type.figure(
+                        context.emphasizedTextTheme.titleSmall?.copyWith(
+                          color: sleep.onContainer,
+                        ),
+                      ),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -380,17 +417,18 @@ class NightRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.titleSmall,
                   ),
-                  Text(
-                    formats.l10n.rangeFromTo(
-                      formatClock(night.bedtimeMinute),
-                      formatClock(night.wakeMinute),
+                  if (!simple)
+                    Text(
+                      formats.l10n.rangeFromTo(
+                        formatClock(night.bedtimeMinute),
+                        formatClock(night.wakeMinute),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -412,9 +450,14 @@ class NightRow extends StatelessWidget {
 
 /// When to go to bed tonight, and why then: the loud tile of the page.
 class TonightCard extends StatelessWidget {
-  const TonightCard({super.key});
+  const TonightCard({super.key, this.simple = false});
+
+  /// Whether the card says the time alone, without how it was worked out.
+  final bool simple;
 
   static const double height = 180;
+
+  static double heightFor({required bool simple}) => simple ? 164 : height;
 
   @override
   Widget build(BuildContext context) {
@@ -477,15 +520,17 @@ class TonightCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              [
-                l10n.tonightWhy(
-                  formats.duration((goal * 60).round()),
-                  formatClock(plan.wakeMinute),
-                ),
-                if (plan.catchUpMinutes > 0)
-                  l10n.tonightCatchUp(plan.catchUpMinutes),
-              ].join(' '),
-              maxLines: 3,
+              simple
+                  ? l10n.tonightWhyPlain
+                  : [
+                      l10n.tonightWhy(
+                        formats.duration((goal * 60).round()),
+                        formatClock(plan.wakeMinute),
+                      ),
+                      if (plan.catchUpMinutes > 0)
+                        l10n.tonightCatchUp(plan.catchUpMinutes),
+                    ].join(' '),
+              maxLines: simple ? 2 : 3,
               overflow: TextOverflow.ellipsis,
               style: muted,
             ),

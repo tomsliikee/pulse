@@ -60,7 +60,7 @@ void main() {
             // Name, birth date, height and place.
             expect(find.text(missing), findsNWidgets(4));
 
-            await tester.tap(find.text(title));
+            await tapInView(tester, find.text(title));
             await advance(tester);
             await tester.enterText(find.byType(TextField), '12');
             await tester.testTextInput.receiveAction(TextInputAction.done);

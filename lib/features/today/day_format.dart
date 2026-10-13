@@ -90,14 +90,21 @@ extension DayScorePartText on DayScorePart {
 }
 
 /// "1.200 Schritte mehr als gestern um diese Zeit" for today, and against
-/// the day before for any other day.
-String dayHeadline(Formats formats, DayInsights insights, {StepsSoFar? soFar}) {
+/// the day before for any other day. [plain] leaves the number out.
+String dayHeadline(
+  Formats formats,
+  DayInsights insights, {
+  StepsSoFar? soFar,
+  bool plain = false,
+}) {
   final l10n = formats.l10n;
   if (soFar != null) {
     final diff = formats.integer((soFar.today - soFar.yesterday).abs().round());
     return switch (soFar.trend) {
-      Trend.better => l10n.daySoFarAhead(diff),
-      Trend.worse => l10n.daySoFarBehind(diff),
+      Trend.better =>
+        plain ? l10n.daySoFarAheadPlain : l10n.daySoFarAhead(diff),
+      Trend.worse =>
+        plain ? l10n.daySoFarBehindPlain : l10n.daySoFarBehind(diff),
       Trend.same || Trend.neutral => l10n.daySoFarSame,
     };
   }
@@ -106,8 +113,8 @@ String dayHeadline(Formats formats, DayInsights insights, {StepsSoFar? soFar}) {
   if (steps == null || previous == null) return l10n.dayNoCompare;
   final diff = formats.integer((steps.value - previous).abs().round());
   return switch (steps.againstPrevious) {
-    Trend.better => l10n.dayMoreSteps(diff),
-    Trend.worse => l10n.dayFewerSteps(diff),
+    Trend.better => plain ? l10n.dayMoreStepsPlain : l10n.dayMoreSteps(diff),
+    Trend.worse => plain ? l10n.dayFewerStepsPlain : l10n.dayFewerSteps(diff),
     Trend.same || Trend.neutral => l10n.daySameSteps,
   };
 }

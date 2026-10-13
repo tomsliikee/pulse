@@ -117,6 +117,10 @@ class DayCard extends StatelessWidget {
   static const double sceneHeight = 132;
   static const double height = sceneHeight + 304 + DayScores.captionHeight;
 
+  /// Without the hours below its numbers the card ends sooner.
+  static double heightFor({required bool simple}) =>
+      simple ? height - 28 : height;
+
   static const double _rings = 168;
 
   /// The shape of the score, and how far it hangs over the scene.
@@ -151,10 +155,15 @@ class DayCard extends StatelessWidget {
     final energy = insights.measure(DayMeasure.activeEnergy)?.value;
     // The page draws the scene itself, behind the title.
     final bleeds = BoardBackdrop.isShown(context);
+    // In simple mode a number says what it is, not what it aims at, and
+    // the hours stay on the page behind the card.
+    final simple = settings.simple;
     // The hours of today that have begun; null without hourly values.
-    List<double?>? hoursUntilNow(Metric metric) => health.snapshot
-        .hoursOf(metric, health.todayIndex)
-        ?.sublist(0, health.now.hour + 1);
+    List<double?>? hoursUntilNow(Metric metric) => simple
+        ? null
+        : health.snapshot
+              .hoursOf(metric, health.todayIndex)
+              ?.sublist(0, health.now.hour + 1);
     final scoreStyle = type.hero(
       context.emphasizedTextTheme.headlineMedium?.copyWith(height: 1),
     );
@@ -251,9 +260,11 @@ class DayCard extends StatelessWidget {
                                   value: steps,
                                   hours: hoursUntilNow(Metric.steps),
                                   round: round,
-                                  label: l10n.stepsOfGoal(
-                                    formats.integer(settings.stepGoal),
-                                  ),
+                                  label: simple
+                                      ? l10n.unitSteps((steps ?? 0).round())
+                                      : l10n.stepsOfGoal(
+                                          formats.integer(settings.stepGoal),
+                                        ),
                                   shape: Shapes.circle,
                                   color: scheme.primary,
                                 ),
@@ -263,15 +274,20 @@ class DayCard extends StatelessWidget {
                                   hours: hoursUntilNow(Metric.activeEnergy),
                                   round: round,
                                   // Says when the app counts for itself.
-                                  label: [
-                                    l10n.ofGoal(
-                                      formats.integer(
-                                        settings.activeEnergyGoal,
-                                      ),
-                                      Metric.activeEnergy.unit,
-                                    ),
-                                    if (settings.fineValues) l10n.valuesFine,
-                                  ].join(' · '),
+                                  label: simple
+                                      ? l10n.activeUnit(
+                                          Metric.activeEnergy.unit,
+                                        )
+                                      : [
+                                          l10n.ofGoal(
+                                            formats.integer(
+                                              settings.activeEnergyGoal,
+                                            ),
+                                            Metric.activeEnergy.unit,
+                                          ),
+                                          if (settings.fineValues)
+                                            l10n.valuesFine,
+                                        ].join(' · '),
                                   shape: Shapes.burst,
                                   color: scheme.tertiary,
                                 ),
@@ -289,6 +305,7 @@ class DayCard extends StatelessWidget {
                           formats,
                           insights,
                           soFar: stepsSoFar(health.snapshot, health.now),
+                          plain: simple,
                         ),
                         // Two lines: on a narrow phone the sentence does not fit in one.
                         maxLines: 2,
@@ -701,6 +718,7 @@ class GoalsCard extends StatelessWidget {
                     SizedBox(
                       height: _rowHeight,
                       child: _Goal(
+                        simple: settings.simple,
                         progress: goalProgress(
                           goal,
                           settings.goalTarget(goal),
@@ -721,9 +739,12 @@ class GoalsCard extends StatelessWidget {
 }
 
 class _Goal extends StatelessWidget {
-  const _Goal({required this.progress});
+  const _Goal({required this.progress, required this.simple});
 
   final GoalProgress progress;
+
+  /// Whether the value stands alone, without its target.
+  final bool simple;
 
   @override
   Widget build(BuildContext context) {
@@ -750,7 +771,9 @@ class _Goal extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              goal.formatProgress(formats, progress),
+              simple
+                  ? goal.format(formats, progress.value ?? 0)
+                  : goal.formatProgress(formats, progress),
               maxLines: 1,
               style: (progress.reached ? type.strong : type.label)(
                 theme.textTheme.labelLarge?.copyWith(
@@ -837,7 +860,12 @@ class DayTipsCard extends StatelessWidget {
 /// A few days to swipe through, each a small card with its sky, and the way
 /// to all of them at the end.
 class DaysCard extends StatelessWidget {
-  const DaysCard({super.key, required this.days, required this.total});
+  const DaysCard({
+    super.key,
+    required this.days,
+    required this.total,
+    this.simple = false,
+  });
 
   /// Newest first.
   final List<DateTime> days;
@@ -845,7 +873,13 @@ class DaysCard extends StatelessWidget {
   /// How many days there are altogether.
   final int total;
 
+  /// Whether a day shows its score alone.
+  final bool simple;
+
   static const double height = ChipCarousel.height;
+
+  static double heightFor({required bool simple}) =>
+      ChipCarousel.heightFor(oneLine: simple);
 
   @override
   Widget build(BuildContext context) {
@@ -855,6 +889,7 @@ class DaysCard extends StatelessWidget {
     final health = scope.health;
     return ChipCarousel(
       title: l10n.moreDays,
+      oneLine: simple,
       children: [
         for (final day in days)
           Builder(
@@ -876,19 +911,21 @@ class DaysCard extends StatelessWidget {
                 ),
                 mark: ScoreMark(score: insights.score.total),
                 title: formats.shortDate(day),
-                subtitle: l10n.dayStepsOnly(
-                  Metric.steps.format(
-                    formats,
-                    insights.measure(DayMeasure.steps)?.value,
-                  ),
-                ),
+                subtitle: simple
+                    ? null
+                    : l10n.dayStepsOnly(
+                        Metric.steps.format(
+                          formats,
+                          insights.measure(DayMeasure.steps)?.value,
+                        ),
+                      ),
                 onTap: (origin) => openDay(context, day, origin),
               );
             },
           ),
         CarouselEndChip(
           title: l10n.allDays,
-          subtitle: l10n.daysTotal(total),
+          subtitle: simple ? null : l10n.daysTotal(total),
           onTap: () => Navigator.of(
             context,
           ).push(MaterialPageRoute<void>(builder: (_) => const DayListPage())),

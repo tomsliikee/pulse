@@ -58,9 +58,22 @@ extension WorkoutMeasureText on WorkoutMeasure {
   }
 }
 
+/// The one number of [workout] in simple mode: how far it went, or how
+/// long it took where it went nowhere.
+String workoutFigure(Formats formats, Workout workout) {
+  final distance = workout.distanceKm;
+  return distance != null && distance > 0
+      ? WorkoutMeasure.distance.format(formats, workout.type, distance)
+      : formats.duration(workout.minutes);
+}
+
 /// "12 s schneller als letztes Mal", for the one comparison of [insights]
-/// that is worth a sentence.
-String workoutHeadline(Formats formats, WorkoutInsights insights) {
+/// that is worth a sentence. [plain] leaves the number out.
+String workoutHeadline(
+  Formats formats,
+  WorkoutInsights insights, {
+  bool plain = false,
+}) {
   final l10n = formats.l10n;
   final comparison = insights.headline;
   final previous = comparison?.previous;
@@ -73,6 +86,15 @@ String workoutHeadline(Formats formats, WorkoutInsights insights) {
     comparison.value - previous,
   );
   final better = trend == Trend.better;
+  if (plain) {
+    return switch (comparison.measure) {
+      WorkoutMeasure.pace || WorkoutMeasure.speed =>
+        better ? l10n.cmpFasterPlain : l10n.cmpSlowerPlain,
+      WorkoutMeasure.distance =>
+        better ? l10n.cmpFartherPlain : l10n.cmpLessFarPlain,
+      _ => better ? l10n.cmpLongerPlain : l10n.cmpShorterPlain,
+    };
+  }
   return switch (comparison.measure) {
     WorkoutMeasure.pace || WorkoutMeasure.speed =>
       better ? l10n.cmpFaster(diff) : l10n.cmpSlower(diff),

@@ -41,16 +41,20 @@ extension ScorePartText on ScorePart {
   };
 }
 
-/// "40 min länger als die Nacht davor".
-String nightHeadline(Formats formats, NightInsights insights) {
+/// "40 min länger als die Nacht davor"; [plain] leaves the number out.
+String nightHeadline(
+  Formats formats,
+  NightInsights insights, {
+  bool plain = false,
+}) {
   final l10n = formats.l10n;
   final asleep = insights.measure(NightMeasure.asleep);
   final previous = asleep?.previous;
   if (asleep == null || previous == null) return l10n.nightFirst;
   final diff = formats.duration((asleep.value - previous).abs().round());
   return switch (asleep.againstPrevious) {
-    Trend.better => l10n.nightLonger(diff),
-    Trend.worse => l10n.nightShorter(diff),
+    Trend.better => plain ? l10n.nightLongerPlain : l10n.nightLonger(diff),
+    Trend.worse => plain ? l10n.nightShorterPlain : l10n.nightShorter(diff),
     Trend.same || Trend.neutral => l10n.nightSame,
   };
 }

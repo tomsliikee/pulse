@@ -46,6 +46,7 @@ class _SleepPageState extends State<SleepPage> {
     final accent = PageAccent.colorsOf(context);
     final formats = Formats.of(context);
     final l10n = formats.l10n;
+    final simple = scope.settings.simple;
     final snapshot = health.snapshot;
     // The page is about the latest night, whatever day is selected
     // elsewhere.
@@ -110,8 +111,8 @@ class _SleepPageState extends State<SleepPage> {
           BoardTile(
             id: 'hero',
             title: l10n.lastNight,
-            height: LatestNightCard.height,
-            child: LatestNightCard(night: latest!),
+            height: LatestNightCard.heightFor(simple: simple),
+            child: LatestNightCard(night: latest!, simple: simple),
           ),
         if (nights.length > 1)
           BoardTile(
@@ -123,14 +124,15 @@ class _SleepPageState extends State<SleepPage> {
               title: l10n.moreNights,
               nights: earlier,
               total: nights.length,
+              simple: simple,
             ),
           ),
         BoardTile(
           id: 'tonight',
           title: l10n.tonightTitle,
-          height: TonightCard.height,
+          height: TonightCard.heightFor(simple: simple),
           entersInPlace: true,
-          child: const TonightCard(),
+          child: TonightCard(simple: simple),
         ),
         if (night != null) ...[
           BoardTile(

@@ -14,16 +14,31 @@ import 'tile_surface.dart';
 /// A few small cards to swipe through under a free title. The last one is
 /// usually a [CarouselEndChip], the way to everything.
 class ChipCarousel extends StatelessWidget {
-  const ChipCarousel({super.key, required this.title, required this.children});
+  const ChipCarousel({
+    super.key,
+    required this.title,
+    required this.children,
+    this.oneLine = false,
+  });
 
   final String title;
   final List<Widget> children;
+
+  /// Whether the cards have one line below their picture, not two.
+  final bool oneLine;
 
   static const double _title = 48;
   static const double cardHeight = 164;
   static const double cardWidth = 136;
 
+  /// What the second line of a card takes.
+  static const double _secondLine = 18;
+
   static const double height = _title + cardHeight;
+
+  /// The height with cards of one line or two.
+  static double heightFor({required bool oneLine}) =>
+      oneLine ? height - _secondLine : height;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +53,7 @@ class ChipCarousel extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: cardHeight,
+          height: oneLine ? cardHeight - _secondLine : cardHeight,
           // Few enough to build at once, so the way to everything is there
           // for a screen reader before anybody swipes.
           child: SingleChildScrollView(
@@ -80,7 +95,9 @@ class CarouselChip extends StatelessWidget {
   /// [markSize] in both directions.
   final Widget mark;
   final String title;
-  final String subtitle;
+
+  /// Null for a card of one line.
+  final String? subtitle;
 
   /// Given the card's rectangle on the screen, for a page that grows out
   /// of it.
@@ -122,16 +139,17 @@ class CarouselChip extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                             style: type.strong(theme.textTheme.titleSmall),
                           ),
-                          Text(
-                            subtitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: type.label(
-                              theme.textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                          if (subtitle case final subtitle?)
+                            Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: type.label(
+                                theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -154,9 +172,12 @@ class CarouselChip extends StatelessWidget {
 /// A score on the shape its page shows scores on, as the mark of a
 /// [CarouselChip].
 class ScoreMark extends StatelessWidget {
-  const ScoreMark({super.key, required this.score});
+  const ScoreMark({super.key, required this.score, this.icon});
 
   final int? score;
+
+  /// Shown instead of the number; the shape still follows the score.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -167,14 +188,16 @@ class ScoreMark extends StatelessWidget {
       width: CarouselChip.markSize,
       height: CarouselChip.markSize,
       color: accent.accent,
-      child: Text(
-        score == null ? '–' : '$score',
-        style: AppType.of(context).figure(
-          context.emphasizedTextTheme.titleSmall?.copyWith(
-            color: accent.onAccent,
-          ),
-        ),
-      ),
+      child: icon != null
+          ? Icon(icon, size: 24, color: accent.onAccent)
+          : Text(
+              score == null ? '–' : '$score',
+              style: AppType.of(context).figure(
+                context.emphasizedTextTheme.titleSmall?.copyWith(
+                  color: accent.onAccent,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -190,7 +213,9 @@ class CarouselEndChip extends StatelessWidget {
   });
 
   final String title;
-  final String subtitle;
+
+  /// Null leaves the line out.
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -228,16 +253,17 @@ class CarouselEndChip extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: type.label(
-                    theme.textTheme.bodySmall?.copyWith(
-                      color: accent.onContainer.withValues(alpha: 0.72),
+                if (subtitle case final subtitle?)
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: type.label(
+                      theme.textTheme.bodySmall?.copyWith(
+                        color: accent.onContainer.withValues(alpha: 0.72),
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
