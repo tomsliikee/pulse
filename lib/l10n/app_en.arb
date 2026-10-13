@@ -863,5 +863,6 @@
   "asleepPlain": "asleep",
   "heartSoFar": "today so far",
   "stepsChartTap": "Tap a bar to see that day.",
-  "activeUnit": "active {unit}"
+  "activeUnit": "active {unit}",
+  "refresh": "Refresh"
 }

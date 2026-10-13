@@ -19,6 +19,9 @@ class SceneClock extends StatefulWidget {
   /// everything moves slowly. Every frame of the display when null.
   final int? rate;
 
+  /// The seconds a scene starts at, and stands at where nothing moves.
+  static const double start = 0.2;
+
   @override
   State<SceneClock> createState() => _SceneClockState();
 }
@@ -26,7 +29,7 @@ class SceneClock extends StatefulWidget {
 class _SceneClockState extends State<SceneClock>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   /// The moment shown where nothing moves: a little way in, not the start.
-  static const double _still = 0.2;
+  static const double _still = SceneClock.start;
 
   /// How often a scene that is out of sight looks whether it is back.
   static const Duration _look = Duration(milliseconds: 250);
@@ -151,6 +154,78 @@ class _SceneClockState extends State<SceneClock>
   );
 }
 
+/// How far a scene has come in since its page opened: the land rises, what
+/// is in the sky climbs to its place and the figure appears. A scene that
+/// does not move has come in already.
+class SceneEntrance {
+  const SceneEntrance._(this._progress);
+
+  /// At [seconds] of a [SceneClock]; [still] where nothing moves.
+  factory SceneEntrance.at(double seconds, {required bool still}) =>
+      SceneEntrance._(still ? _done : (seconds - SceneClock.start) / _length);
+
+  /// Seconds the land takes to settle.
+  static const double _length = 1.3;
+  static const double _done = 4;
+
+  final double _progress;
+
+  /// From 0 to 1 on a spring that goes a little too far before it settles.
+  double get rise {
+    if (_progress <= 0) return 0;
+    if (_progress >= _done) return 1;
+    return 1 - math.exp(-5.5 * _progress) * math.cos(7 * _progress);
+  }
+
+  /// How far what rises still has to go, from 1 to 0.
+  double get drop => 1 - rise;
+
+  /// How visible the figure is, from 0 to 1.
+  double get shown => (_progress * 2.5).clamp(0.0, 1.0);
+
+  /// How far the figure has walked in, from 0 to 1.
+  double get arrived =>
+      Curves.easeInOut.transform((_progress * 1.2).clamp(0.0, 1.0));
+
+  /// Draws what [paint] draws as faint as [shown] says. The figure is made
+  /// of strokes that overlap, so it fades as one picture.
+  void fade(Canvas canvas, Rect bounds, VoidCallback paint) {
+    if (shown >= 1) return paint();
+    if (shown <= 0) return;
+    canvas.saveLayer(
+      bounds,
+      Paint()..color = Colors.white.withValues(alpha: shown),
+    );
+    paint();
+    canvas.restore();
+  }
+}
+
+/// Fills [rect] with a sky that is [top] above and [bottom] at the ground.
+void paintSky(Canvas canvas, Rect rect, Color top, Color bottom) {
+  canvas.drawRect(
+    rect,
+    Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [top, bottom],
+      ).createShader(rect),
+  );
+}
+
+/// A light of [color] that is strongest at [centre] and gone at [radius].
+void paintGlow(Canvas canvas, Offset centre, double radius, Color color) {
+  canvas.drawCircle(
+    centre,
+    radius,
+    Paint()
+      ..shader = RadialGradient(
+        colors: [color, color.withValues(alpha: 0)],
+      ).createShader(Rect.fromCircle(center: centre, radius: radius)),
+  );
+}
+
 /// Draws the figure the scenes share: limbs as round strokes and a round
 /// head, in the theme's primary colour. Every length is given in [u], one
 /// hundredth of the scene's height.
@@ -193,6 +268,17 @@ class FigurePen {
 
   void head(Offset centre) =>
       canvas.drawCircle(centre, 6.5 * u, Paint()..color = _body);
+
+  /// The shadow the figure throws on the ground at [at], [width] wide to
+  /// each side; fainter the higher the figure is off the ground.
+  void shadow(Offset at, double width, {double strength = 1}) =>
+      canvas.drawOval(
+        Rect.fromCenter(center: at, width: 2 * width * u, height: 4.4 * u),
+        Paint()
+          ..color = scheme.shadow.withValues(
+            alpha: (0.13 * strength).clamp(0.0, 1.0),
+          ),
+      );
 
   /// The joint between [from] and [to] of a limb with parts of [first] and
   /// [second] length; [side] picks to which side it bends.

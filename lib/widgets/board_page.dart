@@ -15,9 +15,10 @@ import 'tile_board.dart';
 import '../l10n/generated/app_localizations.dart';
 
 /// A top-level page: title, an optional fixed strip and a board of tiles the
-/// user can rearrange. It scrolls behind the status bar; the edit pencil and
-/// the [trailing] button float over it at the top right. Pulling down
-/// reloads the data.
+/// user can rearrange. It scrolls behind the status bar; the button that
+/// reloads the data, the edit pencil and the [trailing] button float over it
+/// at the top right. Pulling down does nothing: a pull that was meant as a
+/// scroll would reload by mistake.
 class BoardPage extends StatefulWidget {
   const BoardPage({
     super.key,
@@ -75,10 +76,20 @@ class BoardPage extends StatefulWidget {
   State<BoardPage> createState() => _BoardPageState();
 }
 
-class _BoardPageState extends State<BoardPage> {
+class _BoardPageState extends State<BoardPage>
+    with SingleTickerProviderStateMixin {
   static const double _buttonGap = 8;
 
   bool _editing = false;
+
+  /// Whether a reload asked for with the button is running.
+  bool _refreshing = false;
+
+  /// Turns the button's arrow for as long as the reload runs.
+  late final AnimationController _turn = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
 
   final ScrollController _scroll = ScrollController();
   final GlobalKey _board = GlobalKey();
@@ -89,6 +100,7 @@ class _BoardPageState extends State<BoardPage> {
   @override
   void dispose() {
     _scroll.dispose();
+    _turn.dispose();
     super.dispose();
   }
 
@@ -103,8 +115,23 @@ class _BoardPageState extends State<BoardPage> {
   }
 
   Future<void> _refresh() async {
-    await AppScope.of(context).health.refresh(full: true);
-    Haptics.confirm();
+    if (_refreshing) return;
+    Haptics.tap();
+    setState(() => _refreshing = true);
+    if (!MediaQuery.disableAnimationsOf(context)) _turn.repeat();
+    try {
+      await AppScope.of(context).health.refresh(full: true);
+      Haptics.confirm();
+    } finally {
+      if (mounted) {
+        // The arrow finishes its turn instead of jumping back.
+        if (_turn.isAnimating) await _turn.forward();
+        if (mounted) {
+          _turn.value = 0;
+          setState(() => _refreshing = false);
+        }
+      }
+    }
   }
 
   @override
@@ -127,6 +154,23 @@ class _BoardPageState extends State<BoardPage> {
       children: [
         FloatingSurface(
           glass: GlassScope.isOn(context),
+          child: SizedBox.square(
+            dimension: FloatingSurface.height,
+            child: IconButton(
+              onPressed: _refreshing ? null : _refresh,
+              tooltip: l10n.refresh,
+              color: scheme.onSurfaceVariant,
+              disabledColor: scheme.onSurfaceVariant,
+              icon: RotationTransition(
+                turns: _turn,
+                child: const Icon(Icons.refresh_rounded),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: _buttonGap),
+        FloatingSurface(
+          glass: GlassScope.isOn(context),
           color: _editing ? scheme.primary : null,
           glassTint: _editing ? GlassScope.pillPrimary(scheme) : null,
           child: SizedBox.square(
@@ -145,87 +189,83 @@ class _BoardPageState extends State<BoardPage> {
         if (trailing != null) ...[const SizedBox(width: _buttonGap), trailing],
       ],
     );
-    final list = M3EPullToRefreshIndicator(
-      onRefresh: _refresh,
-      child: ListView(
-        controller: _scroll,
-        // Not clipped, so what scrolls out at the top is still seen behind
-        // the status bar.
-        clipBehavior: Clip.none,
-        padding: pagePadding(context),
-        children: [
-          PageHeader(
-            title: widget.title,
-            subtitle: widget.subtitle,
-            ink: backdrop != null && boardTop != null && !_editing
-                ? widget.backdropInk
-                : null,
-            reserved:
-                _buttonGap +
-                FloatingSurface.height +
-                (trailing == null ? 0 : _buttonGap + FloatingSurface.height),
-          ),
-          if (strip != null) ...[strip, const SizedBox(height: 16)],
-          if (editMenu != null)
-            _EditOnly(
-              editing: _editing,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: editMenu,
-              ),
+    final list = ListView(
+      controller: _scroll,
+      // Not clipped, so what scrolls out at the top is still seen behind
+      // the status bar.
+      clipBehavior: Clip.none,
+      padding: pagePadding(context),
+      children: [
+        PageHeader(
+          title: widget.title,
+          subtitle: widget.subtitle,
+          ink: backdrop != null && boardTop != null && !_editing
+              ? widget.backdropInk
+              : null,
+          reserved:
+              2 * (_buttonGap + FloatingSurface.height) +
+              (trailing == null ? 0 : _buttonGap + FloatingSurface.height),
+        ),
+        if (strip != null) ...[strip, const SizedBox(height: 16)],
+        if (editMenu != null)
+          _EditOnly(
+            editing: _editing,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: editMenu,
             ),
-          ListenableBuilder(
-            listenable: scope.settings,
-            builder: (context, _) {
-              final settings = scope.settings;
-              final page = widget.pageId;
-              final hidden = widget.removable
-                  ? settings.hiddenTiles(page)
-                  : const <String>{};
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TileBoard(
-                    key: _board,
-                    tiles: !widget.removable
-                        ? widget.tiles
-                        : [
-                            for (final tile in widget.tiles)
-                              if (!hidden.contains(tile.id))
-                                tile.withRemove(
-                                  () => settings.hideTile(page, tile.id),
-                                ),
-                          ],
-                    order: settings.tileOrder(page),
-                    editing: _editing,
-                    onReorder: (order) => settings.setTileOrder(page, order),
-                  ),
-                  if (widget.removable)
-                    _EditOnly(
-                      editing: _editing,
-                      child: _RemovedTiles(
-                        tiles: [
+          ),
+        ListenableBuilder(
+          listenable: scope.settings,
+          builder: (context, _) {
+            final settings = scope.settings;
+            final page = widget.pageId;
+            final hidden = widget.removable
+                ? settings.hiddenTiles(page)
+                : const <String>{};
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TileBoard(
+                  key: _board,
+                  tiles: !widget.removable
+                      ? widget.tiles
+                      : [
                           for (final tile in widget.tiles)
-                            if (hidden.contains(tile.id)) tile,
+                            if (!hidden.contains(tile.id))
+                              tile.withRemove(
+                                () => settings.hideTile(page, tile.id),
+                              ),
                         ],
-                        onAdd: (id) => settings.showTile(page, id),
-                      ),
+                  order: settings.tileOrder(page),
+                  editing: _editing,
+                  onReorder: (order) => settings.setTileOrder(page, order),
+                ),
+                if (widget.removable)
+                  _EditOnly(
+                    editing: _editing,
+                    child: _RemovedTiles(
+                      tiles: [
+                        for (final tile in widget.tiles)
+                          if (hidden.contains(tile.id)) tile,
+                      ],
+                      onAdd: (id) => settings.showTile(page, id),
                     ),
-                ],
-              );
-            },
-          ),
-          if (editFooter != null)
-            _EditOnly(
-              editing: _editing,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 28),
-                child: editFooter,
-              ),
+                  ),
+              ],
+            );
+          },
+        ),
+        if (editFooter != null)
+          _EditOnly(
+            editing: _editing,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 28),
+              child: editFooter,
             ),
-          ?widget.footer,
-        ],
-      ),
+          ),
+        ?widget.footer,
+      ],
     );
     final showsBackdrop = backdrop != null && boardTop != null && !_editing;
     return Stack(
@@ -261,8 +301,7 @@ class _BoardPageState extends State<BoardPage> {
               ),
             ),
           ),
-        // The list starts below the status bar, and with it the indicator
-        // that pulling down brings out.
+        // The list starts below the status bar.
         Positioned.fill(
           child: Padding(
             padding: EdgeInsets.only(top: top),

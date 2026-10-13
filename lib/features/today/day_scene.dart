@@ -5,11 +5,13 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../widgets/scene_kit.dart';
 
-/// Plays a day back in a few seconds, from the early morning to [untilMinute]:
-/// the sun crosses a sky that follows the time of day, over the figure of
-/// the other scenes. It sleeps until the night is over, walks as fast as the
-/// steps of the hour say, runs during a workout and then stands at the
-/// moment the day has reached. A good day has a clear sky, a poor one clouds.
+/// The day at [untilMinute]: the sun stands where the time of day puts it,
+/// in a sky that follows it, over the figure of the other scenes. By day
+/// the figure walks, the livelier the more steps the hour has; at night it
+/// stands and breathes. Hills pass in three rows, grass sways and now and
+/// then birds cross. A good day has a clear sky, a poor one clouds. When the
+/// page opens the land rises, the sun climbs to its place and the figure
+/// walks in.
 class DayScene extends StatelessWidget {
   const DayScene({
     super.key,
@@ -59,6 +61,7 @@ class DayScene extends StatelessWidget {
         scene: this,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
   );
@@ -69,11 +72,19 @@ class _DayPainter extends CustomPainter {
     required this.scene,
     required this.scheme,
     required this.seconds,
+    required this.still,
   }) : super(repaint: seconds);
 
   final DayScene scene;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether nothing moves, so the scene has come in already.
+  final bool still;
+
+  /// How much ground a walking figure covers in a second, in hundredths of
+  /// the scene's height: one stride in a little over a second.
+  static const double _walk = 30;
 
   static const double _tau = 2 * math.pi;
   static const Color _navy = Color(0xFF101A38);
@@ -107,6 +118,15 @@ class _DayPainter extends CustomPainter {
     return sum;
   }
 
+  /// How lively the figure walks at [minute], from 0 standing to 1. It walks
+  /// by day, and more so in an hour with many steps.
+  double _pace(double minute, double light) {
+    if (light < 0.5) return 0;
+    final hour = (minute / 60).floor().clamp(0, 23);
+    final steps = scene.hours?[hour] ?? scene.steps / 14;
+    return 0.5 + 0.35 * (steps / 3000).clamp(0.0, 1.0);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
@@ -120,19 +140,60 @@ class _DayPainter extends CustomPainter {
     final minute = scene.untilMinute.toDouble();
     final light = _daylight(minute);
 
+    final enter = SceneEntrance.at(time, still: still);
     final sky = _sky(minute, light);
-    canvas
-      ..drawRect(Offset.zero & full, Paint()..color = sky)
-      ..translate(0, full.height - stage);
+    // Lighter towards the ground by day; a night sky is one colour.
+    paintSky(
+      canvas,
+      Offset.zero & full,
+      sky,
+      Color.lerp(sky, scheme.surfaceBright, 0.5 * light)!,
+    );
+    canvas.translate(0, full.height - stage);
     _stars(canvas, size, u, time, 1 - light);
-    _sunOrMoon(canvas, size, u, minute, light, sky);
+    _sunOrMoon(canvas, size, u, minute, light, time, enter);
     _clouds(canvas, size, u, time, light);
+    if (scene.figure && light > 0.6) _birds(canvas, size, u, time);
 
     final ground = size.height - 14 * u;
-    // A hundred steps move the ground by a third of the scene's height.
-    final travelled = _stepsUntil(minute) / 100 * size.height / 3;
-    _hills(canvas, size, ground, travelled * 0.18, 24 * u, 0.9, 0.5, light);
-    _hills(canvas, size, ground, travelled * 0.45, 14 * u, 1.7, 0.85, light);
+    final pace = scene.figure ? _pace(minute, light) : 0.0;
+    // A hundred steps move the ground by a third of the scene's height, and
+    // a figure that walks moves it on.
+    final travelled =
+        _stepsUntil(minute) / 100 * size.height / 3 +
+        (pace > 0 ? time * _walk * u : 0);
+    final drop = enter.drop * 26 * u;
+    _hills(
+      canvas,
+      size,
+      ground + drop * 1.4,
+      travelled * 0.07,
+      31 * u,
+      0.7,
+      0.32,
+      light,
+    );
+    _hills(
+      canvas,
+      size,
+      ground + drop,
+      travelled * 0.18,
+      24 * u,
+      0.9,
+      0.5,
+      light,
+    );
+    _hills(
+      canvas,
+      size,
+      ground + drop * 0.6,
+      travelled * 0.45,
+      14 * u,
+      1.7,
+      0.85,
+      light,
+    );
+    if (scene.figure) _grass(canvas, size, u, ground, travelled, time, light);
     _ground(canvas, size, u, ground, travelled, light);
     if (!scene.figure) return;
 
@@ -142,10 +203,14 @@ class _DayPainter extends CustomPainter {
       u,
       color: Color.lerp(_nightFigure, scheme.primary, light),
     );
-    final x = size.width * _figureAt;
+    final x = size.width * (_figureAt - 0.2 * (1 - enter.arrived));
     // The strides follow the ground, so the feet do not slide.
     final turn = _tau * (travelled / 38 / u % 1);
-    _walker(pen, u, x, ground, turn, time, pace: 0, running: false);
+    enter.fade(
+      canvas,
+      Offset.zero & size,
+      () => _walker(pen, u, x, ground, turn, time, pace: pace, running: false),
+    );
   }
 
   /// The figure in a light tone at night, to stand out from the dark sky.
@@ -193,46 +258,154 @@ class _DayPainter extends CustomPainter {
     double u,
     double minute,
     double light,
-    Color sky,
+    double time,
+    SceneEntrance enter,
   ) {
+    // Both climb to their place when the scene comes in.
+    final climb = Offset(0, enter.drop * 60 * u);
     // The sun is up from six to nine in the evening, the moon before it.
     final across = ((minute - 6 * 60) / (15 * 60)).clamp(0.0, 1.0);
-    final centre = Offset(
-      size.width * (0.1 + 0.8 * across),
-      size.height * (0.46 - 0.37 * math.sin(math.pi * across)),
-    );
+    final centre =
+        Offset(
+          size.width * (0.1 + 0.8 * across),
+          size.height * (0.46 - 0.37 * math.sin(math.pi * across)),
+        ) +
+        climb;
     if (light > 0.3) {
       final sun = Color.lerp(_sunlight, scheme.primary, 0.15)!;
-      canvas
-        ..drawCircle(
-          centre,
-          12 * u,
-          Paint()..color = sun.withValues(alpha: 0.22 * light),
-        )
-        ..drawCircle(
-          centre,
-          7 * u,
-          Paint()..color = sun.withValues(alpha: light),
+      // The light around it breathes, and its rays turn slowly.
+      paintGlow(
+        canvas,
+        centre,
+        (25 + 1.3 * math.sin(time * 1.3)) * u,
+        sun.withValues(alpha: 0.5 * light),
+      );
+      final ray = Paint()..color = sun.withValues(alpha: 0.3 * light);
+      const rays = 10;
+      for (var i = 0; i < rays; i++) {
+        final angle = time * 0.12 + i * _tau / rays;
+        final out = Offset(math.cos(angle), math.sin(angle));
+        final across = Offset(-out.dy, out.dx) * 1.6 * u;
+        final from = centre + out * 9.5 * u;
+        canvas.drawPath(
+          Path()
+            ..moveTo(from.dx - across.dx, from.dy - across.dy)
+            ..lineTo(
+              centre.dx + out.dx * (14.5 + 1.5 * math.sin(time * 2 + i)) * u,
+              centre.dy + out.dy * (14.5 + 1.5 * math.sin(time * 2 + i)) * u,
+            )
+            ..lineTo(from.dx + across.dx, from.dy + across.dy)
+            ..close(),
+          ray,
         );
+      }
+      canvas.drawCircle(
+        centre,
+        7 * u,
+        Paint()..color = sun.withValues(alpha: light),
+      );
       return;
     }
-    final moon = Offset(size.width * 0.8, size.height * 0.24);
-    canvas
-      ..drawCircle(
-        moon,
-        8 * u,
-        Paint()
-          ..color = Color.lerp(scheme.tertiaryContainer, Colors.white, 0.6)!,
-      )
-      // The sky's colour over a part of the disc leaves a crescent.
-      ..drawCircle(
-        moon + Offset(3.6 * u, -2.2 * u),
-        7 * u,
-        Paint()..color = sky,
-      );
+    final moon = Offset(size.width * 0.8, size.height * 0.24) + climb;
+    final pale = Color.lerp(scheme.tertiaryContainer, Colors.white, 0.6)!;
+    paintGlow(
+      canvas,
+      moon,
+      (28 + 1.5 * math.sin(time * 0.9)) * u,
+      pale.withValues(alpha: 0.3),
+    );
+    // The disc without the part another disc covers leaves a crescent.
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addOval(Rect.fromCircle(center: moon, radius: 8 * u)),
+        Path()..addOval(
+          Rect.fromCircle(
+            center: moon + Offset(3.6 * u, -2.2 * u),
+            radius: 7 * u,
+          ),
+        ),
+      ),
+      Paint()..color = pale,
+    );
   }
 
-  /// The poorer the day, the more clouds drift across.
+  /// Two birds that cross the sky every few seconds.
+  void _birds(Canvas canvas, Size size, double u, double time) {
+    final flight = time % 11 / 5;
+    if (flight >= 1) return;
+    final paint = Paint()
+      ..color = scheme.onSurfaceVariant.withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3 * u
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final (behind, scale) in const [(0.0, 1.0), (0.06, 0.8)]) {
+      final at = Offset(
+        size.width * (1.05 - 1.2 * (flight + behind)),
+        (22 + 3 * math.sin(flight * 9 + behind * 20) + behind * 60) * u,
+      );
+      final flap = math.sin(time * 9 + behind * 30) * 2.2 * u * scale;
+      canvas.drawPath(
+        Path()
+          ..moveTo(at.dx - 4 * u * scale, at.dy - flap)
+          ..lineTo(at.dx, at.dy)
+          ..lineTo(at.dx + 4 * u * scale, at.dy - flap),
+        paint,
+      );
+    }
+  }
+
+  /// Tufts of grass along the ground that pass by and sway.
+  void _grass(
+    Canvas canvas,
+    Size size,
+    double u,
+    double ground,
+    double travelled,
+    double time,
+    double light,
+  ) {
+    final paint = Paint()
+      ..color = Color.lerp(
+        Color.lerp(_navy, scheme.secondary, 0.4),
+        Color.lerp(scheme.secondaryContainer, scheme.secondary, 0.35),
+        light,
+      )!
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6 * u
+      ..strokeCap = StrokeCap.round;
+    final gap = 29 * u;
+    final first = (travelled / gap).floor();
+    for (var i = 0; -(travelled % gap) + i * gap < size.width; i++) {
+      final x = -(travelled % gap) + i * gap;
+      if (x < 12 * u || x > size.width - 12 * u) continue;
+      // Not a fence: two of five places on the ground are bare.
+      if (const [1, 3].contains((first + i) % 5)) continue;
+      // Each tuft sways by where it stands on the ground, not on the screen.
+      final sway = math.sin(time * 1.6 + (x + travelled) / gap) * 1.6 * u;
+      for (final blade in const [-1.0, 0.0, 1.0]) {
+        final tip = Offset(
+          x + blade * 3 * u + sway,
+          ground - (blade == 0 ? 6 : 4) * u,
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(x + blade * 1.6 * u, ground + 2.4 * u)
+            ..quadraticBezierTo(
+              x + blade * 2 * u,
+              ground - 2 * u,
+              tip.dx,
+              tip.dy,
+            ),
+          paint,
+        );
+      }
+    }
+  }
+
+  /// The poorer the day, the more clouds drift across, each bobbing a
+  /// little.
   void _clouds(Canvas canvas, Size size, double u, double time, double light) {
     final count = ((70 - scene.score) / 14).ceil().clamp(0, 4);
     final paint = Paint()
@@ -244,7 +417,7 @@ class _DayPainter extends CustomPainter {
     for (var i = 0; i < count; i++) {
       final span = size.width + 60 * u;
       final x = (time * (5 + i * 2) * u + i * span / count) % span - 30 * u;
-      final y = (16 + i % 3 * 13) * u;
+      final y = (16 + i % 3 * 13 + math.sin(time * 0.5 + i * 2)) * u;
       for (final (dx, dy, radius) in const [
         (-9.0, 1.5, 6.0),
         (0.0, -1.5, 8.5),
@@ -337,6 +510,7 @@ class _DayPainter extends CustomPainter {
         ? 5 * math.sin(turn).abs()
         : 1.2 * pace * math.cos(2 * turn).abs();
     final hip = Offset(x, ground - (2 * part * 0.95 + lift) * u);
+    pen.shadow(Offset(x, ground + 3.4 * u), 13);
 
     List<Offset> leg(double phase) {
       final thigh = swing * math.sin(phase);
@@ -373,5 +547,6 @@ class _DayPainter extends CustomPainter {
       oldDelegate.scene.score != scene.score ||
       oldDelegate.scene.hours != scene.hours ||
       oldDelegate.scene.steps != scene.steps ||
+      oldDelegate.still != still ||
       oldDelegate.scheme != scheme;
 }

@@ -205,4 +205,24 @@ void main() {
     expect(find.text('Health Connect fehlt'), findsOneWidget);
     expect(find.text('Health Connect öffnen'), findsWidgets);
   });
+
+  testWidgets('the button at the top reloads; pulling the page down does not', (
+    tester,
+  ) async {
+    final app = await pumpApp(tester);
+    final loads = app.repository.loadedWith.length;
+
+    await tester.drag(find.byType(ListView).first, const Offset(0, 400));
+    await advance(tester);
+    expect(app.repository.loadedWith, hasLength(loads));
+
+    await tester.tap(find.byTooltip('Aktualisieren'));
+    await advance(tester);
+    expect(app.repository.loadedWith, hasLength(loads + 1));
+    // The button is free again for the next reload.
+    await tester.tap(find.byTooltip('Aktualisieren'));
+    await advance(tester);
+    expect(app.repository.loadedWith, hasLength(loads + 2));
+    expect(tester.takeException(), isNull);
+  });
 }

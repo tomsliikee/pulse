@@ -221,10 +221,8 @@ void main() {
   testWidgets('the list of all workouts filters by kind', (tester) async {
     await pumpApp(tester);
     await _openActivity(tester, lookupAppLocalizations(const Locale('de')));
-    await tester.ensureVisible(find.text('Alle Aktivitäten'));
-    await advance(tester);
-    await tester.tap(find.text('Alle Aktivitäten'));
-    await advance(tester);
+    // Clear of the buttons that float at the top of the page.
+    await tapInView(tester, find.text('Alle Aktivitäten'));
 
     final page = find.byType(WorkoutListPage);
     Finder rows() => find.descendant(

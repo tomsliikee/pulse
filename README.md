@@ -29,7 +29,7 @@ The screenshots on this page show sample data.
 
 ## Features
 
-- **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape.
+- **Four Pages, One Scene Each:** **Today**, **Activity**, **Sleep** and **Heart** each open with an animated scene drawn by the app and the page's main number on a shape. The scene comes in when the page opens, and a button at the top reloads the data.
 - **Simple or Advanced:** The large cards show their few most important numbers, or all of them. A new installation starts simple.
 - **Good Morning:** A few cards when you get up: last night, your recovery, the weather and your goals.
 - **Weekly Report:** On Sunday evening, the week from Monday to Sunday against the weeks before, with a score of its own.

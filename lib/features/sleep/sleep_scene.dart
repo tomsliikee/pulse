@@ -10,7 +10,9 @@ import '../../widgets/scene_kit.dart';
 /// the stages of the night, over the figure of the workout scenes asleep in
 /// bed. A good night has a clear sky full of stars and a figure that lies
 /// still; a poor one has clouds, and the figure sits up whenever the user
-/// was awake.
+/// was awake. The moon has a light around it, now and then a star falls,
+/// and when the page opens the moon climbs to its place and the bed comes
+/// in.
 class SleepScene extends StatelessWidget {
   const SleepScene({
     super.key,
@@ -42,6 +44,7 @@ class SleepScene extends StatelessWidget {
         stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
   );
@@ -54,6 +57,7 @@ class _NightPainter extends CustomPainter {
     required this.stage,
     required this.scheme,
     required this.seconds,
+    required this.still,
   }) : super(repaint: seconds);
 
   final SleepNight night;
@@ -61,6 +65,9 @@ class _NightPainter extends CustomPainter {
   final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether nothing moves, so the scene has come in already.
+  final bool still;
 
   /// Seconds the whole night takes.
   static const double _loop = 12;
@@ -128,14 +135,26 @@ class _NightPainter extends CustomPainter {
       ((loop - 0.82) / 0.18).clamp(0.0, 1.0),
     );
 
+    final enter = SceneEntrance.at(time, still: still);
     final sky = _sky(deep, rem, up, dawn);
-    canvas
-      ..drawRect(Offset.zero & full, Paint()..color = sky)
-      ..translate(0, full.height - stage);
-    _stars(canvas, size, u, time, 1 - dawn);
-    _moon(canvas, size, u, loop, sky);
+    // Darker overhead than at the horizon.
+    paintSky(
+      canvas,
+      Offset.zero & full,
+      Color.lerp(sky, Colors.black, 0.28)!,
+      Color.lerp(sky, scheme.primary, 0.1)!,
+    );
+    canvas.translate(0, full.height - stage);
+    _stars(canvas, size, u, time, (1 - dawn) * enter.shown);
+    if (dawn < 0.5) _shootingStar(canvas, size, u, time);
+    _moon(canvas, size, u, loop, time, enter);
     _clouds(canvas, size, u, time);
-    _bed(canvas, size, u, time, up: up, deep: deep, rem: rem);
+    canvas.translate(0, enter.drop * 20 * u);
+    enter.fade(
+      canvas,
+      Offset.zero & size,
+      () => _bed(canvas, size, u, time, up: up, deep: deep, rem: rem),
+    );
   }
 
   /// A night without a curve: the share of it spent awake says how often
@@ -168,30 +187,75 @@ class _NightPainter extends CustomPainter {
         random.nextDouble() * size.width,
         random.nextDouble() * size.height * 0.62,
       );
-      final twinkle = 0.55 + 0.45 * math.sin(time * (0.8 + i % 5 * 0.3) + i);
+      // Each star in a rhythm of its own, and bright only for a moment.
+      final wave = 0.5 + 0.5 * math.sin(time * (0.6 + i % 7 * 0.23) + i * 1.7);
+      final twinkle = 0.45 + 0.55 * wave * wave;
       canvas.drawCircle(
         at,
         (0.7 + random.nextDouble() * 0.9) * u,
-        Paint()..color = Colors.white.withValues(alpha: 0.85 * twinkle * shown),
+        Paint()..color = Colors.white.withValues(alpha: 0.9 * twinkle * shown),
       );
     }
   }
 
-  void _moon(Canvas canvas, Size size, double u, double loop, Color sky) {
+  /// A star that falls every few seconds, with a tail that fades.
+  void _shootingStar(Canvas canvas, Size size, double u, double time) {
+    final fall = time % 8 / 0.9;
+    if (fall >= 1) return;
+    final at = Offset(
+      size.width * (0.78 - 0.3 * fall),
+      size.height * (0.06 + 0.3 * fall),
+    );
+    final tail = at + Offset(34 * u, -30 * u);
+    canvas.drawLine(
+      at,
+      tail,
+      Paint()
+        ..shader = LinearGradient(
+          colors: [
+            Colors.white.withValues(alpha: 0.9 * math.sin(math.pi * fall)),
+            Colors.white.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromPoints(at, tail))
+        ..strokeWidth = 1.4 * u
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  void _moon(
+    Canvas canvas,
+    Size size,
+    double u,
+    double loop,
+    double time,
+    SceneEntrance enter,
+  ) {
+    // It climbs to its place when the scene comes in.
     final centre = Offset(
       size.width * (0.1 + 0.8 * loop),
-      size.height * (0.44 - 0.3 * math.sin(math.pi * loop)),
+      size.height * (0.44 - 0.3 * math.sin(math.pi * loop)) +
+          enter.drop * 40 * u,
     );
-    canvas.drawCircle(
+    final pale = Color.lerp(scheme.tertiaryContainer, Colors.white, 0.6)!;
+    paintGlow(
+      canvas,
       centre,
-      8 * u,
-      Paint()..color = Color.lerp(scheme.tertiaryContainer, Colors.white, 0.6)!,
+      (29 + 1.6 * math.sin(time * 0.9)) * u,
+      pale.withValues(alpha: 0.32),
     );
-    // The sky's colour over a part of the disc leaves a crescent.
-    canvas.drawCircle(
-      centre + Offset(3.6 * u, -2.2 * u),
-      7 * u,
-      Paint()..color = sky,
+    // The disc without the part another disc covers leaves a crescent.
+    canvas.drawPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addOval(Rect.fromCircle(center: centre, radius: 8 * u)),
+        Path()..addOval(
+          Rect.fromCircle(
+            center: centre + Offset(3.6 * u, -2.2 * u),
+            radius: 7 * u,
+          ),
+        ),
+      ),
+      Paint()..color = pale,
     );
   }
 
@@ -277,18 +341,32 @@ class _NightPainter extends CustomPainter {
       ..line(pen.limb(), [hip, shoulder])
       ..head(shoulder + along * 9.5 * u);
 
-    // The blanket rises and falls with the breath.
-    final rise = (7 + 2.2 * breath) * u;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTRB(
-          x - (12 - 6 * up) * u,
-          top - rise,
+    // The blanket lies over the figure in one soft line: high over the
+    // chest, where it rises and falls with the breath, and low at the feet.
+    final rise = (7 + 3.2 * breath) * u;
+    final from = x - (12 - 6 * up) * u;
+    canvas.drawPath(
+      Path()
+        ..moveTo(from, top + 2 * u)
+        ..lineTo(from, top - rise * 0.5)
+        ..cubicTo(
+          from + 3 * u,
+          top - rise * 1.25,
+          x + 12 * u,
+          top - rise * 1.1,
+          x + 20 * u,
+          top - 6.5 * u,
+        )
+        ..cubicTo(
+          x + 28 * u,
+          top - 5.5 * u,
+          x + 34 * u,
+          top - 6.5 * u,
           x + 38 * u,
-          top + 2 * u,
-        ),
-        Radius.circular(5 * u),
-      ),
+          top - 2 * u,
+        )
+        ..lineTo(x + 38 * u, top + 2 * u)
+        ..close(),
       Paint()..color = scheme.tertiary,
     );
     final hand = Offset(x + 4 * u, top - rise - 1 * u);
@@ -303,26 +381,35 @@ class _NightPainter extends CustomPainter {
     if (rem > 0.5 && up < 0.2) _dream(canvas, u, time, above);
   }
 
-  /// Three letters z that rise from the head and fade.
+  /// Three letters z that rise from the head in a curve, tilting as they
+  /// go, and fade.
   void _snores(Canvas canvas, double u, double time, Offset from) {
     for (var i = 0; i < 3; i++) {
-      final age = (time / 2.6 + i / 3) % 1;
+      final age = (time / 3.2 + i / 3) % 1;
       final size = (3 + 4 * age) * u;
-      final at = from + Offset(9 * age * u, -26 * age * u);
+      final at =
+          from +
+          Offset((9 * age + 3 * math.sin(age * 5 + i)) * u, -28 * age * u);
+      canvas
+        ..save()
+        ..translate(at.dx, at.dy)
+        ..rotate(0.25 * math.sin(age * 4 + i));
       final paint = Paint()
         ..color = Colors.white.withValues(alpha: 0.9 * math.sin(math.pi * age))
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5 * u
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round;
-      canvas.drawPath(
-        Path()
-          ..moveTo(at.dx, at.dy)
-          ..relativeLineTo(size, 0)
-          ..relativeLineTo(-size, size)
-          ..relativeLineTo(size, 0),
-        paint,
-      );
+      canvas
+        ..drawPath(
+          Path()
+            ..moveTo(0, 0)
+            ..relativeLineTo(size, 0)
+            ..relativeLineTo(-size, size)
+            ..relativeLineTo(size, 0),
+          paint,
+        )
+        ..restore();
     }
   }
 
@@ -349,5 +436,6 @@ class _NightPainter extends CustomPainter {
       oldDelegate.night != night ||
       oldDelegate.score != score ||
       oldDelegate.stage != stage ||
+      oldDelegate.still != still ||
       oldDelegate.scheme != scheme;
 }

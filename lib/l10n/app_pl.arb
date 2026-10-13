@@ -863,5 +863,6 @@
   "asleepPlain": "snu",
   "heartSoFar": "dziś do tej pory",
   "stepsChartTap": "Dotknij słupka, aby zobaczyć ten dzień.",
-  "activeUnit": "aktywne {unit}"
+  "activeUnit": "aktywne {unit}",
+  "refresh": "Odśwież"
 }

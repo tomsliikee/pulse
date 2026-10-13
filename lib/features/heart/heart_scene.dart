@@ -6,10 +6,12 @@ import 'package:material_ui/material_ui.dart';
 import '../../widgets/scene_kit.dart';
 
 /// The figure of the other scenes sitting still under a pale sky, a heart
-/// beating beside its chest at [bpm], and the line of a heart monitor
-/// passing behind it with one spike for every beat. Drawn by the app in the
-/// colours of the theme. Without a rate the line is flat and the heart
-/// rests; it stands still where the system asks for no animations.
+/// beating beside its chest at [bpm], and the line of a heart monitor behind
+/// it. A bright dot draws the line, one spike in the time of one beat, and
+/// the line fades behind the dot; with every spike the heart swells and a
+/// ring leaves it. Drawn by the app in the colours of the theme. Without a
+/// rate the line is flat and the heart rests; it stands still where the
+/// system asks for no animations.
 class HeartScene extends StatelessWidget {
   const HeartScene({
     super.key,
@@ -35,6 +37,7 @@ class HeartScene extends StatelessWidget {
         stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
   );
@@ -46,12 +49,16 @@ class _HeartPainter extends CustomPainter {
     required this.stage,
     required this.scheme,
     required this.seconds,
+    required this.still,
   }) : super(repaint: seconds);
 
   final int? bpm;
   final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether nothing moves, so the scene has come in already.
+  final bool still;
 
   static const double _tau = 2 * math.pi;
 
@@ -81,30 +88,33 @@ class _HeartPainter extends CustomPainter {
     final time = seconds.value;
     final full = size;
     size = Size(full.width, math.min(stage ?? full.height, full.height));
-    canvas
-      ..drawRect(
-        Offset.zero & full,
-        Paint()
-          ..color = Color.lerp(
-            scheme.errorContainer,
-            scheme.surfaceBright,
-            0.5,
-          )!,
-      )
-      ..translate(0, full.height - size.height);
+    final enter = SceneEntrance.at(time, still: still);
+    final sky = Color.lerp(scheme.errorContainer, scheme.surfaceBright, 0.5)!;
+    paintSky(
+      canvas,
+      Offset.zero & full,
+      Color.lerp(sky, scheme.errorContainer, 0.5)!,
+      Color.lerp(sky, scheme.surfaceBright, 0.5)!,
+    );
+    canvas.translate(0, full.height - size.height);
     // One hundredth of the height: every length is in these.
     final u = size.height / 100;
     final ground = size.height - 14 * u;
     final centre = size.width * 0.5;
 
-    // One beat is this long on the line, and passes in one beat's time.
+    // One beat is this long on the line. The line stands still, and the dot
+    // that draws it passes one beat's stretch in one beat's time.
     final stretch = 64 * u;
     final beats = bpm == null ? 0.0 : time * bpm! / 60;
-    double phaseAt(double x) => (x / stretch + beats) % 1;
+    double phaseAt(double x) => x / stretch % 1;
+    // The dot crosses the scene and a little more, then starts again.
+    final lap = size.width + 40 * u;
+    final dot = bpm == null ? null : beats * stretch % lap - 20 * u;
 
-    _hills(canvas, size, ground, 24 * u, 0.9, 0.5);
-    _hills(canvas, size, ground, 13 * u, 1.7, 0.85);
-    _line(canvas, size, u, bpm == null ? null : phaseAt);
+    final drop = enter.drop * 26 * u;
+    _hills(canvas, size, ground + drop, 24 * u, 0.9, 0.5);
+    _hills(canvas, size, ground + drop * 0.6, 13 * u, 1.7, 0.85);
+    _line(canvas, size, u, dot, lap, phaseAt, enter.shown);
     canvas.drawLine(
       Offset(8 * u, ground + 3.4 * u),
       Offset(size.width - 8 * u, ground + 3.4 * u),
@@ -114,17 +124,24 @@ class _HeartPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // The heart swells while the spike passes the figure.
-    final passing = bpm == null
+    // How far the dot is through its beat; the heart swells while it draws
+    // the spike, and a ring leaves the heart from then on.
+    final through = dot == null ? null : phaseAt(dot + lap);
+    final passing = through == null
         ? 0.0
-        : (1 - ((phaseAt(centre) - _spike).abs() / 0.14)).clamp(0.0, 1.0);
-    _figure(
+        : (1 - ((through - _spike).abs() / 0.14)).clamp(0.0, 1.0);
+    enter.fade(
       canvas,
-      u,
-      centre,
-      ground,
-      breath: 0.5 - 0.5 * math.cos(_tau * (time / _breath % 1)),
-      beat: Curves.easeOut.transform(passing),
+      Offset.zero & size,
+      () => _figure(
+        canvas,
+        u,
+        centre,
+        ground,
+        breath: 0.5 - 0.5 * math.cos(_tau * (time / _breath % 1)),
+        beat: Curves.easeOut.transform(passing),
+        sinceSpike: through == null ? null : (through - _spike) % 1,
+      ),
     );
   }
 
@@ -138,14 +155,15 @@ class _HeartPainter extends CustomPainter {
     double opacity,
   ) {
     final length = size.width / waves;
-    final path = Path()..moveTo(0, ground);
+    // Down to the edge, so a row that is still rising has no gap below it.
+    final path = Path()..moveTo(0, size.height);
     for (var x = 0.0; x <= size.width + 4; x += 4) {
       final along = x / length * _tau + waves;
       final rise = 0.5 + 0.32 * math.sin(along) + 0.18 * math.sin(along * 2.3);
       path.lineTo(x, ground - height * rise);
     }
     path
-      ..lineTo(size.width, ground)
+      ..lineTo(size.width, size.height)
       ..close();
     canvas.drawPath(
       path,
@@ -158,30 +176,64 @@ class _HeartPainter extends CustomPainter {
     );
   }
 
-  /// The line of the monitor across the sky; flat without [phaseAt].
+  /// The line of the monitor across the sky. The dot at [dot] draws it and
+  /// it fades behind the dot over one [lap]; without a dot it is flat.
   void _line(
     Canvas canvas,
     Size size,
     double u,
-    double Function(double x)? phaseAt,
+    double? dot,
+    double lap,
+    double Function(double x) phaseAt,
+    double shown,
   ) {
     final base = 30 * u;
+    double heightAt(double x) => base - _trace(phaseAt(x + lap)) * 20 * u;
     final path = Path()..moveTo(0, base);
-    if (phaseAt == null) {
-      path.lineTo(size.width, base);
-    } else {
-      for (var x = 0.0; x <= size.width + 1; x += 1) {
-        path.lineTo(x, base - _trace(phaseAt(x)) * 20 * u);
-      }
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2 * u
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    if (dot == null) {
+      canvas.drawPath(
+        path..lineTo(size.width, base),
+        stroke..color = scheme.error.withValues(alpha: 0.6 * shown),
+      );
+      return;
     }
+    for (var x = 0.0; x <= size.width + 1; x += 1) {
+      path.lineTo(x, heightAt(x));
+    }
+    if (still) {
+      // Nothing draws a line that does not move: it is there as a whole.
+      canvas.drawPath(
+        path,
+        stroke..color = scheme.error.withValues(alpha: 0.6),
+      );
+      return;
+    }
+    // Strongest at the dot and gone one lap behind it, where the dot is
+    // about to draw again.
     canvas.drawPath(
       path,
-      Paint()
-        ..color = scheme.error.withValues(alpha: 0.6)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2 * u
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
+      stroke
+        ..shader = LinearGradient(
+          colors: [
+            scheme.error.withValues(alpha: 0),
+            scheme.error.withValues(alpha: 0.12 * shown),
+            scheme.error.withValues(alpha: 0.8 * shown),
+          ],
+          stops: const [0, 0.45, 1],
+          tileMode: TileMode.repeated,
+        ).createShader(Rect.fromLTRB(dot - lap, 0, dot, 1)),
+    );
+    final at = Offset(dot, heightAt(dot));
+    paintGlow(canvas, at, 7 * u, scheme.error.withValues(alpha: 0.6 * shown));
+    canvas.drawCircle(
+      at,
+      1.9 * u,
+      Paint()..color = scheme.error.withValues(alpha: shown),
     );
   }
 
@@ -193,10 +245,12 @@ class _HeartPainter extends CustomPainter {
     double ground, {
     required double breath,
     required double beat,
+    required double? sinceSpike,
   }) {
     final pen = FigurePen(canvas, scheme, u);
     final hip = Offset(x, ground - 5 * u);
-    final neck = hip + Offset(0, -(23 + 1.2 * breath) * u);
+    final neck = hip + Offset(0, -(23 + 1.6 * breath) * u);
+    pen.shadow(Offset(x, ground + 3.4 * u), 22);
     for (final side in const [-1.0, 1.0]) {
       pen.line(pen.limb(far: side < 0), [
         hip,
@@ -208,7 +262,8 @@ class _HeartPainter extends CustomPainter {
     pen.head(neck + Offset(0, -9.5 * u));
     for (final side in const [-1.0, 1.0]) {
       final shoulder = neck + Offset(7 * side * u, 2 * u);
-      final hand = Offset(x + 17 * side * u, ground - 6 * u);
+      // The hands rise a little with the shoulders.
+      final hand = Offset(x + 17 * side * u, ground - (6 + 0.8 * breath) * u);
       pen.line(pen.limb(), [
         shoulder,
         FigurePen.joint(shoulder, hand, 11 * u, 11 * u, -side),
@@ -218,6 +273,21 @@ class _HeartPainter extends CustomPainter {
 
     // The heart, on the figure's left and so on the right of the picture.
     final at = neck + Offset(2.2 * u, 8.5 * u);
+    // A ring leaves the heart with the spike, and one before it is still
+    // on its way.
+    if (sinceSpike != null) {
+      for (final behind in const [0.0, 0.5]) {
+        final age = (sinceSpike + behind) % 1;
+        canvas.drawCircle(
+          at,
+          (6 + 26 * age) * u,
+          Paint()
+            ..color = scheme.error.withValues(alpha: 0.34 * (1 - age))
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = (2.2 - 1.4 * age) * u,
+        );
+      }
+    }
     canvas.drawCircle(
       at,
       (9 + 7 * beat) * u,
@@ -258,5 +328,6 @@ class _HeartPainter extends CustomPainter {
   bool shouldRepaint(_HeartPainter oldDelegate) =>
       oldDelegate.bpm != bpm ||
       oldDelegate.stage != stage ||
+      oldDelegate.still != still ||
       oldDelegate.scheme != scheme;
 }

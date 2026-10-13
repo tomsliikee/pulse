@@ -1938,5 +1938,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "refresh": "Aktualisieren"
 }

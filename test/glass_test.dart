@@ -75,8 +75,9 @@ void main() {
     // Not pageBack: it looks for the English tooltip, and the app is German.
     await tester.tap(find.byType(BackButton));
     await advance(tester);
-    // The bar, its pill, the add button and the floating pencil.
-    expect(find.byType(LiquidGlass), findsNWidgets(4));
+    // The bar, its pill, the add button, the refresh button and the
+    // floating pencil.
+    expect(find.byType(LiquidGlass), findsNWidgets(5));
     expect(find.byType(GlassScope), findsOneWidget);
     expect(stepsTile(), findsOneWidget);
   });
@@ -97,9 +98,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       // The page only changes when the pill is let go. The glass pill stays
       // one piece of glass while it is a lens, next to the bar, the add
-      // button and the floating pencil.
+      // button, the refresh button and the floating pencil.
       expect(find.text('Schlafphasen'), findsNothing);
-      expect(find.byType(LiquidGlass).evaluate().length, glass ? 4 : 0);
+      expect(find.byType(LiquidGlass).evaluate().length, glass ? 5 : 0);
       await gesture.up();
       await advance(tester);
       expect(find.text('Schlafphasen'), findsOneWidget);

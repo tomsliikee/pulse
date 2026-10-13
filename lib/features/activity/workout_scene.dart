@@ -8,8 +8,11 @@ import '../../widgets/scene_kit.dart';
 
 /// A small figure doing a workout of [type] in front of a passing
 /// landscape: walking, running, hiking, riding, swimming, lifting or
-/// breathing. Drawn by the app in the colours of the theme. It stands still
-/// where the system asks for no animations.
+/// breathing. A runner and a rider leave the wind behind them, and a runner
+/// raises dust with every step. Drawn by the app in the colours of the
+/// theme. When the page opens the land rises, the sun climbs to its place
+/// and the figure comes in. It stands still where the system asks for no
+/// animations.
 class WorkoutScene extends StatelessWidget {
   const WorkoutScene({
     super.key,
@@ -34,6 +37,7 @@ class WorkoutScene extends StatelessWidget {
         stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
   );
@@ -66,12 +70,16 @@ class _ScenePainter extends CustomPainter {
     required this.stage,
     required this.scheme,
     required this.seconds,
+    required this.still,
   }) : super(repaint: seconds);
 
   final WorkoutType type;
   final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether nothing moves, so the scene has come in already.
+  final bool still;
 
   static const double _tau = 2 * math.pi;
 
@@ -88,46 +96,129 @@ class _ScenePainter extends CustomPainter {
     final time = seconds.value;
     final full = size;
     size = Size(full.width, math.min(stage ?? full.height, full.height));
-    canvas
-      ..drawRect(Offset.zero & full, Paint()..color = _sky)
-      ..translate(0, full.height - size.height);
+    final enter = SceneEntrance.at(time, still: still);
+    paintSky(
+      canvas,
+      Offset.zero & full,
+      _sky,
+      Color.lerp(_sky, scheme.surfaceBright, 0.6)!,
+    );
+    canvas.translate(0, full.height - size.height);
     // One hundredth of the height: every length of the figure is in these.
     final u = size.height / 100;
     final ground = size.height - 14 * u;
     final turn = _tau * (time / gait.cycle % 1);
     final travelled = time * gait.travel * size.height;
-    final centre = size.width * 0.5;
+    // A figure that goes somewhere comes in from the left.
+    final centre =
+        size.width * (0.5 - (gait.travel > 0 ? 0.25 * (1 - enter.arrived) : 0));
+    final bounds = Offset.zero & size;
 
-    _sun(canvas, size, u);
+    _sun(canvas, size, u, time, enter);
     if (figure == WorkoutFigure.swim) {
-      _swimmer(canvas, size, u, centre, turn, travelled);
+      enter.fade(
+        canvas,
+        bounds,
+        () => _swimmer(canvas, size, u, centre, turn, travelled),
+      );
       return;
     }
-    _hills(canvas, size, ground, travelled * 0.18, 26 * u, 0.9, 0.55);
-    _hills(canvas, size, ground, travelled * 0.45, 15 * u, 1.7, 0.9);
+    final drop = enter.drop * 26 * u;
+    _hills(canvas, size, ground + drop * 1.4, travelled * 0.07, 33, 0.7, 0.3);
+    _hills(canvas, size, ground + drop, travelled * 0.18, 26, 0.9, 0.55);
+    _hills(canvas, size, ground + drop * 0.6, travelled * 0.45, 15, 1.7, 0.9);
     _ground(canvas, size, u, ground, travelled);
-    switch (figure) {
-      case WorkoutFigure.ride:
-        _rider(canvas, u, centre, ground, turn, travelled);
-      case WorkoutFigure.lift:
-        _lifter(canvas, u, centre, ground, turn);
-      case WorkoutFigure.breathe:
-        _yogi(canvas, u, centre, ground, turn);
-      case WorkoutFigure.run:
-        _walker(canvas, u, centre, ground, turn, running: true);
-      case WorkoutFigure.hike:
-        _walker(canvas, u, centre, ground, turn, hiking: true);
-      case WorkoutFigure.walk || WorkoutFigure.swim:
-        _walker(canvas, u, centre, ground, turn);
+    final pen = FigurePen(canvas, scheme, u);
+    final feet = Offset(centre, ground + 3.4 * u);
+    enter.fade(canvas, bounds, () {
+      switch (figure) {
+        case WorkoutFigure.ride:
+          pen.shadow(feet, 34);
+          _wind(canvas, u, centre - 14 * u, ground, time);
+          _rider(canvas, u, centre, ground, turn, travelled);
+        case WorkoutFigure.lift:
+          pen.shadow(feet, 16);
+          _lifter(canvas, u, centre, ground, turn);
+        case WorkoutFigure.breathe:
+          pen.shadow(feet, 22);
+          _yogi(canvas, u, centre, ground, turn);
+        case WorkoutFigure.run:
+          // Off the ground twice a stride, and the shadow shrinks with it.
+          final lift = math.pow(math.sin(turn).abs(), 1.4).toDouble();
+          pen.shadow(feet, 13 - 5 * lift, strength: 1 - 0.45 * lift);
+          _wind(canvas, u, centre, ground, time);
+          _dust(canvas, u, centre, ground, time / gait.cycle);
+          _walker(canvas, u, centre, ground, turn, running: true);
+        case WorkoutFigure.hike:
+          pen.shadow(feet, 14);
+          _walker(canvas, u, centre, ground, turn, hiking: true);
+        case WorkoutFigure.walk || WorkoutFigure.swim:
+          pen.shadow(feet, 13);
+          _walker(canvas, u, centre, ground, turn);
+      }
+    });
+  }
+
+  /// A pale sun whose light breathes; it climbs to its place when the
+  /// scene comes in.
+  void _sun(
+    Canvas canvas,
+    Size size,
+    double u,
+    double time,
+    SceneEntrance enter,
+  ) {
+    final centre = Offset(size.width - 26 * u, (24 + 50 * enter.drop) * u);
+    paintGlow(
+      canvas,
+      centre,
+      (23 + 1.2 * math.sin(time * 1.3)) * u,
+      scheme.tertiary.withValues(alpha: 0.3),
+    );
+    canvas.drawCircle(
+      centre,
+      9 * u,
+      Paint()..color = scheme.tertiary.withValues(alpha: 0.4),
+    );
+  }
+
+  /// Strokes of wind that fall behind a figure at [x].
+  void _wind(Canvas canvas, double u, double x, double ground, double time) {
+    for (var i = 0; i < 5; i++) {
+      final age = (time * 1.7 + i * 0.37) % 1;
+      final y = ground - (16 + i * 9) * u;
+      final from = x - (16 + age * 46) * u;
+      final length = (10 + i % 3 * 6) * u * (1 - age * 0.5);
+      canvas.drawLine(
+        Offset(from, y),
+        Offset(from - length, y),
+        Paint()
+          ..color = scheme.primary.withValues(alpha: 0.3 * (1 - age))
+          ..strokeWidth = 1.8 * u
+          ..strokeCap = StrokeCap.round,
+      );
     }
   }
 
-  void _sun(Canvas canvas, Size size, double u) {
-    canvas.drawCircle(
-      Offset(size.width - 26 * u, 24 * u),
-      11 * u,
-      Paint()..color = scheme.tertiary.withValues(alpha: 0.35),
-    );
+  /// Dust behind a runner at [x], raised where a foot lands: twice in each
+  /// of the [strides] counted so far.
+  void _dust(Canvas canvas, double u, double x, double ground, double strides) {
+    for (var foot = 0; foot < 2; foot++) {
+      final age = (strides + foot * 0.5) % 1 * 1.6;
+      if (age >= 1) continue;
+      final paint = Paint()
+        ..color = scheme.onSurfaceVariant.withValues(alpha: 0.26 * (1 - age));
+      for (var i = 0; i < 4; i++) {
+        canvas.drawCircle(
+          Offset(
+            x - (6 + age * (14 + i * 7)) * u,
+            ground + 2 * u - age * (2 + i * 2.2) * u,
+          ),
+          (1.2 + age * 2.2) * u,
+          paint,
+        );
+      }
+    }
   }
 
   /// A row of soft hills, [shift] pixels along.
@@ -140,15 +231,18 @@ class _ScenePainter extends CustomPainter {
     double waves,
     double opacity,
   ) {
+    // In hundredths of the scene's height, like every other length.
+    height *= size.height / 100;
     final length = size.width / waves;
-    final path = Path()..moveTo(0, ground);
+    // Down to the edge, so a row that is still rising has no gap below it.
+    final path = Path()..moveTo(0, size.height);
     for (var x = 0.0; x <= size.width + 4; x += 4) {
       final along = (x + shift) / length * _tau;
       final rise = 0.5 + 0.32 * math.sin(along) + 0.18 * math.sin(along * 2.3);
       path.lineTo(x, ground - height * rise);
     }
     path
-      ..lineTo(size.width, ground)
+      ..lineTo(size.width, size.height)
       ..close();
     canvas.drawPath(
       path,
@@ -201,19 +295,22 @@ class _ScenePainter extends CustomPainter {
   }) {
     final pen = FigurePen(canvas, scheme, u);
     const part = 17.0;
-    final swing = running ? 0.85 : (hiking ? 0.5 : 0.55);
-    final knee = running ? 1.5 : 0.7;
-    final lean = running ? 0.26 : (hiking ? 0.2 : 0.07);
-    // Lifted off the ground twice a stride when running.
+    final swing = running ? 0.95 : (hiking ? 0.5 : 0.55);
+    final knee = running ? 1.7 : 0.7;
+    final lean = running ? 0.24 : (hiking ? 0.2 : 0.07);
+    // Off the ground twice a stride when running, with a moment in the air
+    // and a short one on the ground.
     final lift = running
-        ? 5 * math.sin(turn).abs()
+        ? 6 * math.pow(math.sin(turn).abs(), 1.4)
         : 1.2 * math.cos(2 * turn).abs();
     final hip = Offset(x, ground - (2 * part * 0.95 + lift) * u);
 
     List<Offset> leg(double phase) {
       final thigh = swing * math.sin(phase);
-      // The knee bends while the leg comes forward.
-      final shin = thigh - knee * math.max(0.0, math.cos(phase));
+      // The knee bends while the leg comes forward; a runner's never
+      // straightens.
+      final shin =
+          thigh - knee * math.max(0.0, math.cos(phase)) - (running ? 0.25 : 0);
       final kneeAt = hip + Offset(math.sin(thigh), math.cos(thigh)) * part * u;
       final foot = kneeAt + Offset(math.sin(shin), math.cos(shin)) * part * u;
       return [hip, kneeAt, foot];
@@ -448,5 +545,6 @@ class _ScenePainter extends CustomPainter {
   bool shouldRepaint(_ScenePainter oldDelegate) =>
       oldDelegate.type != type ||
       oldDelegate.stage != stage ||
+      oldDelegate.still != still ||
       oldDelegate.scheme != scheme;
 }
