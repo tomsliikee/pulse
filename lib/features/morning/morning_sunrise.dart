@@ -126,25 +126,40 @@ class _MorningSunriseState extends State<MorningSunrise>
                   duration: const Duration(milliseconds: 200),
                   child: FadeTransition(
                     opacity: _lit,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      spacing: 12,
-                      children: [
-                        M3ELoadingIndicator(
-                          color: scheme.primary,
-                          constraints: BoxConstraints.tight(const Size(28, 28)),
+                    // On the hills, in a pill of their own colour, so it
+                    // reads over the scene without a box under it.
+                    child: DecoratedBox(
+                      decoration: ShapeDecoration(
+                        shape: const StadiumBorder(),
+                        color: scheme.surfaceContainerHighest.withValues(
+                          alpha: 0.78,
                         ),
-                        Flexible(
-                          child: Text(
-                            widget.syncingLabel ?? l10n.morningSyncing,
-                            style: type.label(
-                              theme.textTheme.labelLarge?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 10, 20, 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          spacing: 12,
+                          children: [
+                            M3ELoadingIndicator(
+                              color: scheme.primary,
+                              constraints: BoxConstraints.tight(
+                                const Size(28, 28),
                               ),
                             ),
-                          ),
+                            Flexible(
+                              child: Text(
+                                widget.syncingLabel ?? l10n.morningSyncing,
+                                style: type.label(
+                                  theme.textTheme.labelLarge?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -172,7 +187,7 @@ class _SunrisePainter extends CustomPainter {
   static const Color ink = Color(0xFF1B2440);
 
   /// How much of the height the land in front takes.
-  static const double _land = 0.16;
+  static const double _land = 0.2;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -232,24 +247,45 @@ class _SunrisePainter extends CustomPainter {
       )
       ..drawCircle(sun, 15 * u, Paint()..color = Dawn.sunlight);
 
-    // The land comes out of the dark as the light reaches it.
+    // The land comes out of the dark as the light reaches it: far hills,
+    // and nearer ones that run down to the lower edge, so the picture has
+    // no flat floor and nothing cuts it off.
     const dark = Color(0xFF1D2338);
+    const darker = Color(0xFF161B2E);
     final light = math.min(1.0, t * 1.3);
+    final far = Color.lerp(scheme.primaryContainer, Dawn.low, 0.35)!;
+    final near = Color.lerp(
+      Color.lerp(
+        scheme.primaryContainer,
+        scheme.brightness == Brightness.light
+            ? scheme.primary
+            : scheme.surfaceContainer,
+        scheme.brightness == Brightness.light ? 0.22 : 0.45,
+      ),
+      Dawn.low,
+      0.2,
+    )!;
+    final front = Path()..moveTo(0, size.height);
+    for (var x = 0.0; x <= size.width; x += 6) {
+      front.lineTo(
+        x,
+        ground +
+            (6 + 5 * math.sin(x / size.width * 2 * math.pi * 1.1 + 2.6)) * u,
+      );
+    }
+    front
+      ..lineTo(
+        size.width,
+        ground + (6 + 5 * math.sin(2 * math.pi * 1.1 + 2.6)) * u,
+      )
+      ..lineTo(size.width, size.height)
+      ..close();
     canvas
       ..drawPath(
         Dawn.hills(size, ground, u),
-        Paint()
-          ..color = Color.lerp(
-            dark,
-            Color.lerp(scheme.primaryContainer, Dawn.low, 0.35),
-            light,
-          )!,
+        Paint()..color = Color.lerp(dark, far, light)!,
       )
-      ..drawRect(
-        Rect.fromLTRB(0, ground, size.width, size.height),
-        Paint()
-          ..color = Color.lerp(dark, scheme.surfaceContainerHighest, light)!,
-      );
+      ..drawPath(front, Paint()..color = Color.lerp(darker, near, light)!);
   }
 
   @override

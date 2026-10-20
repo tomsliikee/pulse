@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
@@ -7,6 +8,7 @@ import '../../data/night_insights.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../widgets/pressable.dart';
+import '../../widgets/shape_badge.dart';
 import '../../widgets/tile_surface.dart';
 import '../today/day_format.dart';
 import 'morning_format.dart';
@@ -55,6 +57,7 @@ class MorningTile extends StatelessWidget {
             color: scheme.primaryContainer,
             opaque: true,
             radius: AppRadii.extraLarge,
+            blob: type.expressive ? 4 : null,
             child: Material(
               type: MaterialType.transparency,
               child: Builder(
@@ -67,11 +70,21 @@ class MorningTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
                       children: [
-                        Icon(
-                          weather?.sky.icon ?? Icons.wb_twilight_rounded,
-                          size: 32,
-                          color: scheme.onPrimaryContainer,
-                        ),
+                        if (type.expressive)
+                          ShapeBadge(
+                            shape: Shapes.verySunny,
+                            icon:
+                                weather?.sky.icon ?? Icons.wb_twilight_rounded,
+                            size: 48,
+                            color: scheme.primary,
+                            iconColor: scheme.onPrimary,
+                          )
+                        else
+                          Icon(
+                            weather?.sky.icon ?? Icons.wb_twilight_rounded,
+                            size: 32,
+                            color: scheme.onPrimaryContainer,
+                          ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(

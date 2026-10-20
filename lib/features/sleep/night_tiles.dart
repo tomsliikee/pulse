@@ -11,6 +11,7 @@ import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/chip_carousel.dart';
 import '../../widgets/free_figure.dart';
@@ -159,10 +160,10 @@ class LatestNightCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                l10n.lastNight,
+                                type.caps(l10n.lastNight),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: type.label(
+                                style: type.capsLabel(
                                   theme.textTheme.titleSmall?.copyWith(
                                     color: scheme.onSurfaceVariant,
                                   ),
@@ -232,14 +233,11 @@ class LatestNightCard extends StatelessWidget {
                               ),
                               const Spacer(),
                             ],
-                            Text(
+                            Headline(
                               nightHeadline(formats, insights, plain: simple),
+                              color: accent.accent,
+                              icon: Icons.bedtime_rounded,
                               maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: type.strong(
-                                context.emphasizedTextTheme.titleSmall
-                                    ?.copyWith(color: accent.accent),
-                              ),
                             ),
                           ],
                         ),
@@ -376,6 +374,9 @@ class NightRow extends StatelessWidget {
     final type = AppType.of(context);
     // A night keeps the colour of sleep on whatever page it is listed.
     final sleep = scheme.tone(Tone.tertiary);
+    // The rework fills the mark in the strong tone, as in its design.
+    final markColor = type.expressive ? sleep.accent : sleep.container;
+    final onMark = type.expressive ? sleep.onAccent : sleep.onContainer;
     return InkWell(
       onTap: () {
         final origin = globalRectOf(context);
@@ -387,20 +388,16 @@ class NightRow extends StatelessWidget {
           children: [
             M3EContainer(
               AppShapes.of(ShapeFamily.sleep, score),
-              width: 44,
-              height: 44,
-              color: sleep.container,
+              width: type.expressive ? 48 : 44,
+              height: type.expressive ? 48 : 44,
+              color: markColor,
               child: simple
-                  ? Icon(
-                      Icons.bedtime_rounded,
-                      size: 22,
-                      color: sleep.onContainer,
-                    )
+                  ? Icon(Icons.bedtime_rounded, size: 22, color: onMark)
                   : Text(
                       '$score',
                       style: type.figure(
                         context.emphasizedTextTheme.titleSmall?.copyWith(
-                          color: sleep.onContainer,
+                          color: onMark,
                         ),
                       ),
                     ),
@@ -415,7 +412,9 @@ class NightRow extends StatelessWidget {
                     title ?? formats.shortDate(night.date),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall,
+                    style: type.expressive
+                        ? type.strong(theme.textTheme.titleMedium)
+                        : theme.textTheme.titleSmall,
                   ),
                   if (!simple)
                     Text(
@@ -436,9 +435,10 @@ class NightRow extends StatelessWidget {
             Text(
               formats.duration(night.asleepMinutes),
               style: type.figure(
-                context.emphasizedTextTheme.labelLarge?.copyWith(
-                  color: sleep.accent,
-                ),
+                (type.expressive
+                        ? context.emphasizedTextTheme.titleMedium
+                        : context.emphasizedTextTheme.labelLarge)
+                    ?.copyWith(color: sleep.accent),
               ),
             ),
           ],
@@ -492,10 +492,10 @@ class TonightCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  l10n.tonightTitle,
+                  type.caps(l10n.tonightTitle),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: type.label(
+                  style: type.capsLabel(
                     theme.textTheme.titleSmall?.copyWith(
                       color: accent.onContainer,
                     ),

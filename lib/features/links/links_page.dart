@@ -9,6 +9,8 @@ import '../../data/health_controller.dart';
 import '../../data/links.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../theme/pulse_look.dart';
+import '../../widgets/detail_sections.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segment_group.dart';
@@ -17,6 +19,7 @@ import '../../widgets/stat_tile.dart';
 import '../../widgets/sub_page.dart';
 import '../week/week_page.dart';
 import 'link_card.dart';
+import 'links_scene.dart';
 import 'link_format.dart';
 
 /// Opens the page of all connections, growing it out of [origin].
@@ -66,6 +69,8 @@ class LinksPage extends StatelessWidget {
                       );
                       final nights = linkNights(health.nights, health.today);
                       final sections = <Widget>[
+                        if (PulseLook.expressiveOf(context))
+                          const SceneFrame(height: 150, child: LinksScene()),
                         OpenRow(
                           icon: Icons.calendar_view_week_rounded,
                           title: l10n.weekLatest,

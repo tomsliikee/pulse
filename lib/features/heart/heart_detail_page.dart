@@ -14,6 +14,7 @@ import '../../data/workout_insights.dart' show Trend;
 import '../../theme/app_theme.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/day_switcher.dart';
 import '../../widgets/detail_sections.dart';
@@ -319,13 +320,11 @@ class _Summary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          Headline(
             heartHeadline(formats, insights),
-            style: type.strong(
-              context.emphasizedTextTheme.titleMedium?.copyWith(
-                color: accent.accent,
-              ),
-            ),
+            color: accent.accent,
+            icon: Icons.favorite_rounded,
+            large: true,
           ),
         ],
       ),

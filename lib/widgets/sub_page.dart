@@ -5,7 +5,10 @@ import 'package:motor/motor.dart';
 
 import '../app/haptics.dart';
 import '../theme/app_motion.dart';
+import '../theme/app_type.dart';
+import '../theme/pulse_look.dart';
 import 'floating_surface.dart';
+import 'tile_blob.dart';
 
 /// A page opened from another one. It has no app bar: the content scrolls
 /// behind the status bar, a round back button floats over it, and once the
@@ -127,16 +130,15 @@ class _SubPageState extends State<SubPage> {
                 sliver: SliverToBoxAdapter(
                   child: KeyedSubtree(
                     key: _titleKey,
-                    child:
-                        widget.largeTitle ??
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                          child: Text(
-                            widget.title,
-                            style: context.emphasizedTextTheme.headlineMedium
-                                ?.copyWith(color: theme.colorScheme.onSurface),
+                    child: _Head(
+                      top: top,
+                      child:
+                          widget.largeTitle ??
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                            child: _title(context, theme),
                           ),
-                        ),
+                    ),
                   ),
                 ),
               ),
@@ -197,6 +199,77 @@ class _SubPageState extends State<SubPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _title(BuildContext context, ThemeData theme) {
+    final type = AppType.of(context);
+    final text = Text(
+      widget.title,
+      maxLines: type.expressive ? 1 : null,
+      style: type.expressive
+          ? type.display(
+              context.emphasizedTextTheme.displaySmall?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            )
+          : context.emphasizedTextTheme.headlineMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+    );
+    if (!type.expressive) return text;
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: text,
+    );
+  }
+}
+
+/// The head of a page in the expressive rework: two soft shapes behind the
+/// large title that reach up behind the status bar. Without the rework only
+/// the [child].
+class _Head extends StatelessWidget {
+  const _Head({required this.top, required this.child});
+
+  /// From the top of the screen to where the head's row of buttons is.
+  final double top;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!PulseLook.expressiveOf(context)) return child;
+    final scheme = Theme.of(context).colorScheme;
+    final tint = Color.lerp(scheme.surfaceContainer, scheme.primary, 0.1)!;
+    final reach = top + FloatingSurface.height + 12;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          right: -24,
+          top: -reach - 20,
+          width: 190,
+          height: 190,
+          child: RepaintBoundary(
+            child: CustomPaint(painter: TileBlob(color: tint, seed: 1)),
+          ),
+        ),
+        Positioned(
+          right: 120,
+          top: -reach + 30,
+          width: 64,
+          height: 64,
+          child: RepaintBoundary(
+            child: CustomPaint(
+              painter: TileBlob(
+                color: Color.lerp(tint, scheme.primary, 0.08)!,
+                seed: 3,
+              ),
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../app/formatters.dart';
 import '../../app/layout.dart';
 import '../../data/models.dart';
 import '../../data/workout_insights.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/pressable.dart';
 import '../../widgets/shape_badge.dart';
@@ -156,10 +157,10 @@ class LatestWorkoutCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                l10n.lastActivity,
+                                type.caps(l10n.lastActivity),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: type.label(
+                                style: type.capsLabel(
                                   theme.textTheme.titleSmall?.copyWith(
                                     color: scheme.onSurfaceVariant,
                                   ),
@@ -233,14 +234,11 @@ class LatestWorkoutCard extends StatelessWidget {
                               ),
                               const Spacer(),
                             ],
-                            Text(
+                            Headline(
                               workoutHeadline(formats, insights, plain: simple),
+                              color: accent.accent,
+                              icon: Icons.bolt_rounded,
                               maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: type.strong(
-                                context.emphasizedTextTheme.titleSmall
-                                    ?.copyWith(color: accent.accent),
-                              ),
                             ),
                           ],
                         ),
@@ -389,9 +387,12 @@ class WorkoutRow extends StatelessWidget {
             ShapeBadge(
               shape: workout.type.shape,
               icon: workout.type.icon,
-              size: 44,
-              color: activity.container,
-              iconColor: activity.onContainer,
+              size: type.expressive ? 48 : 44,
+              // The rework fills the mark in the strong tone.
+              color: type.expressive ? activity.accent : activity.container,
+              iconColor: type.expressive
+                  ? activity.onAccent
+                  : activity.onContainer,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -403,7 +404,9 @@ class WorkoutRow extends StatelessWidget {
                     workout.type.label(l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall,
+                    style: type.expressive
+                        ? type.strong(theme.textTheme.titleMedium)
+                        : theme.textTheme.titleSmall,
                   ),
                   Text(
                     [

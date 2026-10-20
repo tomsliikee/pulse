@@ -29,10 +29,10 @@ class FreeFigure extends StatelessWidget {
           ),
         ),
         Text(
-          label,
+          type.caps(label),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: type.label(
+          style: type.capsLabel(
             theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

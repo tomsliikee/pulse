@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../theme/app_type.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
+import 'tile_blob.dart';
 import 'tile_surface.dart';
 
 /// A tile showing one measurement: a shaped icon, a label, a large value and
@@ -50,6 +51,7 @@ class MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final type = AppType.of(context);
     final scheme = theme.colorScheme;
     final colors = scheme.tone(tone);
     final neutral = tone == Tone.neutral;
@@ -60,6 +62,7 @@ class MetricCard extends StatelessWidget {
       child: TileSurface(
         color: colors.container,
         radius: AppRadii.extraLarge,
+        blob: blobSeed(label),
         child: InkWell(
           onTap: onTap == null ? null : () => _handleTap(context),
           child: SizedBox(
@@ -85,12 +88,18 @@ class MetricCard extends StatelessWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          label,
+                          type.caps(label),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: colors.onContainer,
-                          ),
+                          style: type.expressive
+                              ? type.capsLabel(
+                                  theme.textTheme.titleSmall?.copyWith(
+                                    color: colors.onContainer,
+                                  ),
+                                )
+                              : theme.textTheme.titleSmall?.copyWith(
+                                  color: colors.onContainer,
+                                ),
                         ),
                       ),
                       ?trailing,
@@ -108,7 +117,15 @@ class MetricCard extends StatelessWidget {
                               color: colors.onContainer,
                             ),
                           ),
-                          child: value,
+                          // The wide numbers of the expressive rework shrink
+                          // where a small tile has no room for them.
+                          child: type.expressive
+                              ? FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: value,
+                                )
+                              : value,
                         ),
                       ),
                       if (unit != null) ...[

@@ -24,6 +24,7 @@ class Stage {
     required this.travel,
     required this.enter,
     this.walksIn = true,
+    this.mascot = false,
   });
 
   final Canvas canvas;
@@ -43,6 +44,9 @@ class Stage {
 
   /// Whether a figure that travels comes in from the left.
   final bool walksIn;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   double get u => size.height / 100;
 
@@ -71,7 +75,7 @@ class Stage {
 
   Offset at(double x, double y) => Offset(centre + x * u, ground - y * u);
 
-  FigurePen get pen => FigurePen(canvas, scheme, u);
+  FigurePen get pen => FigurePen(canvas, scheme, u, mascot: mascot);
 
   /// The colour of land, floors and water.
   Color get soft =>
@@ -249,6 +253,7 @@ Limbs paintPose(Stage s, Pose pose) {
   // The far side is paler seen from the side, and the same seen from the
   // front.
   Paint limb({required bool far}) {
+    if (pen.mascot) return pen.limb(far: far && front < 0.5);
     final paint = pen.limb();
     if (!far) return paint;
     return paint
@@ -307,8 +312,8 @@ Limbs paintPose(Stage s, Pose pose) {
   pen
     ..line(limb(far: true), farLeg)
     ..line(limb(far: true), farArm)
-    ..line(limb(far: false), [hip, neck])
-    ..head(head)
+    ..body(hip, neck, front: front)
+    ..head(head, neck: neck, front: front)
     ..line(limb(far: false), nearLeg)
     ..line(limb(far: false), nearArm);
   return Limbs(

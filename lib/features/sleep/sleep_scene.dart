@@ -4,7 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/models.dart';
+import '../../theme/mascot_colors.dart';
+import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
+import '../../widgets/turtle.dart';
 
 /// Plays a night back in a few seconds: the moon crosses a sky that follows
 /// the stages of the night, over the figure of the workout scenes asleep in
@@ -44,6 +47,7 @@ class SleepScene extends StatelessWidget {
         stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        mascot: PulseLook.mascotOf(context),
         still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
@@ -57,6 +61,7 @@ class _NightPainter extends CustomPainter {
     required this.stage,
     required this.scheme,
     required this.seconds,
+    this.mascot = false,
     required this.still,
   }) : super(repaint: seconds);
 
@@ -65,6 +70,9 @@ class _NightPainter extends CustomPainter {
   final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   /// Whether nothing moves, so the scene has come in already.
   final bool still;
@@ -292,6 +300,7 @@ class _NightPainter extends CustomPainter {
       canvas,
       scheme,
       u,
+      mascot: mascot,
       color: scheme.brightness == Brightness.light
           ? scheme.primaryContainer
           : scheme.primary,
@@ -337,9 +346,26 @@ class _NightPainter extends CustomPainter {
     final lean = 0.06 + 1.05 * up;
     final along = Offset(-math.cos(lean), -math.sin(lean));
     final shoulder = hip + along * 21 * u;
-    pen
-      ..line(pen.limb(), [hip, shoulder])
-      ..head(shoulder + along * 9.5 * u);
+    if (mascot) {
+      // On its belly, the shell up and the head on the pillow, looking
+      // away from the shell.
+      final colors = MascotColors.of(scheme.brightness);
+      Turtle.body(canvas, colors, u, shoulder, hip);
+      Turtle.head(
+        canvas,
+        colors,
+        u,
+        shoulder + along * 9.5 * u,
+        neck: shoulder,
+        leftward: true,
+        asleep: up < 0.5,
+        cap: scheme.tertiaryContainer,
+      );
+    } else {
+      pen
+        ..line(pen.limb(), [hip, shoulder])
+        ..head(shoulder + along * 9.5 * u);
+    }
 
     // The blanket lies over the figure in one soft line: high over the
     // chest, where it rises and falls with the breath, and low at the feet.
@@ -433,6 +459,7 @@ class _NightPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_NightPainter oldDelegate) =>
+      oldDelegate.mascot != mascot ||
       oldDelegate.night != night ||
       oldDelegate.score != score ||
       oldDelegate.stage != stage ||

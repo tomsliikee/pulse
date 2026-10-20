@@ -179,8 +179,8 @@ class _StepsChartState extends State<_StepsChart> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                l10n.averagePerDay,
-                style: type.label(
+                type.caps(l10n.averagePerDay),
+                style: type.capsLabel(
                   theme.textTheme.titleSmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

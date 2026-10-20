@@ -10,6 +10,8 @@ import '../../data/metric_catalog.dart';
 import '../../data/recovery.dart';
 import '../../data/settings_controller.dart';
 import '../../data/workout_insights.dart' show Trend;
+import '../../widgets/detail_sections.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/number_grid.dart';
 import '../../widgets/page_header.dart';
@@ -260,8 +262,8 @@ class _Summary extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SurfaceCard(
-              padding: EdgeInsets.zero,
+            SceneFrame(
+              height: _scene,
               child: daySceneOf(health, insights, height: _scene),
             ),
             const SizedBox(height: _shape - _overlap + DayScores.captionHeight),
@@ -286,13 +288,11 @@ class _Summary extends StatelessWidget {
                       ),
                     ),
                   const SizedBox(height: 8),
-                  Text(
+                  Headline(
                     dayHeadline(formats, insights, soFar: soFar),
-                    style: type.strong(
-                      context.emphasizedTextTheme.titleMedium?.copyWith(
-                        color: scheme.primary,
-                      ),
-                    ),
+                    color: scheme.primary,
+                    icon: Icons.north_rounded,
+                    large: true,
                   ),
                 ],
               ),
@@ -420,8 +420,10 @@ class _ScoreParts extends StatelessWidget {
                     ),
                     switch (score.parts[part]) {
                       final earned? => Text(
-                        l10n.scorePoints(earned.round(), part.points),
-                        style: type.label(
+                        type.caps(
+                          l10n.scorePoints(earned.round(), part.points),
+                        ),
+                        style: type.capsLabel(
                           theme.textTheme.labelLarge?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

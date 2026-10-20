@@ -104,12 +104,16 @@ class _BoardPageState extends State<BoardPage>
     super.dispose();
   }
 
+  /// How far the list is scrolled. For a moment while a setting rebuilds
+  /// the page under another one, the list can be attached twice; the
+  /// newest of its places counts then.
+  double get _scrolled =>
+      _scroll.positions.isEmpty ? 0 : _scroll.positions.last.pixels;
+
   void _measure() {
     final box = _board.currentContext?.findRenderObject();
     if (!mounted || box is! RenderBox || !box.hasSize || _editing) return;
-    final top =
-        box.localToGlobal(Offset.zero).dy +
-        (_scroll.hasClients ? _scroll.offset : 0);
+    final top = box.localToGlobal(Offset.zero).dy + _scrolled;
     if (_boardTop != null && (top - _boardTop!).abs() < 0.5) return;
     setState(() => _boardTop = top);
   }
@@ -282,7 +286,7 @@ class _BoardPageState extends State<BoardPage>
                 child: ListenableBuilder(
                   listenable: _scroll,
                   builder: (context, child) => Transform.translate(
-                    offset: Offset(0, _scroll.hasClients ? -_scroll.offset : 0),
+                    offset: Offset(0, -_scrolled),
                     child: child,
                   ),
                   // A backdrop that needs a light title is dark, so the
@@ -337,7 +341,8 @@ class BoardBackdrop extends InheritedWidget {
     Set<String> inPlace = const {},
   }) {
     final settings = AppScope.of(context).settings;
-    if (!settings.edgeToEdgeHero) return false;
+    // The expressive rework always draws the scene behind the title.
+    if (!settings.edgeToEdgeHero && !settings.expressive) return false;
     final hidden = settings.hiddenTiles(pageId);
     // The same order the board lays the tiles out in.
     final order = resolveIdOrder([

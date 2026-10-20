@@ -7,6 +7,7 @@ import '../../app/haptics.dart';
 import '../../data/supplement_controller.dart';
 import '../../data/supplements.dart';
 import '../../theme/app_shapes.dart';
+import '../../theme/app_type.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/tile_surface.dart';
 import 'supplement_detail_page.dart';
@@ -78,9 +79,16 @@ class SupplementsCard extends StatelessWidget {
             supplement.key: data.takenOn(supplement.key, today),
         };
         final done = taken.values.nonNulls.length;
+        final type = AppType.of(context);
+        final expressive = type.expressive;
         return TileSurface(
-          color: scheme.surfaceBright,
+          // In the expressive rework a tint of the tile's badge, as on the
+          // other tiles of the page.
+          color: expressive
+              ? Color.lerp(scheme.surfaceBright, scheme.tertiaryContainer, 0.7)!
+              : scheme.surfaceBright,
           radius: AppRadii.extraLargeIncreased,
+          blob: expressive ? 0 : null,
           child: Material(
             type: MaterialType.transparency,
             child: Column(
@@ -109,10 +117,32 @@ class SupplementsCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              l10n.supplements,
-                              style: theme.textTheme.titleSmall,
-                            ),
+                            child: !expressive || mine.isEmpty
+                                ? Text(
+                                    l10n.supplements,
+                                    style: theme.textTheme.titleSmall,
+                                  )
+                                : Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l10n.supplements,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: type.strong(
+                                          theme.textTheme.titleMedium,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _Capsules(
+                                        done: done,
+                                        count: mine.length,
+                                        color: scheme.tertiary,
+                                      ),
+                                    ],
+                                  ),
                           ),
                           if (mine.isEmpty)
                             Flexible(
@@ -131,7 +161,11 @@ class SupplementsCard extends StatelessWidget {
                                 formats.integer(done),
                                 formats.integer(mine.length),
                               ),
-                              style: context.emphasizedTextTheme.titleLarge,
+                              style: expressive
+                                  ? type.figure(
+                                      context.emphasizedTextTheme.titleLarge,
+                                    )
+                                  : context.emphasizedTextTheme.titleLarge,
                             ),
                         ],
                       ),
@@ -178,6 +212,50 @@ class SupplementsCard extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// One small capsule for each supplement of the day: filled for those
+/// taken, an outline for those still open. Ends early where there are more
+/// than fit.
+class _Capsules extends StatelessWidget {
+  const _Capsules({
+    required this.done,
+    required this.count,
+    required this.color,
+  });
+
+  final int done;
+  final int count;
+  final Color color;
+
+  static const int _most = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = count.clamp(0, _most);
+    return ExcludeSemantics(
+      child: Row(
+        spacing: 4,
+        children: [
+          for (var i = 0; i < shown; i++)
+            // Narrower where the row has less room than they want.
+            Flexible(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 22,
+                height: 10,
+                decoration: ShapeDecoration(
+                  shape: StadiumBorder(
+                    side: BorderSide(color: color, width: 1.6),
+                  ),
+                  color: i < done ? color : Colors.transparent,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

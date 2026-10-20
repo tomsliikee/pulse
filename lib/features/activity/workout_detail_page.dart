@@ -10,6 +10,7 @@ import '../../data/workout_archive.dart';
 import '../../data/workout_insights.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/detail_sections.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segment_group.dart';
@@ -172,13 +173,11 @@ class _Summary extends StatelessWidget {
             const _Best(),
           ],
           const SizedBox(height: 4),
-          Text(
+          Headline(
             workoutHeadline(formats, insights),
-            style: type.strong(
-              context.emphasizedTextTheme.titleMedium?.copyWith(
-                color: accent.accent,
-              ),
-            ),
+            color: accent.accent,
+            icon: Icons.bolt_rounded,
+            large: true,
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
 
 /// The figure of the other scenes sitting still under a pale sky, a heart
@@ -37,6 +38,7 @@ class HeartScene extends StatelessWidget {
         stage: stage,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        mascot: PulseLook.mascotOf(context),
         still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
@@ -49,6 +51,7 @@ class _HeartPainter extends CustomPainter {
     required this.stage,
     required this.scheme,
     required this.seconds,
+    this.mascot = false,
     required this.still,
   }) : super(repaint: seconds);
 
@@ -56,6 +59,9 @@ class _HeartPainter extends CustomPainter {
   final double? stage;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   /// Whether nothing moves, so the scene has come in already.
   final bool still;
@@ -247,7 +253,7 @@ class _HeartPainter extends CustomPainter {
     required double beat,
     required double? sinceSpike,
   }) {
-    final pen = FigurePen(canvas, scheme, u);
+    final pen = FigurePen(canvas, scheme, u, mascot: mascot);
     final hip = Offset(x, ground - 5 * u);
     final neck = hip + Offset(0, -(23 + 1.6 * breath) * u);
     pen.shadow(Offset(x, ground + 3.4 * u), 22);
@@ -258,8 +264,9 @@ class _HeartPainter extends CustomPainter {
         Offset(x - 5 * side * u, ground),
       ]);
     }
-    pen.line(pen.limb(), [hip, neck]);
-    pen.head(neck + Offset(0, -9.5 * u));
+    pen
+      ..body(hip, neck, front: 1)
+      ..head(neck + Offset(0, -9.5 * u), neck: neck, front: 1);
     for (final side in const [-1.0, 1.0]) {
       final shoulder = neck + Offset(7 * side * u, 2 * u);
       // The hands rise a little with the shoulders.
@@ -326,6 +333,7 @@ class _HeartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_HeartPainter oldDelegate) =>
+      oldDelegate.mascot != mascot ||
       oldDelegate.bpm != bpm ||
       oldDelegate.stage != stage ||
       oldDelegate.still != still ||

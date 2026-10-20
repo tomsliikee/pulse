@@ -16,6 +16,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/board_page.dart';
 import '../../widgets/chip_carousel.dart';
 import '../../widgets/segment_group.dart';
@@ -300,21 +301,16 @@ class DayCard extends StatelessWidget {
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
-                      child: Text(
+                      child: Headline(
                         dayHeadline(
                           formats,
                           insights,
                           soFar: stepsSoFar(health.snapshot, health.now),
                           plain: simple,
                         ),
-                        // Two lines: on a narrow phone the sentence does not fit in one.
+                        color: scheme.primary,
+                        icon: Icons.north_rounded,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: type.strong(
-                          context.emphasizedTextTheme.titleSmall?.copyWith(
-                            color: scheme.primary,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -405,9 +401,9 @@ class _Stat extends StatelessWidget {
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
           child: Text(
-            label,
+            type.caps(label),
             maxLines: 1,
-            style: type.label(
+            style: type.capsLabel(
               theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -662,6 +658,7 @@ class GoalsCard extends StatelessWidget {
     final data = goalDataOf(health, settings);
     final goals = settings.goals;
     final accent = PageAccent.colorsOf(context);
+    final type = AppType.of(context);
     return Pressable(
       pressedScale: 0.98,
       // The loud tile of the page.
@@ -669,6 +666,7 @@ class GoalsCard extends StatelessWidget {
         color: accent.container,
         radius: AppRadii.extraLargeIncreased,
         opaque: true,
+        blob: type.expressive ? 5 : null,
         child: Builder(
           builder: (context) => InkWell(
             onTap: () {
@@ -692,17 +690,37 @@ class GoalsCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           l10n.goals,
-                          style: AppType.of(context).title(
-                            context.emphasizedTextTheme.titleLarge?.copyWith(
-                              color: accent.onContainer,
-                            ),
-                          ),
+                          style: type.expressive
+                              ? type.heading(
+                                  context.emphasizedTextTheme.titleLarge
+                                      ?.copyWith(color: accent.accent),
+                                )
+                              : type.title(
+                                  context.emphasizedTextTheme.titleLarge
+                                      ?.copyWith(color: accent.onContainer),
+                                ),
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: accent.onContainer,
-                      ),
+                      if (type.expressive)
+                        // A round arrow in the strong tone, as in the design.
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: accent.accent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: SizedBox.square(
+                            dimension: 28,
+                            child: Icon(
+                              Icons.chevron_right_rounded,
+                              color: accent.onAccent,
+                            ),
+                          ),
+                        )
+                      else
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: accent.onContainer,
+                        ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -764,9 +782,15 @@ class _Goal extends StatelessWidget {
                 goal.label(l10n),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: accent.onContainer,
-                ),
+                style: type.expressive
+                    ? type.strong(
+                        theme.textTheme.bodyMedium?.copyWith(
+                          color: accent.accent,
+                        ),
+                      )
+                    : theme.textTheme.bodyMedium?.copyWith(
+                        color: accent.onContainer,
+                      ),
               ),
             ),
             const SizedBox(width: 8),
@@ -775,13 +799,16 @@ class _Goal extends StatelessWidget {
                   ? goal.format(formats, progress.value ?? 0)
                   : goal.formatProgress(formats, progress),
               maxLines: 1,
-              style: (progress.reached ? type.strong : type.label)(
-                theme.textTheme.labelLarge?.copyWith(
-                  color: accent.onContainer.withValues(
-                    alpha: progress.reached ? 1 : 0.72,
+              style:
+                  (progress.reached || type.expressive
+                  ? type.strong
+                  : type.label)(
+                    theme.textTheme.labelLarge?.copyWith(
+                      color: accent.onContainer.withValues(
+                        alpha: progress.reached ? 1 : 0.72,
+                      ),
+                    ),
                   ),
-                ),
-              ),
             ),
           ],
         ),

@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../theme/mascot_colors.dart';
+import 'turtle.dart';
+
 /// Runs the time of a small animated scene and hands it to [builder] as
 /// seconds. It stands still where the system asks for no animations, and
 /// while nobody can see it: scrolled out of the screen, under another page
@@ -220,36 +223,81 @@ void paintGlow(Canvas canvas, Offset centre, double radius, Color color) {
     centre,
     radius,
     Paint()
-      ..shader = RadialGradient(
-        colors: [color, color.withValues(alpha: 0)],
-      ).createShader(Rect.fromCircle(center: centre, radius: radius)),
+      ..shader = RadialGradient(colors: [color, color.withValues(alpha: 0)])
+          .createShader(Rect.fromCircle(center: centre, radius: radius)),
   );
 }
 
 /// Draws the figure the scenes share: limbs as round strokes and a round
 /// head, in the theme's primary colour. Every length is given in [u], one
-/// hundredth of the scene's height.
+/// hundredth of the scene's height. Where [mascot] is on it draws the
+/// turtle instead: a shell for the trunk, a turtle's head, green limbs.
 class FigurePen {
-  const FigurePen(this.canvas, this.scheme, this.u, {this.color});
+  const FigurePen(
+    this.canvas,
+    this.scheme,
+    this.u, {
+    this.color,
+    this.mascot = false,
+  });
 
   final Canvas canvas;
   final ColorScheme scheme;
   final double u;
 
-  /// The colour of the figure; the theme's primary when null.
+  /// The colour of the figure; the theme's primary when null. The turtle
+  /// keeps its own.
   final Color? color;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   Color get _body => color ?? scheme.primary;
 
+  MascotColors get _turtle => MascotColors.of(scheme.brightness);
+
   /// The stroke of an arm, a leg or the body; paler for the far side.
-  Paint limb({bool far = false}) => Paint()
-    ..color = far
-        ? Color.lerp(_body, scheme.surfaceContainerHighest, 0.45)!
-        : _body
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 6.5 * u
-    ..strokeCap = StrokeCap.round
-    ..strokeJoin = StrokeJoin.round;
+  Paint limb({bool far = false}) {
+    if (mascot) return Turtle.limb(_turtle, u, far: far);
+    return Paint()
+      ..color = far
+          ? Color.lerp(_body, scheme.surfaceContainerHighest, 0.45)!
+          : _body
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 6.5 * u
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+  }
+
+  /// The trunk from [hip] to [neck]: a stroke, or the turtle's shell with
+  /// its dome on the back. [front] is 1 for a figure seen from the front.
+  void body(Offset hip, Offset neck, {double front = 0}) {
+    if (mascot) {
+      Turtle.body(canvas, _turtle, u, hip, neck, front: front);
+    } else {
+      line(limb(), [hip, neck]);
+    }
+  }
+
+  /// On four legs where the figure is the turtle: going right with its
+  /// feet at [feet], [turn] through a stride. See [Turtle.walker].
+  void walker(
+    Offset feet,
+    double turn, {
+    double pace = 1,
+    bool running = false,
+    double breath = 0,
+  }) => Turtle.walker(
+    canvas,
+    _turtle,
+    u,
+    feet,
+    turn,
+    pace: pace,
+    running: running,
+    breath: breath,
+    band: running ? scheme.tertiary : null,
+  );
 
   /// The thin stroke of a thing the figure uses.
   Paint thing([double width = 2.6]) => Paint()
@@ -266,8 +314,33 @@ class FigurePen {
     canvas.drawPath(path, paint);
   }
 
-  void head(Offset centre) =>
+  /// The head at [centre]. The turtle's sits on a neck from [neck] and
+  /// looks the way the neck points, turned a quarter clockwise; [front]
+  /// shows its face from the front, [asleep] closes its eyes.
+  void head(
+    Offset centre, {
+    Offset? neck,
+    double front = 0,
+    bool asleep = false,
+  }) {
+    if (!mascot) {
       canvas.drawCircle(centre, 6.5 * u, Paint()..color = _body);
+      return;
+    }
+    final up = neck == null || neck == centre
+        ? const Offset(0, -1)
+        : (centre - neck) / (centre - neck).distance;
+    Turtle.head(
+      canvas,
+      _turtle,
+      u,
+      centre,
+      neck: neck,
+      up: up,
+      front: front,
+      asleep: asleep,
+    );
+  }
 
   /// The shadow the figure throws on the ground at [at], [width] wide to
   /// each side; fainter the higher the figure is off the ground.

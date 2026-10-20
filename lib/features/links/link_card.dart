@@ -100,13 +100,13 @@ class _Side extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                switch (count) {
+                type.caps(switch (count) {
                   final count? => '$label · ${l10n.linkCount(count)}',
                   null => label,
-                },
+                }),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: type.label(
+                style: type.capsLabel(
                   theme.textTheme.labelMedium?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

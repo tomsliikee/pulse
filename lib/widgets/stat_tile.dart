@@ -8,6 +8,7 @@ import '../theme/app_type.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
 import 'animated_count.dart';
+import 'tile_blob.dart';
 import 'tile_surface.dart';
 
 /// A compact tile: shaped icon, a value and what it measures.
@@ -55,6 +56,7 @@ class StatTile extends StatelessWidget {
       child: TileSurface(
         color: colors.container,
         radius: AppRadii.largeIncreased + 4,
+        blob: blobSeed(label),
         child: InkWell(
           onTap: onTap == null
               ? null
@@ -90,10 +92,10 @@ class StatTile extends StatelessWidget {
                   },
                 ),
                 Text(
-                  label,
+                  type.caps(label),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: type.label(
+                  style: type.capsLabel(
                     theme.textTheme.labelMedium?.copyWith(
                       color: colors.onContainer.withValues(alpha: 0.72),
                     ),

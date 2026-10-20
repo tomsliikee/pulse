@@ -144,10 +144,10 @@ class _Lead extends StatelessWidget {
                 style: type.title(context.emphasizedTextTheme.headlineSmall),
               ),
               Text(
-                caption,
+                type.caps(caption),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: type.label(
+                style: type.capsLabel(
                   theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -393,17 +393,19 @@ class RecoveryCard extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  l10n.recoveryUsual(
-                                    deviation.metric.formatWithUnit(
-                                      formats,
-                                      deviation.value,
-                                    ),
-                                    deviation.metric.format(
-                                      formats,
-                                      deviation.usual,
+                                  type.caps(
+                                    l10n.recoveryUsual(
+                                      deviation.metric.formatWithUnit(
+                                        formats,
+                                        deviation.value,
+                                      ),
+                                      deviation.metric.format(
+                                        formats,
+                                        deviation.usual,
+                                      ),
                                     ),
                                   ),
-                                  style: type.label(
+                                  style: type.capsLabel(
                                     theme.textTheme.labelLarge?.copyWith(
                                       color: scheme.onSurfaceVariant,
                                     ),
@@ -523,8 +525,8 @@ class WeatherCard extends StatelessWidget {
                   ],
                 ),
                 Text(
-                  '${l10n.weatherRainChance} (%)',
-                  style: type.label(
+                  type.caps('${l10n.weatherRainChance} (%)'),
+                  style: type.capsLabel(
                     theme.textTheme.labelMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/pulse_look.dart';
 import 'glass_scope.dart';
 import 'pressable.dart';
+import 'tile_blob.dart';
 
 /// The filled, rounded surface every tile sits on. Inside a [GlassScope] it
 /// is translucent glass tinted with [color]; everywhere else it is plain
@@ -16,6 +18,7 @@ class TileSurface extends StatelessWidget {
     this.padding,
     this.corners,
     this.opaque = false,
+    this.blob,
   });
 
   final Color color;
@@ -30,15 +33,33 @@ class TileSurface extends StatelessWidget {
   /// is its point.
   final bool opaque;
 
+  /// Which soft shape the expressive rework puts in a corner; none when
+  /// null or with the rework off.
+  final int? blob;
+
   /// How much of a corner's radius a full press takes away.
   static const double _tighten = 0.35;
 
   @override
   Widget build(BuildContext context) {
     final padding = this.padding;
-    final child = padding == null
+    final padded = padding == null
         ? this.child
         : Padding(padding: padding, child: this.child);
+    final blob = this.blob;
+    final child = blob == null || !PulseLook.expressiveOf(context)
+        ? padded
+        : CustomPaint(
+            painter: TileBlob(
+              color: Color.lerp(
+                color,
+                Theme.of(context).colorScheme.primary,
+                0.07,
+              )!,
+              seed: blob,
+            ),
+            child: padded,
+          );
     final corners =
         (this.corners ?? BorderRadius.circular(radius)) *
         (1 - _tighten * PressState.of(context).clamp(0, 1));

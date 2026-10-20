@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
@@ -9,6 +12,7 @@ import '../../data/night_insights.dart';
 import '../../data/health_controller.dart';
 import '../../data/health_snapshot.dart';
 import '../../data/metric_catalog.dart';
+import '../../data/goals.dart';
 import '../../data/models.dart';
 import '../../data/morning.dart';
 import '../../data/settings_controller.dart';
@@ -17,6 +21,8 @@ import '../../data/week_report.dart';
 import '../../theme/app_motion.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/app_type.dart';
+import '../../theme/pulse_look.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/metric_card.dart';
 import '../../widgets/pressable.dart';
@@ -24,6 +30,7 @@ import '../../widgets/progress_ring.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/tile_board.dart';
 import '../../widgets/tile_surface.dart';
+import '../../widgets/wavy_bar.dart';
 import '../activity/workout_tiles.dart';
 import '../sleep/night_tiles.dart';
 import '../supplements/caffeine_tile.dart';
@@ -300,8 +307,18 @@ class _SmallTile extends StatelessWidget {
     final note = reading.note;
     final night = snapshot.nights[today];
     final heart = snapshot.heart[today];
+    // In the expressive rework a measurement with a daily goal shows how
+    // far it has come as a wavy bar, in place of its note.
+    final goal = PulseLook.expressiveOf(context)
+        ? dailyGoalOf(metric, settings)
+        : null;
 
     final Widget? footer = switch (metric) {
+      _ when goal != null => WavyBar(
+        value: (value ?? 0) / settings.goalTarget(goal),
+        color: metric == Metric.water ? scheme.primary : colors.accent,
+        trackColor: colors.accent.withValues(alpha: 0.16),
+      ),
       Metric.heartRate when heart.length >= 2 => LineChart(
         values: [for (final s in heart) s.bpm.toDouble()],
         color: colors.accent,
@@ -355,6 +372,15 @@ class _SmallTile extends StatelessWidget {
   }
 }
 
+/// The goal of a day [metric] is the measurement of, where the user follows
+/// one.
+Goal? dailyGoalOf(Metric metric, SettingsController settings) {
+  for (final goal in settings.goals) {
+    if (!goal.weekly && goal.metric == metric) return goal;
+  }
+  return null;
+}
+
 class _Caption extends StatelessWidget {
   const _Caption(this.text, {required this.color});
 
@@ -395,12 +421,14 @@ class _NutritionCard extends StatelessWidget {
     for (final (metric, _, _) in parts) {
       total += snapshot.value(metric, dayIndex) ?? 0;
     }
+    final expressive = PulseLook.expressiveOf(context);
 
     return Pressable(
       pressedScale: 0.97,
       child: TileSurface(
         color: scheme.surfaceBright,
         radius: AppRadii.extraLargeIncreased,
+        blob: expressive ? 2 : null,
         child: Builder(
           builder: (context) => InkWell(
             onTap: () {
@@ -409,82 +437,290 @@ class _NutritionCard extends StatelessWidget {
                 openMetric(context, Metric.energyIntake, origin);
               }
             },
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      ShapeBadge(
-                        shape: Metric.energyIntake.spec.shape,
-                        icon: Metric.energyIntake.spec.icon,
-                        size: 44,
-                        color: scheme.tertiary,
-                        iconColor: scheme.onTertiary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          l10n.groupNutrition,
-                          style: theme.textTheme.titleSmall,
+            child: expressive
+                ? _NutritionRingBody(
+                    kcal: kcal,
+                    parts: [
+                      for (final (metric, label, color) in parts)
+                        (
+                          label: label,
+                          color: color,
+                          grams: snapshot.value(metric, dayIndex),
+                          text: metric.formatWithUnit(
+                            formats,
+                            snapshot.value(metric, dayIndex),
+                          ),
                         ),
-                      ),
-                      Text(
-                        kcal == null
-                            ? l10n.nothingEntered
-                            : Metric.energyIntake.formatWithUnit(formats, kcal),
-                        style: kcal == null
-                            ? theme.textTheme.bodyMedium?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                              )
-                            : context.emphasizedTextTheme.titleLarge,
-                      ),
                     ],
-                  ),
-                  const Spacer(),
-                  for (final (metric, label, color) in parts) ...[
-                    Row(
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: 112,
-                          child: Text(label, style: theme.textTheme.labelLarge),
-                        ),
-                        Expanded(
-                          child: _Bar(
-                            fraction: total == 0
-                                ? 0
-                                : (snapshot.value(metric, dayIndex) ?? 0) /
-                                      total,
-                            color: color,
-                            trackColor: scheme.surfaceContainerHighest,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 56,
-                          child: Text(
-                            metric.formatWithUnit(
-                              formats,
-                              snapshot.value(metric, dayIndex),
+                        Row(
+                          children: [
+                            ShapeBadge(
+                              shape: Metric.energyIntake.spec.shape,
+                              icon: Metric.energyIntake.spec.icon,
+                              size: 44,
+                              color: scheme.tertiary,
+                              iconColor: scheme.onTertiary,
                             ),
-                            textAlign: TextAlign.end,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                l10n.groupNutrition,
+                                style: theme.textTheme.titleSmall,
+                              ),
                             ),
-                          ),
+                            Text(
+                              kcal == null
+                                  ? l10n.nothingEntered
+                                  : Metric.energyIntake.formatWithUnit(
+                                      formats,
+                                      kcal,
+                                    ),
+                              style: kcal == null
+                                  ? theme.textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    )
+                                  : context.emphasizedTextTheme.titleLarge,
+                            ),
+                          ],
                         ),
+                        const Spacer(),
+                        for (final (metric, label, color) in parts) ...[
+                          Row(
+                            children: [
+                              SizedBox(
+                                width: 112,
+                                child: Text(
+                                  label,
+                                  style: theme.textTheme.labelLarge,
+                                ),
+                              ),
+                              Expanded(
+                                child: _Bar(
+                                  fraction: total == 0
+                                      ? 0
+                                      : (snapshot.value(metric, dayIndex) ??
+                                                0) /
+                                            total,
+                                  color: color,
+                                  trackColor: scheme.surfaceContainerHighest,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 56,
+                                child: Text(
+                                  metric.formatWithUnit(
+                                    formats,
+                                    snapshot.value(metric, dayIndex),
+                                  ),
+                                  textAlign: TextAlign.end,
+                                  style: theme.textTheme.labelLarge?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (metric != Metric.fat) const SizedBox(height: 10),
+                        ],
                       ],
                     ),
-                    if (metric != Metric.fat) const SizedBox(height: 10),
-                  ],
-                ],
-              ),
-            ),
+                  ),
           ),
         ),
       ),
     );
   }
+}
+
+typedef _Part = ({String label, Color color, double? grams, String text});
+
+/// The nutrition tile of the expressive rework: the three nutrients as one
+/// ring around the cutlery, the calories large beside it and a line for
+/// each nutrient below them.
+class _NutritionRingBody extends StatelessWidget {
+  const _NutritionRingBody({required this.kcal, required this.parts});
+
+  final double? kcal;
+  final List<_Part> parts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final formats = Formats.of(context);
+    final l10n = formats.l10n;
+    final type = AppType.of(context);
+    final kcal = this.kcal;
+    final quiet = theme.textTheme.labelLarge?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 20, 16),
+      child: Row(
+        children: [
+          SizedBox.square(
+            // Smaller on a narrow phone, so the nutrients keep their names.
+            dimension: MediaQuery.sizeOf(context).width < 400 ? 112 : 136,
+            child: SingleMotionBuilder(
+              from: 0,
+              value: 1,
+              motion: AppMotion.effectsSlow,
+              builder: (context, grown, child) => CustomPaint(
+                painter: _NutritionRing(
+                  shares: [for (final part in parts) part.grams ?? 0],
+                  colors: [for (final part in parts) part.color],
+                  track: scheme.surfaceContainerHighest,
+                  grown: grown.clamp(0, 1).toDouble(),
+                ),
+                child: child,
+              ),
+              child: Center(
+                child: ShapeBadge(
+                  shape: Metric.energyIntake.spec.shape,
+                  icon: Metric.energyIntake.spec.icon,
+                  size: 56,
+                  color: scheme.tertiary,
+                  iconColor: scheme.onTertiary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 18),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  type.caps(l10n.groupNutrition),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: type.capsLabel(
+                    theme.textTheme.titleSmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: kcal == null
+                      ? Text(l10n.nothingEntered, style: quiet)
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              Metric.energyIntake.format(formats, kcal),
+                              style: type.hero(
+                                context.emphasizedTextTheme.headlineLarge,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(Metric.energyIntake.unit, style: quiet),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 8),
+                for (final part in parts)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 9,
+                          height: 9,
+                          decoration: BoxDecoration(
+                            color: part.color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            part.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge,
+                          ),
+                        ),
+                        Text(
+                          part.text,
+                          style: type.figure(theme.textTheme.labelLarge),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The nutrients as arcs of one ring, each as long as its share of the
+/// grams, with a gap between them; a quiet track where nothing was eaten.
+class _NutritionRing extends CustomPainter {
+  const _NutritionRing({
+    required this.shares,
+    required this.colors,
+    required this.track,
+    required this.grown,
+  });
+
+  final List<double> shares;
+  final List<Color> colors;
+  final Color track;
+
+  /// How far the arcs have grown in, from 0 to 1.
+  final double grown;
+
+  static const double _width = 14;
+
+  /// The gap between two arcs, in radians.
+  static const double _gap = 0.32;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = (Offset.zero & size).deflate(_width / 2);
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _width
+      ..strokeCap = StrokeCap.round;
+    final total = shares.fold(0.0, (sum, share) => sum + share);
+    if (total <= 0) {
+      canvas.drawArc(rect, 0, 2 * math.pi, false, paint..color = track);
+      return;
+    }
+    final shown = [
+      for (final (i, share) in shares.indexed)
+        if (share > 0) (share / total, colors[i]),
+    ];
+    final room = 2 * math.pi - (shown.length > 1 ? _gap * shown.length : 0);
+    var start = -math.pi / 2;
+    for (final (share, color) in shown) {
+      final sweep = room * share * grown;
+      if (sweep > 0) {
+        canvas.drawArc(rect, start, sweep, false, paint..color = color);
+      }
+      start += room * share + (shown.length > 1 ? _gap : 0);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_NutritionRing oldDelegate) =>
+      oldDelegate.grown != grown ||
+      oldDelegate.track != track ||
+      !listEquals(oldDelegate.shares, shares) ||
+      !listEquals(oldDelegate.colors, colors);
 }
 
 class _Bar extends StatelessWidget {

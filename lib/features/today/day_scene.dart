@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
 
 /// The day at [untilMinute]: the sun stands where the time of day puts it,
@@ -61,6 +62,7 @@ class DayScene extends StatelessWidget {
         scene: this,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        mascot: PulseLook.mascotOf(context),
         still: MediaQuery.disableAnimationsOf(context),
       ),
     ),
@@ -72,12 +74,16 @@ class _DayPainter extends CustomPainter {
     required this.scene,
     required this.scheme,
     required this.seconds,
+    this.mascot = false,
     required this.still,
   }) : super(repaint: seconds);
 
   final DayScene scene;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   /// Whether nothing moves, so the scene has come in already.
   final bool still;
@@ -201,6 +207,7 @@ class _DayPainter extends CustomPainter {
       canvas,
       scheme,
       u,
+      mascot: mascot,
       color: Color.lerp(_nightFigure, scheme.primary, light),
     );
     final x = size.width * (_figureAt - 0.2 * (1 - enter.arrived));
@@ -510,7 +517,17 @@ class _DayPainter extends CustomPainter {
         ? 5 * math.sin(turn).abs()
         : 1.2 * pace * math.cos(2 * turn).abs();
     final hip = Offset(x, ground - (2 * part * 0.95 + lift) * u);
-    pen.shadow(Offset(x, ground + 3.4 * u), 13);
+    pen.shadow(Offset(x, ground + 3.4 * u), pen.mascot ? 26 : 13);
+    if (pen.mascot) {
+      pen.walker(
+        Offset(x, ground + 2 * u),
+        turn,
+        pace: pace,
+        running: running,
+        breath: breath,
+      );
+      return;
+    }
 
     List<Offset> leg(double phase) {
       final thigh = swing * math.sin(phase);
@@ -535,14 +552,15 @@ class _DayPainter extends CustomPainter {
     pen
       ..line(pen.limb(far: true), leg(turn + math.pi))
       ..line(pen.limb(far: true), arm(turn + math.pi))
-      ..line(pen.limb(), [hip, shoulder])
-      ..head(shoulder + up * 9.5 * u)
+      ..body(hip, shoulder)
+      ..head(shoulder + up * 9.5 * u, neck: shoulder)
       ..line(pen.limb(), leg(turn))
       ..line(pen.limb(), arm(turn));
   }
 
   @override
   bool shouldRepaint(_DayPainter oldDelegate) =>
+      oldDelegate.mascot != mascot ||
       oldDelegate.scene.untilMinute != scene.untilMinute ||
       oldDelegate.scene.score != scene.score ||
       oldDelegate.scene.hours != scene.hours ||

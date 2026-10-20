@@ -29,6 +29,7 @@ DateTime _at(int back, int hour, [int minute = 0]) => DateTime(
 Future<MemoryJsonStore> _store({
   bool simple = false,
   bool withTiles = true,
+  bool expressive = false,
 }) async {
   final added = _at(40, 8);
   final creatine = presetOf('creatine')!.added(added);
@@ -54,6 +55,7 @@ Future<MemoryJsonStore> _store({
   final store = MemoryJsonStore();
   await store.write(StoreKeys.settings, {
     'simple': simple,
+    'expressive': expressive,
     if (withTiles) 'todayTiles': [dayTileId, supplementsTileId, caffeineTileId],
     if (withTiles) 'todayTilesVersion': 5,
   });
@@ -77,6 +79,45 @@ Future<MemoryJsonStore> _store({
 
 void main() {
   setUpAll(loadAppFont);
+
+  for (final size in _sizes) {
+    testWidgets('in the rework the tile has a capsule for each supplement at '
+        '${size.width.round()}', (tester) async {
+      await pumpApp(
+        tester,
+        size: size,
+        store: await _store(expressive: true, simple: true),
+      );
+      final card = find.byType(SupplementsCard);
+      await tester.scrollUntilVisible(
+        card,
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView).first,
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await advance(tester);
+      final capsules = find.descendant(
+        of: card,
+        matching: find.byType(AnimatedContainer),
+      );
+      expect(capsules, findsNWidgets(5));
+      final filled = [
+        for (final element in capsules.evaluate())
+          ((element.widget as AnimatedContainer).decoration! as ShapeDecoration)
+                  .color !=
+              Colors.transparent,
+      ];
+      expect(filled.where((on) => on).length, 3);
+      expect(
+        find.descendant(of: card, matching: find.text('3 von 5')),
+        findsOneWidget,
+      );
+    });
+  }
 
   for (final size in _sizes) {
     for (final language in _languages) {

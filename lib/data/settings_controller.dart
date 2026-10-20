@@ -219,6 +219,8 @@ class SettingsController extends ChangeNotifier {
   bool _liquidGlass = false;
   bool _edgeToEdgeHero = false;
   bool _flexFont = false;
+  bool _mascot = false;
+  bool _expressive = false;
   bool _haptics = true;
   bool _introDone = true;
   String? _language;
@@ -303,6 +305,13 @@ class SettingsController extends ChangeNotifier {
   /// Whether the type uses the axes of the variable font: width, weight,
   /// slant and grade. Off, the font is a plain typeface.
   bool get flexFont => _flexFont;
+
+  /// Whether the scenes show the turtle instead of the stick figure.
+  bool get mascot => _mascot;
+
+  /// Whether the app wears the expressive rework: wide type, more shapes,
+  /// large headers.
+  bool get expressive => _expressive;
 
   /// Whether the app gives haptic signals.
   bool get haptics => _haptics;
@@ -418,6 +427,8 @@ class SettingsController extends ChangeNotifier {
     if (json['liquidGlass'] case final bool v) _liquidGlass = v;
     if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
     if (json['flexFont'] case final bool v) _flexFont = v;
+    if (json['mascot'] case final bool v) _mascot = v;
+    if (json['expressive'] case final bool v) _expressive = v;
     if (json['haptics'] case final bool v) _haptics = v;
     if (json['introDone'] case final bool v) _introDone = v;
     if (json['language'] case final String v when appLanguages.contains(v)) {
@@ -607,6 +618,8 @@ class SettingsController extends ChangeNotifier {
   void setEdgeToEdgeHero(bool value) => _update(() => _edgeToEdgeHero = value);
 
   void setFlexFont(bool value) => _update(() => _flexFont = value);
+  void setMascot(bool value) => _update(() => _mascot = value);
+  void setExpressive(bool value) => _update(() => _expressive = value);
 
   void setHaptics(bool value) => _update(() => _haptics = value);
 
@@ -690,6 +703,8 @@ class SettingsController extends ChangeNotifier {
             'liquidGlass': _liquidGlass,
             'edgeToEdgeHero': _edgeToEdgeHero,
             'flexFont': _flexFont,
+            'mascot': _mascot,
+            'expressive': _expressive,
             'haptics': _haptics,
             'introDone': _introDone,
             'language': ?_language,

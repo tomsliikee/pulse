@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import 'app_shapes.dart';
 import 'page_accent.dart';
+import 'pulse_look.dart';
 
 /// Switches on the type that uses the axes of the variable font. It sits
 /// above the app, so every text follows the setting at once.
@@ -24,36 +25,79 @@ class FlexType extends InheritedWidget {
 /// number is heavy and wide, its label narrow and light, an aside slanted.
 /// With [flex] off every role returns the style it was given.
 class AppType {
-  const AppType({required this.flex, this.roundness = 100});
+  const AppType({
+    required this.flex,
+    this.roundness = 100,
+    this.expressive = false,
+  });
 
   /// The type of the page [context] is on: as round as the page's shapes.
-  factory AppType.of(BuildContext context) => AppType(
-    flex: FlexType.of(context),
-    roundness: switch (PageAccent.of(context).family) {
-      ShapeFamily.activity => 0,
-      ShapeFamily.heart => 50,
-      ShapeFamily.day || ShapeFamily.sleep => 100,
-    },
-  );
+  /// The expressive rework always uses the axes, and widens what stands out.
+  factory AppType.of(BuildContext context) {
+    final expressive = PulseLook.expressiveOf(context);
+    return AppType(
+      flex: expressive || FlexType.of(context),
+      expressive: expressive,
+      roundness: switch (PageAccent.of(context).family) {
+        ShapeFamily.activity => 0,
+        ShapeFamily.heart => 50,
+        ShapeFamily.day || ShapeFamily.sleep => 100,
+      },
+    );
+  }
 
   final bool flex;
+
+  /// Whether the expressive rework is on: headings wide and heavy, numbers
+  /// bold, labels in capitals.
+  final bool expressive;
 
   /// The font's roundness axis, from 0 to 100.
   final double roundness;
 
   /// The one number a page or a large tile is about.
-  TextStyle? hero(TextStyle? base) =>
-      _vary(base, weight: 800, width: 112, figures: true);
+  TextStyle? hero(TextStyle? base) => expressive
+      ? _vary(base, weight: 820, width: 100, figures: true)
+      : _vary(base, weight: 800, width: 112, figures: true);
 
   /// A number among others.
-  TextStyle? figure(TextStyle? base) =>
-      _vary(base, weight: 700, width: 106, figures: true);
+  TextStyle? figure(TextStyle? base) => expressive
+      ? _vary(base, weight: 720, width: 100, figures: true)
+      : _vary(base, weight: 700, width: 106, figures: true);
 
   /// What a number is, beside or under it.
-  TextStyle? label(TextStyle? base) => _vary(base, weight: 450, width: 88);
+  TextStyle? label(TextStyle? base) => expressive
+      ? _vary(base, weight: 560, width: 100)
+      : _vary(base, weight: 450, width: 88);
+
+  /// What a number is, set in capitals and spaced in the expressive
+  /// rework: [text] as it is shown.
+  String caps(String text) => expressive ? text.toUpperCase() : text;
+
+  /// [label] for [caps] text: smaller and spaced out in the rework.
+  TextStyle? capsLabel(TextStyle? base) {
+    if (!expressive || base == null) return label(base);
+    return _vary(
+      base.copyWith(fontSize: (base.fontSize ?? 14) * 0.82, letterSpacing: 0.6),
+      weight: 600,
+      width: 92,
+    );
+  }
 
   /// The title of a section.
-  TextStyle? title(TextStyle? base) => _vary(base, weight: 750, width: 108);
+  TextStyle? title(TextStyle? base) => expressive
+      ? _vary(base, weight: 760, width: 100)
+      : _vary(base, weight: 750, width: 108);
+
+  /// The free title over a section: [title], or in the expressive rework
+  /// wide and heavy. Only headings are wide there; wide running text is
+  /// hard to read.
+  TextStyle? heading(TextStyle? base) =>
+      expressive ? _vary(base, weight: 900, width: 132) : title(base);
+
+  /// The title a whole page starts with.
+  TextStyle? display(TextStyle? base) =>
+      expressive ? _vary(base, weight: 900, width: 151, scale: 1.22) : base;
 
   /// What stands out in a line of text.
   TextStyle? strong(TextStyle? base) => _vary(base, weight: 700);
@@ -117,8 +161,12 @@ class AppType {
     double? slant,
     double? grade,
     bool figures = false,
+    double scale = 1,
   }) {
     if (!flex || base == null) return base;
+    if (scale != 1 && base.fontSize != null) {
+      base = base.copyWith(fontSize: base.fontSize! * scale);
+    }
     final axes = <String, double>{
       for (final variation in base.fontVariations ?? const <FontVariation>[])
         variation.axis: variation.value,

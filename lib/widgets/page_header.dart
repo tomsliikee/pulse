@@ -36,12 +36,17 @@ class PageHeader extends StatelessWidget {
         children: [
           Padding(
             padding: EdgeInsets.only(right: reserved),
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: context.emphasizedTextTheme.displaySmall?.copyWith(
-                color: ink ?? scheme.onSurface,
+            child: _Fitted(
+              expressive: AppType.of(context).expressive,
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppType.of(context).display(
+                  context.emphasizedTextTheme.displaySmall?.copyWith(
+                    color: ink ?? scheme.onSurface,
+                  ),
+                ),
               ),
             ),
           ),
@@ -74,7 +79,9 @@ class SectionTitle extends StatelessWidget {
         text,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: AppType.of(context).title(
+        style: AppType.of(context).heading(
+          // A free title is larger in the expressive rework; one inside a
+          // tile keeps its size, so the tile keeps its room.
           context.emphasizedTextTheme.headlineSmall?.copyWith(
             color: theme.colorScheme.onSurface,
           ),
@@ -202,4 +209,22 @@ class EmptyNote extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Shrinks a title that is too wide for its room in the expressive rework,
+/// whose wide type would cut a long word off.
+class _Fitted extends StatelessWidget {
+  const _Fitted({required this.expressive, required this.child});
+
+  final bool expressive;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => expressive
+      ? FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: child,
+        )
+      : child;
 }

@@ -15,6 +15,7 @@ import '../../data/workout_insights.dart' show Trend;
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/detail_sections.dart';
 import '../../widgets/morphing_shape.dart';
 import '../../widgets/segment_group.dart';
@@ -400,13 +401,11 @@ class _Summary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          Headline(
             nightHeadline(formats, insights),
-            style: type.strong(
-              context.emphasizedTextTheme.titleMedium?.copyWith(
-                color: accent.accent,
-              ),
-            ),
+            color: accent.accent,
+            icon: Icons.bedtime_rounded,
+            large: true,
           ),
         ],
       ),
@@ -449,8 +448,10 @@ class _ScoreCard extends StatelessWidget {
                     ),
                     switch (score.parts[part]) {
                       final earned? => Text(
-                        l10n.scorePoints(earned.round(), part.points),
-                        style: type.label(
+                        type.caps(
+                          l10n.scorePoints(earned.round(), part.points),
+                        ),
+                        style: type.capsLabel(
                           theme.textTheme.labelLarge?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),

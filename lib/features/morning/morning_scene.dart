@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/weather.dart';
+import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
 
 /// What the morning's pictures share: the dawn is warm under any theme; the
@@ -24,6 +25,10 @@ abstract final class Dawn {
       );
     }
     return hills
+      ..lineTo(
+        size.width,
+        ground - (9 + 6 * math.sin(2 * math.pi * 1.5 + 1)) * u,
+      )
       ..lineTo(size.width, size.height)
       ..lineTo(0, size.height)
       ..close();
@@ -47,6 +52,7 @@ class MorningScene extends StatelessWidget {
         sky: sky ?? Sky.clear,
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
+        mascot: PulseLook.mascotOf(context),
       ),
     ),
   );
@@ -57,11 +63,15 @@ class _MorningPainter extends CustomPainter {
     required this.sky,
     required this.scheme,
     required this.seconds,
+    this.mascot = false,
   }) : super(repaint: seconds);
 
   final Sky sky;
   final ColorScheme scheme;
   final ValueListenable<double> seconds;
+
+  /// Whether the figure is the turtle.
+  final bool mascot;
 
   static const double _tau = 2 * math.pi;
 
@@ -163,7 +173,7 @@ class _MorningPainter extends CustomPainter {
 
   /// Standing, both arms up and a little apart: a stretch that breathes.
   void _figure(Canvas canvas, Offset feet, double u, double time) {
-    final pen = FigurePen(canvas, scheme, u);
+    final pen = FigurePen(canvas, scheme, u, mascot: mascot);
     final breath = math.sin(time * _tau / 4);
     final hip = feet + Offset(0, -24 * u);
     final neck = hip + Offset(0, -(20 + breath) * u);
@@ -179,8 +189,8 @@ class _MorningPainter extends CustomPainter {
         ]);
     }
     pen
-      ..line(near, [hip, neck])
-      ..head(neck + Offset(0, -9 * u));
+      ..body(hip, neck, front: 1)
+      ..head(neck + Offset(0, -9 * u), neck: neck, front: 1);
   }
 
   void _rain(Canvas canvas, Size size, double u, double time) {
@@ -225,5 +235,7 @@ class _MorningPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MorningPainter oldDelegate) =>
-      oldDelegate.sky != sky || oldDelegate.scheme != scheme;
+      oldDelegate.mascot != mascot ||
+      oldDelegate.sky != sky ||
+      oldDelegate.scheme != scheme;
 }

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:m3e_core/m3e_core.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
@@ -7,6 +8,7 @@ import '../../data/week_report.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../widgets/pressable.dart';
+import '../../widgets/shape_badge.dart';
 import '../../widgets/tile_surface.dart';
 import 'week_page.dart';
 
@@ -49,6 +51,7 @@ class WeekTile extends StatelessWidget {
             color: scheme.tertiaryContainer,
             opaque: true,
             radius: AppRadii.extraLarge,
+            blob: type.expressive ? 1 : null,
             child: Material(
               type: MaterialType.transparency,
               child: Builder(
@@ -61,11 +64,20 @@ class WeekTile extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.calendar_view_week_rounded,
-                          size: 32,
-                          color: scheme.onTertiaryContainer,
-                        ),
+                        if (type.expressive)
+                          ShapeBadge(
+                            shape: Shapes.c7SidedCookie,
+                            icon: Icons.calendar_month_rounded,
+                            size: 48,
+                            color: scheme.tertiary,
+                            iconColor: scheme.onTertiary,
+                          )
+                        else
+                          Icon(
+                            Icons.calendar_view_week_rounded,
+                            size: 32,
+                            color: scheme.onTertiaryContainer,
+                          ),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(

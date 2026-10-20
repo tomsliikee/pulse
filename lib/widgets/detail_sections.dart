@@ -41,7 +41,7 @@ class SceneSummary extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SurfaceCard(padding: EdgeInsets.zero, child: scene),
+            SceneFrame(height: sceneHeight, child: scene),
             SizedBox(
               height: markSize - _overlap,
               child: Padding(
@@ -71,6 +71,18 @@ class SceneSummary extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The scene at the head of a page, in a card.
+class SceneFrame extends StatelessWidget {
+  const SceneFrame({super.key, required this.height, required this.child});
+
+  final double height;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      SurfaceCard(padding: EdgeInsets.zero, child: child);
 }
 
 /// Sentences as segments under a free title, each with the same icon on a

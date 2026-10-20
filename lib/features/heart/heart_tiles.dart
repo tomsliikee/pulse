@@ -12,6 +12,7 @@ import '../../data/models.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/headline.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/board_page.dart';
@@ -127,16 +128,18 @@ class HeartDayCard extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                current == null
-                                    ? l10n.noPulseThatDay
-                                    : simple
-                                    ? l10n.metricHeartRate
-                                    : l10n.lastAtTime(
-                                        formatClock(current.minuteOfDay),
-                                      ),
+                                type.caps(
+                                  current == null
+                                      ? l10n.noPulseThatDay
+                                      : simple
+                                      ? l10n.metricHeartRate
+                                      : l10n.lastAtTime(
+                                          formatClock(current.minuteOfDay),
+                                        ),
+                                ),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: type.label(
+                                style: type.capsLabel(
                                   theme.textTheme.titleSmall?.copyWith(
                                     color: scheme.onSurfaceVariant,
                                   ),
@@ -227,18 +230,15 @@ class HeartDayCard extends StatelessWidget {
                                     ),
                                     const Spacer(),
                                   ],
-                                  Text(
+                                  Headline(
                                     heartHeadline(
                                       formats,
                                       heartInsightsOf(health, date),
                                       plain: simple,
                                     ),
+                                    color: accent.accent,
+                                    icon: Icons.favorite_rounded,
                                     maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: type.strong(
-                                      context.emphasizedTextTheme.titleSmall
-                                          ?.copyWith(color: accent.accent),
-                                    ),
                                   ),
                                 ],
                               ),
@@ -395,10 +395,10 @@ class HeartNoteCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  formats.l10n.heartTipsTitle,
+                  type.caps(formats.l10n.heartTipsTitle),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: type.label(
+                  style: type.capsLabel(
                     theme.textTheme.titleSmall?.copyWith(
                       color: accent.onContainer,
                     ),

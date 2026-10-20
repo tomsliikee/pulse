@@ -42,6 +42,10 @@ class LinksTile extends StatelessWidget {
         final formats = Formats.of(context);
         final l10n = formats.l10n;
         final accent = PageAccent.colorsOf(context);
+        final type = AppType.of(context);
+        // The rework fills the mark in the strong tone.
+        final mark = type.expressive ? accent.accent : accent.container;
+        final onMark = type.expressive ? accent.onAccent : accent.onContainer;
         final links = linksOf(
           scope.health,
           scope.settings,
@@ -72,17 +76,19 @@ class LinksTile extends StatelessWidget {
                                 shape: Shapes.l4LeafClover,
                                 icon: Icons.link_rounded,
                                 size: 36,
-                                color: accent.container,
-                                iconColor: accent.onContainer,
+                                color: mark,
+                                iconColor: onMark,
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  l10n.linksTitle,
+                                  type.caps(l10n.linksTitle),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleSmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
+                                  style: type.capsLabel(
+                                    theme.textTheme.titleSmall?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -124,8 +130,8 @@ class LinksTile extends StatelessWidget {
                           shape: Shapes.l4LeafClover,
                           icon: Icons.link_rounded,
                           size: 40,
-                          color: accent.container,
-                          iconColor: accent.onContainer,
+                          color: mark,
+                          iconColor: onMark,
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -137,8 +143,11 @@ class LinksTile extends StatelessWidget {
                                 l10n.linksTitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppType.of(context)
-                                    .strong(theme.textTheme.titleSmall),
+                                style: type.strong(
+                                  type.expressive
+                                      ? theme.textTheme.titleMedium
+                                      : theme.textTheme.titleSmall,
+                                ),
                               ),
                               Text(
                                 links.isEmpty
