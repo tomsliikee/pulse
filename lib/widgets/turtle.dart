@@ -302,6 +302,7 @@ abstract final class Turtle {
     double pace = 1,
     bool running = false,
     double breath = 0,
+    bool blink = false,
     Color? band,
   }) {
     final k = _walkerScale * u;
@@ -367,7 +368,66 @@ abstract final class Turtle {
       k * 0.92,
       head,
       up: const Offset(-0.12, -1),
+      asleep: blink,
       band: band,
+    );
+  }
+
+  /// Asleep on the ground, facing right, as the walker stands still: the
+  /// shell on the belly, the head laid down ahead of it with closed eyes
+  /// and the feet drawn in. [at] is the ground under the middle of the
+  /// shell; [breath] from 0 to 1 lifts the shell. [cap] is a night cap.
+  static void resting(
+    Canvas canvas,
+    MascotColors colors,
+    double u,
+    Offset at, {
+    double breath = 0,
+    Color? cap,
+  }) {
+    final k = _walkerScale * u;
+    final belly = at.dy - 4.5 * k;
+    for (final x in const [-9.5, 9.5]) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(at.dx + x * k, at.dy - 1.6 * k),
+          width: 9 * k,
+          height: 3.6 * k,
+        ),
+        Paint()..color = colors.farSkin,
+      );
+    }
+    canvas.drawPath(
+      Path()
+        ..moveTo(at.dx - 15 * k, belly - 1.2 * k)
+        ..lineTo(at.dx - 21 * k, belly + 1.6 * k)
+        ..lineTo(at.dx - 14 * k, belly + 1.8 * k)
+        ..close(),
+      Paint()..color = colors.skin,
+    );
+    canvas
+      ..save()
+      ..translate(at.dx, belly)
+      ..scale(k, k * (1 + 0.035 * breath));
+    _side(canvas, colors);
+    canvas.restore();
+    final head = Offset(at.dx + 22 * k, belly - 1.5 * k);
+    canvas.drawLine(
+      Offset(at.dx + 14 * k, belly - 1 * k),
+      head,
+      Paint()
+        ..color = colors.skin
+        ..strokeWidth = 6 * k
+        ..strokeCap = StrokeCap.round,
+    );
+    Turtle.head(
+      canvas,
+      colors,
+      k * 0.92,
+      head,
+      up: const Offset(0.35, -1),
+      asleep: true,
+      cap: cap,
     );
   }
 }

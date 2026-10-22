@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/models.dart';
-import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
 import 'scene/figures_ball.dart';
 import 'scene/figures_calm.dart';
@@ -46,7 +45,6 @@ class WorkoutScene extends StatelessWidget {
         scheme: Theme.of(context).colorScheme,
         seconds: seconds,
         still: MediaQuery.disableAnimationsOf(context),
-        mascot: PulseLook.mascotOf(context),
       ),
     ),
   );
@@ -109,7 +107,6 @@ class _ScenePainter extends CustomPainter {
     required this.scheme,
     required this.seconds,
     required this.still,
-    required this.mascot,
   }) : super(repaint: seconds);
 
   final WorkoutType type;
@@ -119,9 +116,6 @@ class _ScenePainter extends CustomPainter {
 
   /// Whether nothing moves, so the scene has come in already.
   final bool still;
-
-  /// Whether the figure is the turtle.
-  final bool mascot;
 
   /// A pale sky in the colour of the page, so the scene has an end to fade
   /// from.
@@ -153,7 +147,6 @@ class _ScenePainter extends CustomPainter {
       travel: gait.travel,
       enter: SceneEntrance.at(time, still: still),
       walksIn: type.figure != WorkoutFigure.climb,
-      mascot: mascot,
     );
     paintSetting(s, setting);
     s.enter.fade(canvas, s.bounds, () => _figure(s));
@@ -162,11 +155,9 @@ class _ScenePainter extends CustomPainter {
   void _figure(Stage s) {
     final pen = s.pen;
     final feet = s.at(0, -3.4);
-    // The turtle on four legs is longer than the figure is wide.
-    final wide = mascot ? 1.9 : 1.0;
     switch (type.figure) {
       case WorkoutFigure.walk:
-        pen.shadow(feet, 13 * wide);
+        pen.shadow(feet, 13);
         paintWalker(s);
       case WorkoutFigure.run:
         // Off the ground twice a stride, and the shadow shrinks with it.
@@ -174,13 +165,13 @@ class _ScenePainter extends CustomPainter {
         if (type == WorkoutType.treadmill) {
           paintTreadmill(s);
         } else {
-          pen.shadow(feet, (13 - 5 * lift) * wide, strength: 1 - 0.45 * lift);
+          pen.shadow(feet, 13 - 5 * lift, strength: 1 - 0.45 * lift);
           paintWind(s);
           paintDust(s, s.time / s.cycle);
         }
         paintWalker(s, running: true);
       case WorkoutFigure.hike:
-        pen.shadow(feet, 14 * wide);
+        pen.shadow(feet, 14);
         if (type == WorkoutType.snowshoe) {
           paintDust(s, s.time / s.cycle, color: s.pale);
         }
@@ -237,6 +228,5 @@ class _ScenePainter extends CustomPainter {
       oldDelegate.type != type ||
       oldDelegate.stage != stage ||
       oldDelegate.still != still ||
-      oldDelegate.mascot != mascot ||
       oldDelegate.scheme != scheme;
 }

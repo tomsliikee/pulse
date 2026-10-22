@@ -4,10 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../data/models.dart';
-import '../../theme/mascot_colors.dart';
 import '../../theme/pulse_look.dart';
 import '../../widgets/scene_kit.dart';
-import '../../widgets/turtle.dart';
 
 /// Plays a night back in a few seconds: the moon crosses a sky that follows
 /// the stages of the night, over the figure of the workout scenes asleep in
@@ -311,6 +309,16 @@ class _NightPainter extends CustomPainter {
     // Slower and deeper in deep sleep.
     final breath = 0.5 - 0.5 * math.cos(_tau * time / (3.4 + 1.4 * deep));
 
+    if (mascot) {
+      // The turtle sleeps on the ground, no bed.
+      final at = Offset(x - 4 * u, floor);
+      pen.shadow(at + Offset(0, 1.5 * u), 26);
+      pen.resting(at, breath: breath, cap: scheme.tertiaryContainer);
+      final above = at + Offset(30 * u, -22 * u);
+      if (up < 0.2) _snores(canvas, u, time, above);
+      return;
+    }
+
     // Headboard, mattress and legs.
     final frame = Paint()..color = scheme.secondaryContainer;
     canvas
@@ -346,26 +354,9 @@ class _NightPainter extends CustomPainter {
     final lean = 0.06 + 1.05 * up;
     final along = Offset(-math.cos(lean), -math.sin(lean));
     final shoulder = hip + along * 21 * u;
-    if (mascot) {
-      // On its belly, the shell up and the head on the pillow, looking
-      // away from the shell.
-      final colors = MascotColors.of(scheme.brightness);
-      Turtle.body(canvas, colors, u, shoulder, hip);
-      Turtle.head(
-        canvas,
-        colors,
-        u,
-        shoulder + along * 9.5 * u,
-        neck: shoulder,
-        leftward: true,
-        asleep: up < 0.5,
-        cap: scheme.tertiaryContainer,
-      );
-    } else {
-      pen
-        ..line(pen.limb(), [hip, shoulder])
-        ..head(shoulder + along * 9.5 * u);
-    }
+    pen
+      ..line(pen.limb(), [hip, shoulder])
+      ..head(shoulder + along * 9.5 * u);
 
     // The blanket lies over the figure in one soft line: high over the
     // chest, where it rises and falls with the breath, and low at the feet.

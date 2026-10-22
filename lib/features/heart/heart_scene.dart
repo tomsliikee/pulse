@@ -256,7 +256,20 @@ class _HeartPainter extends CustomPainter {
     final pen = FigurePen(canvas, scheme, u, mascot: mascot);
     final hip = Offset(x, ground - 5 * u);
     final neck = hip + Offset(0, -(23 + 1.6 * breath) * u);
-    pen.shadow(Offset(x, ground + 3.4 * u), 22);
+    pen.shadow(Offset(x, ground + 3.4 * u), mascot ? 26 : 22);
+    if (mascot) {
+      // Standing on four legs, eyes closed, the heart on its shell.
+      pen.walker(
+        Offset(x - 4 * u, ground + 2 * u),
+        0,
+        pace: 0,
+        breath: breath,
+        blink: true,
+      );
+      final at = Offset(x - 4 * u, ground - 21 * u - 0.6 * breath * u);
+      _pulse(canvas, u * 1.7, at, beat, sinceSpike);
+      return;
+    }
     for (final side in const [-1.0, 1.0]) {
       pen.line(pen.limb(far: side < 0), [
         hip,
@@ -280,6 +293,17 @@ class _HeartPainter extends CustomPainter {
 
     // The heart, on the figure's left and so on the right of the picture.
     final at = neck + Offset(2.2 * u, 8.5 * u);
+    _pulse(canvas, u, at, beat, sinceSpike);
+  }
+
+  /// The heart at [at] with the rings that leave it.
+  void _pulse(
+    Canvas canvas,
+    double u,
+    Offset at,
+    double beat,
+    double? sinceSpike,
+  ) {
     // A ring leaves the heart with the spike, and one before it is still
     // on its way.
     if (sinceSpike != null) {

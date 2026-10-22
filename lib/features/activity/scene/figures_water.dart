@@ -30,8 +30,8 @@ void paintSwimmer(Stage s) {
   pen
     ..line(pen.limb(far: true), arm(turn + math.pi))
     ..line(pen.limb(far: true), leg(2 * turn + math.pi))
-    ..body(hip, shoulder)
-    ..head(shoulder + Offset(10 * u, -2 * u), neck: shoulder)
+    ..line(pen.limb(), [hip, shoulder])
+    ..head(shoulder + Offset(10 * u, -2 * u))
     ..line(pen.limb(), leg(2 * turn))
     ..line(pen.limb(), arm(turn));
   // Drops where the hand goes in.

@@ -54,8 +54,8 @@ void _breather(Stage s) {
     ]);
   }
   pen
-    ..body(hip, neck, front: 1)
-    ..head(neck + Offset(0, -9.5 * u), neck: neck, front: 1);
+    ..line(pen.limb(), [hip, neck])
+    ..head(neck + Offset(0, -9.5 * u));
   // From hanging beside the body to nearly touching above the head.
   final raise = 0.6 + (math.pi - 0.75) * breath;
   for (final side in const [-1.0, 1.0]) {

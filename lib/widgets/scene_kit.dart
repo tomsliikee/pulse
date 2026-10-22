@@ -287,6 +287,7 @@ class FigurePen {
     double pace = 1,
     bool running = false,
     double breath = 0,
+    bool blink = false,
   }) => Turtle.walker(
     canvas,
     _turtle,
@@ -296,8 +297,13 @@ class FigurePen {
     pace: pace,
     running: running,
     breath: breath,
+    blink: blink,
     band: running ? scheme.tertiary : null,
   );
+
+  /// The turtle asleep on the ground at [at]. See [Turtle.resting].
+  void resting(Offset at, {double breath = 0, Color? cap}) =>
+      Turtle.resting(canvas, _turtle, u, at, breath: breath, cap: cap);
 
   /// The thin stroke of a thing the figure uses.
   Paint thing([double width = 2.6]) => Paint()

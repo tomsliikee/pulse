@@ -48,7 +48,7 @@ class AppType {
 
   final bool flex;
 
-  /// Whether the expressive rework is on: headings wide and heavy, numbers
+  /// Whether the expressive rework is on: headings a little wider and heavier, numbers
   /// bold, labels in capitals.
   final bool expressive;
 
@@ -57,13 +57,13 @@ class AppType {
 
   /// The one number a page or a large tile is about.
   TextStyle? hero(TextStyle? base) => expressive
-      ? _vary(base, weight: 820, width: 100, figures: true)
-      : _vary(base, weight: 800, width: 112, figures: true);
+      ? _vary(base, weight: 760, width: 100, figures: true)
+      : _vary(base, weight: 800, width: 104, figures: true);
 
   /// A number among others.
   TextStyle? figure(TextStyle? base) => expressive
-      ? _vary(base, weight: 720, width: 100, figures: true)
-      : _vary(base, weight: 700, width: 106, figures: true);
+      ? _vary(base, weight: 680, width: 100, figures: true)
+      : _vary(base, weight: 700, width: 100, figures: true);
 
   /// What a number is, beside or under it.
   TextStyle? label(TextStyle? base) => expressive
@@ -87,17 +87,17 @@ class AppType {
   /// The title of a section.
   TextStyle? title(TextStyle? base) => expressive
       ? _vary(base, weight: 760, width: 100)
-      : _vary(base, weight: 750, width: 108);
+      : _vary(base, weight: 750, width: 102);
 
   /// The free title over a section: [title], or in the expressive rework
-  /// wide and heavy. Only headings are wide there; wide running text is
-  /// hard to read.
+  /// a little wider and heavier. Only headings change width; running text is
+  /// kept plain.
   TextStyle? heading(TextStyle? base) =>
-      expressive ? _vary(base, weight: 900, width: 132) : title(base);
+      expressive ? _vary(base, weight: 780, width: 106) : title(base);
 
   /// The title a whole page starts with.
   TextStyle? display(TextStyle? base) =>
-      expressive ? _vary(base, weight: 900, width: 151, scale: 1.22) : base;
+      expressive ? _vary(base, weight: 700, width: 104) : base;
 
   /// What stands out in a line of text.
   TextStyle? strong(TextStyle? base) => _vary(base, weight: 700);
@@ -142,7 +142,7 @@ class AppType {
     return _vary(
       style,
       weight: _stepped(lerpDouble(500, 800, t)!, 20),
-      width: _stepped(lerpDouble(96, 112, t)!, 2),
+      width: _stepped(lerpDouble(94, 104, t)!, 2),
     );
   }
 

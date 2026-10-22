@@ -56,11 +56,6 @@ void paintWalker(Stage s, {bool running = false, bool hiking = false}) {
   final u = s.u;
   final pen = s.pen;
   final turn = s.turn;
-  if (pen.mascot) {
-    // The turtle carries its pack on its back already, and goes on four.
-    pen.walker(Offset(s.centre, s.floor), turn, running: running);
-    return;
-  }
   const part = 17.0;
   final swing = running ? 0.95 : (hiking ? 0.5 : 0.55);
   final knee = running ? 1.7 : 0.7;
@@ -203,8 +198,8 @@ void paintRider(Stage s, {bool onStand = false}) {
   final shoulder = hip + Offset(13 * u, -19 * u);
   final hand = bars + Offset(-1 * u, -2 * u);
   pen
-    ..body(hip, shoulder)
-    ..head(shoulder + Offset(6 * u, -8 * u), neck: shoulder)
+    ..line(pen.limb(), [hip, shoulder])
+    ..head(shoulder + Offset(6 * u, -8 * u))
     ..line(pen.limb(), leg(turn))
     ..line(pen.limb(), [
       shoulder,
