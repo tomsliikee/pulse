@@ -30,6 +30,7 @@ Future<MemoryJsonStore> _store({
   bool simple = false,
   bool withTiles = true,
   bool expressive = false,
+  bool large = false,
 }) async {
   final added = _at(40, 8);
   final creatine = presetOf('creatine')!.added(added);
@@ -58,6 +59,7 @@ Future<MemoryJsonStore> _store({
     'expressive': expressive,
     if (withTiles) 'todayTiles': [dayTileId, supplementsTileId, caffeineTileId],
     if (withTiles) 'todayTilesVersion': 5,
+    if (large) 'largeTiles': [supplementsTileId],
   });
   await store.write(
     StoreKeys.supplements,
@@ -242,6 +244,26 @@ void main() {
     expect(scope.supplements.data.takenOn('magnesium', fixtureNow), taken);
     expect(tester.takeException(), isNull);
   });
+
+  for (final size in _sizes) {
+    final label = '${size.width.round()}x${size.height.round()}';
+
+    testWidgets('the large tile has the ring above the list at $label', (
+      tester,
+    ) async {
+      final l10n = lookupAppLocalizations(const Locale('de'));
+      await pumpApp(tester, size: size, store: await _store(large: true));
+      await bringIntoView(tester, find.byType(SupplementsCard));
+      expect(
+        tester.widget<SupplementsCard>(find.byType(SupplementsCard)).large,
+        isTrue,
+      );
+      expect(find.text(l10n.supplementsTakenOf('3', '5')), findsOneWidget);
+      expect(find.text(l10n.supplementTakenAt('08:05')), findsOneWidget);
+      expect(find.byTooltip(l10n.supplementTakenNow), findsWidgets);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('simple mode shows the count only', (tester) async {
     final l10n = lookupAppLocalizations(const Locale('de'));

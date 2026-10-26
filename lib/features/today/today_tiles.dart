@@ -170,14 +170,18 @@ BoardTile? buildTodayTile(
           child: const LinksTile(),
         );
       case supplementsTileId:
+        final large = settings.isLargeTile(id);
         return BoardTile(
           id: id,
           height: SupplementsCard.heightFor(
             supplements.mine.length,
             simple: settings.simple,
+            large: large,
           ),
+          large: large,
           onRemove: remove,
-          child: SupplementsCard(simple: settings.simple),
+          onResize: () => settings.toggleTileSize(id),
+          child: SupplementsCard(simple: settings.simple, large: large),
         );
       case caffeineTileId:
         return BoardTile(
