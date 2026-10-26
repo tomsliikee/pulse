@@ -94,7 +94,7 @@ A new installation starts in simple mode. An installation that already has setti
 Health Connect has no place for supplements, so Pulse keeps them itself: in the app's own directory and in the backup, and nowhere else.
 
 - **Your List:** **Profile → Supplements** offers some forty well-known ones by what they are, never by a brand (creatine, magnesium, ashwagandha and so on), and takes any of your own. Each can have a dose in capsules, tablets, scoops, drops, pieces, g, mg, ml or IU, or none at all, in which case it is only "taken". The amounts filled in are a start to change, not advice on a dose.
-- **On Today:** A card lists them, taken or open; a tap on the circle notes one as taken now, a second tap takes that back.
+- **On Today:** A card lists them, taken or open; a tap on the circle notes one as taken now, a second tap takes that back. In edit mode the corner button makes the card large: a ring around the badge fills as you take them, with the count beside it and the list below.
 - **At the Plus:** The ones you take most often, to tap; each can also be logged once at another time or in another dose.
 - **Per Supplement:** The days in a row, the last 30 days and a calendar of six weeks.
 - **Caffeine:** A supplement or drink with caffeine adds to the day's milligrams; its tile shows the sum and the time of the last one. Only what you log in Pulse counts.
@@ -130,6 +130,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 - **Allowing Routes:** Health Connect hands out the routes other apps recorded only with your consent. While it holds them back, a workout's page and the profile show a button that opens Health Connect's own dialog; choose **Allow all routes** there. The line is kept as at most 200 points in the app's own directory; no map is loaded.
 - **Kinds of Workout:** Each kind Health Connect tells apart has its own name and icon. The fine values count endurance and ball sports by heart rate, walking and hiking by steps, and calm or static kinds such as strength, yoga or golf at a fixed rate; a minute without a heart rate counts at the rate of its kind.
 - **All Activities:** Month by month, with a filter for the kind.
+- **Calories in Detail:** The total-calories tile opens a page per day: what was burned against what was eaten with the difference, what the burn is made of (basal, active, workouts, everyday steps), the active calories over the day, the nutrients and meals, and the real burn from food and weight. Estimates are marked as such.
 - **Steps by Week and Month:** The average per day stands large above the chart.
 - **Counting Steps:** Where a watch and the phone both write steps, the profile lets you pick how a day is counted: **Health Connect**'s own total, the **mean of the day** across the sources, the **mean of each hour** across the sources that counted in it, or the **watch only**. It applies to the last 30 days and to everything new; older days keep Health Connect's total.
 - **Removing a Workout:** The **bin** on a workout's page takes it out of Pulse together with the steps, distance and calories counted while it ran, with an **undo**. Later, the button at the top of the list of all activities shows the removed ones and brings one back. A workout deleted in the app that recorded it disappears on its own.
@@ -153,7 +154,7 @@ For the rest of the morning the **Good morning** tile on Today opens the cards a
 
 - **A Heart That Beats at Your Rate:** A bright dot draws a monitor line behind the figure, one spike in the time of one beat at the last measured rate, and the line fades behind it. With every spike the heart swells and a ring leaves it.
 - **Over the Day:** The day's heart rate as a curve from the first measurement to the last, true to time. Tap it and a bar stays at that measurement, with a pill that says the rate and the time; hold and drag, and the bar follows your finger. Each step is felt, fainter for a low rate and firmer for a high one.
-- **The Day in Detail:** Tap the top of the page for the day's own page: lowest, average and highest with their times, the zones, the parts of the day, each number against the days before, hints from your own numbers, and the day hour by hour. A bar at the bottom leads to the other days that have a curve.
+- **The Day in Detail:** Tap the top of the page for the day's own page: lowest, average and highest with their times, the zones, the parts of the day, each number against the days before, hints from your own numbers, and the day hour by hour. A bar at the bottom leads to the other days that have a curve; **More** also leads to the heart rate by week, month and year. The heart rate tile on Today opens this page.
 - **The Days Before and the Week:** Earlier days as cards to swipe and the week's averages as bars; each opens its day.
 - **Vitals:** Resting heart rate, variability, blood pressure, oxygen saturation, respiratory rate and skin temperature, where your devices record them.
 - **Time in Zones:** Rest, light, cardio and peak, each as its share of the measured time.
@@ -237,15 +238,16 @@ The colours are chosen from a row of dots in the profile:
 
 ![Today in green and in pink, Activity in mixed colours, and the row of styles in the profile](readmestuff/colours.png)
 
-Three switches in the profile change the look further, all **off by default**:
+Four switches in the profile change the look further, all **off by default**:
 
 | Switch | Effect |
 | :--- | :--- |
 | **Liquid Glass** | The navigation bar, the period tabs, the add button with its menu and the floating buttons become clear glass that bends the page beneath; tiles become translucent |
 | **Edge-to-edge scene** | The scene of each main page runs from the top of the screen behind the title |
+| **Calm mode** | Leaves out every scene and figure, the turtle and the beating heart; the numbers stay where they were and nothing on the heroes moves |
 | **Flex font** | Large numbers and titles use the width and weight axes of **Google Sans Flex** |
 
-A fourth switch, **Haptics**, is **on by default**; switched off, Pulse plays no haptic signal at all.
+A fifth switch, **Haptics**, is **on by default**; switched off, Pulse plays no haptic signal at all.
 
 ![The four main pages with Liquid Glass switched on](readmestuff/glass.png)
 
@@ -413,7 +415,7 @@ No estimate from a wrist is exact. The page of **total calories** therefore work
 
 ![Today with fine values, what a day's active calories are made of, the real burn from food and weight, and the switch in the profile](readmestuff/fine.png)
 
-Every metric has the tabs **Today**, **Yesterday**, **Week**, **Month**, **Year** and **All**. An average counts only days with data; a day without a measurement is not a zero.
+Every metric has the bar **Today**, **Yesterday** and **More**, the same as the pages about one day; **More** holds **Week**, **Month**, **Year** and **All**. An average counts only days with data; a day without a measurement is not a zero.
 
 ### The Scores
 

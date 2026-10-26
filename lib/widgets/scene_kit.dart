@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../theme/mascot_colors.dart';
+import '../theme/pulse_look.dart';
 import 'turtle.dart';
 
 /// Runs the time of a small animated scene and hands it to [builder] as
@@ -86,6 +87,7 @@ class _SceneClockState extends State<SceneClock>
     final still = MediaQuery.disableAnimationsOf(context);
     final wanted =
         !still &&
+        !PulseLook.calmOf(context) &&
         _enabled &&
         (state == null || state == AppLifecycleState.resumed);
     if (still) _seconds.value = _still;
@@ -149,12 +151,15 @@ class _SceneClockState extends State<SceneClock>
   }
 
   @override
-  Widget build(BuildContext context) => ExcludeSemantics(
-    // Its own layer, so a frame of the scene repaints nothing else.
-    child: RepaintBoundary(
-      child: ClipRect(child: widget.builder(context, _seconds)),
-    ),
-  );
+  Widget build(BuildContext context) => PulseLook.calmOf(context)
+      // No scene at all; what stands around it keeps its place.
+      ? const SizedBox.shrink()
+      : ExcludeSemantics(
+          // Its own layer, so a frame of the scene repaints nothing else.
+          child: RepaintBoundary(
+            child: ClipRect(child: widget.builder(context, _seconds)),
+          ),
+        );
 }
 
 /// How far a scene has come in since its page opened: the land rises, what

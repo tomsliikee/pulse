@@ -220,6 +220,7 @@ class SettingsController extends ChangeNotifier {
   bool _edgeToEdgeHero = false;
   bool _flexFont = false;
   bool _mascot = false;
+  bool _calm = false;
   bool _expressive = false;
   bool _haptics = true;
   bool _introDone = true;
@@ -308,6 +309,10 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether the scenes show the turtle instead of the stick figure.
   bool get mascot => _mascot;
+
+  /// Whether the scenes, with their figures, are left out: the heroes keep
+  /// their numbers and nothing on them moves.
+  bool get calm => _calm;
 
   /// Whether the app wears the expressive rework: wide type, more shapes,
   /// large headers.
@@ -428,6 +433,7 @@ class SettingsController extends ChangeNotifier {
     if (json['edgeToEdgeHero'] case final bool v) _edgeToEdgeHero = v;
     if (json['flexFont'] case final bool v) _flexFont = v;
     if (json['mascot'] case final bool v) _mascot = v;
+    if (json['calm'] case final bool v) _calm = v;
     if (json['expressive'] case final bool v) _expressive = v;
     if (json['haptics'] case final bool v) _haptics = v;
     if (json['introDone'] case final bool v) _introDone = v;
@@ -619,6 +625,7 @@ class SettingsController extends ChangeNotifier {
 
   void setFlexFont(bool value) => _update(() => _flexFont = value);
   void setMascot(bool value) => _update(() => _mascot = value);
+  void setCalm(bool value) => _update(() => _calm = value);
   void setExpressive(bool value) => _update(() => _expressive = value);
 
   void setHaptics(bool value) => _update(() => _haptics = value);
@@ -704,6 +711,7 @@ class SettingsController extends ChangeNotifier {
             'edgeToEdgeHero': _edgeToEdgeHero,
             'flexFont': _flexFont,
             'mascot': _mascot,
+            'calm': _calm,
             'expressive': _expressive,
             'haptics': _haptics,
             'introDone': _introDone,

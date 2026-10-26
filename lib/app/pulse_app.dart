@@ -263,6 +263,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
               return PulseLook(
                 mascot: _settings.mascot,
                 expressive: _settings.expressive,
+                calm: _settings.calm,
                 child: FlexType(
                   enabled: _settings.flexFont,
                   child: AnnotatedRegion<SystemUiOverlayStyle>(

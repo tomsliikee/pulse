@@ -605,6 +605,7 @@ class ProfilePage extends StatelessWidget {
                       settings.setEdgeToEdgeHero,
                     ),
                     (l10n.flexFont, settings.flexFont, settings.setFlexFont),
+                    (l10n.calmMode, settings.calm, settings.setCalm),
                     (l10n.mascot, settings.mascot, settings.setMascot),
                     (
                       l10n.expressiveRework,

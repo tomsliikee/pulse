@@ -8,6 +8,7 @@ class PulseLook extends InheritedWidget {
     super.key,
     this.mascot = false,
     this.expressive = false,
+    this.calm = false,
     required super.child,
   });
 
@@ -17,15 +18,22 @@ class PulseLook extends InheritedWidget {
   /// Whether pages wear the expressive rework.
   final bool expressive;
 
+  /// Whether the scenes are left out.
+  final bool calm;
+
   static PulseLook? _of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<PulseLook>();
 
   static bool mascotOf(BuildContext context) => _of(context)?.mascot ?? false;
+
+  static bool calmOf(BuildContext context) => _of(context)?.calm ?? false;
 
   static bool expressiveOf(BuildContext context) =>
       _of(context)?.expressive ?? false;
 
   @override
   bool updateShouldNotify(PulseLook oldWidget) =>
-      oldWidget.mascot != mascot || oldWidget.expressive != expressive;
+      oldWidget.mascot != mascot ||
+      oldWidget.expressive != expressive ||
+      oldWidget.calm != calm;
 }
