@@ -11,6 +11,20 @@ import '../theme/app_motion.dart';
 import 'floating_surface.dart';
 import 'floating_tab_bar.dart';
 
+/// One more entry in the pills above a [DaySwitcher], next to the days: a
+/// period or a view of its own.
+class DayExtra {
+  const DayExtra({
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool selected;
+}
+
 /// The bar at the bottom of a page about one day: today, yesterday, and a
 /// third tab that lets a column of pills rise above it, one for each of the
 /// days before and one that leads to all of them. While an older day is
@@ -22,6 +36,7 @@ class DaySwitcher extends StatefulWidget {
     required this.selected,
     required this.earlier,
     required this.onSelected,
+    this.extras = const [],
     this.allLabel,
     this.onAll,
     this.glass = false,
@@ -37,6 +52,10 @@ class DaySwitcher extends StatefulWidget {
   /// there is no list of them.
   final String? allLabel;
   final ValueChanged<DateTime> onSelected;
+
+  /// Entries below the days that are no day. While one is selected, the
+  /// third tab carries its label.
+  final List<DayExtra> extras;
   final VoidCallback? onAll;
   final bool glass;
 
@@ -103,7 +122,10 @@ class _DaySwitcherState extends State<DaySwitcher> {
     final formats = Formats.of(context);
     final l10n = AppLocalizations.of(context);
     final selected = widget.selected;
-    final index = selected == widget.today
+    final extra = widget.extras.where((e) => e.selected).firstOrNull;
+    final index = extra != null
+        ? 2
+        : selected == widget.today
         ? 0
         : selected == _yesterday
         ? 1
@@ -137,7 +159,11 @@ class _DaySwitcherState extends State<DaySwitcher> {
               labels: [
                 l10n.navToday,
                 l10n.periodYesterday,
-                index == 2 ? formats.shortDate(selected) : l10n.dayTabMore,
+                extra != null
+                    ? extra.label
+                    : index == 2
+                    ? formats.shortDate(selected)
+                    : l10n.dayTabMore,
               ],
               icons: {
                 2: SingleMotionBuilder(
@@ -183,6 +209,22 @@ class _DaySwitcherState extends State<DaySwitcher> {
               style: style?.copyWith(color: scheme.onSurface),
             ),
             if (day == widget.selected) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.check_rounded, size: 18, color: scheme.primary),
+            ],
+          ],
+        ),
+      for (final extra in widget.extras)
+        _Pill(
+          glass: widget.glass,
+          onTap: () {
+            Haptics.selection();
+            _close();
+            extra.onTap();
+          },
+          children: [
+            Text(extra.label, style: style?.copyWith(color: scheme.onSurface)),
+            if (extra.selected) ...[
               const SizedBox(width: 8),
               Icon(Icons.check_rounded, size: 18, color: scheme.primary),
             ],

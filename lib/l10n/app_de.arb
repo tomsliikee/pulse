@@ -2177,5 +2177,18 @@
         "type": "String"
       }
     }
-  }
+  },
+  "caloriesInDetail": "Kalorien im Detail",
+  "caloriesBalance": "Bilanz",
+  "caloriesBurned": "Verbrannt",
+  "caloriesEaten": "Gegessen",
+  "caloriesDeficit": "Defizit",
+  "caloriesSurplus": "Überschuss",
+  "caloriesBurnParts": "So setzt sich der Verbrauch zusammen",
+  "caloriesOverDay": "Aktive Kalorien über den Tag",
+  "caloriesMeals": "Mahlzeiten",
+  "caloriesMealsNone": "Heute noch keine Mahlzeit eingetragen",
+  "caloriesNoData": "Für diesen Tag gibt es keine Kalorien",
+  "caloriesHistory": "Verlauf",
+  "calmMode": "Ruhiger Modus: keine Szenen und Figuren"
 }

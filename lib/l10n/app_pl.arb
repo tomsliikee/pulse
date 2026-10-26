@@ -1095,5 +1095,18 @@
   "introAgain": "Zobacz wprowadzenie",
   "historyOff": "Pulse odczytuje tylko to, co Health Connect udostępnia sam: 30 dni przed pierwszym przyznaniem dostępu i wszystko później.",
   "historyLoad": "Wczytaj starsze dane",
-  "introHello": "Cześć, {name}"
+  "introHello": "Cześć, {name}",
+  "caloriesInDetail": "Kalorie szczegółowo",
+  "caloriesBalance": "Bilans",
+  "caloriesBurned": "Spalone",
+  "caloriesEaten": "Zjedzone",
+  "caloriesDeficit": "Deficyt",
+  "caloriesSurplus": "Nadwyżka",
+  "caloriesBurnParts": "Z czego składa się spalanie",
+  "caloriesOverDay": "Aktywne kalorie w ciągu dnia",
+  "caloriesMeals": "Posiłki",
+  "caloriesMealsNone": "Brak posiłku tego dnia",
+  "caloriesNoData": "Brak kalorii dla tego dnia",
+  "caloriesHistory": "Historia",
+  "calmMode": "Tryb spokojny: bez scen i postaci"
 }

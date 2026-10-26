@@ -22,6 +22,7 @@ import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/data/step_counting.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
+import 'package:pulse/widgets/floating_tab_bar.dart';
 import 'package:pulse/widgets/metric_card.dart';
 
 /// The moment every test treats as "now": Tuesday afternoon.
@@ -537,6 +538,22 @@ Future<void> advance(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 600));
   await tester.pump(const Duration(seconds: 2));
+}
+
+/// Taps the [index]th of the three tabs of the bar at the bottom of a page.
+Future<void> tapBarTab(WidgetTester tester, int index) async {
+  final bar = tester.getRect(find.byType(FloatingTabBar));
+  final third = bar.width / 3;
+  await tester.tapAt(Offset(bar.left + third * (index + 0.5), bar.center.dy));
+  await advance(tester);
+}
+
+/// Opens "Weitere" and takes the pill [label] out of it: a span longer
+/// than a day.
+Future<void> pickPeriod(WidgetTester tester, String label) async {
+  await tapBarTab(tester, 2);
+  await tester.tap(find.text(label).last);
+  await advance(tester);
 }
 
 /// Sends what Android reports during a back swipe: [progress] for

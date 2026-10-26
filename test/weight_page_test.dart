@@ -77,8 +77,7 @@ void main() {
             lessThan(tester.getRect(onPage(find.byType(BarChart))).top),
           );
           for (final tab in tabs) {
-            await tester.tap(find.text(tab).last);
-            await advance(tester);
+            await pickPeriod(tester, tab);
             expect(onPage(find.byType(PickCurve)), findsOneWidget, reason: tab);
             expect(onPage(find.byType(BarChart)), findsOneWidget, reason: tab);
             expect(tester.takeException(), isNull, reason: tab);
@@ -91,9 +90,8 @@ void main() {
   testWidgets('today and yesterday have no line', (tester) async {
     await pumpApp(tester, repository: _weights());
     await _open(tester, 'Gewicht');
-    for (final tab in const ['Heute', 'Gestern']) {
-      await tester.tap(find.text(tab).last);
-      await advance(tester);
+    for (final (index, tab) in const ['Heute', 'Gestern'].indexed) {
+      await tapBarTab(tester, index);
       expect(find.byType(PickCurve), findsNothing, reason: tab);
     }
   });
@@ -108,8 +106,7 @@ void main() {
     expect(find.text('Montag, 5. Oktober'), findsOneWidget);
     expect(find.text('0,2 kg über den Zeitraum abgenommen'), findsOneWidget);
 
-    await tester.tap(find.text('Monat').last);
-    await advance(tester);
+    await pickPeriod(tester, 'Monat');
     expect(find.text('Diese Woche'), findsOneWidget);
     expect(find.text('1.10. bis 4.10.'), findsOneWidget);
     // Monday and Tuesday of this week, Thursday and Sunday of the one before.
@@ -182,8 +179,7 @@ void main() {
     await pumpApp(tester);
     await tapInView(tester, stepsTile());
     expect(find.byType(MetricDetailPage), findsOneWidget);
-    await tester.tap(find.text('Woche').last);
-    await advance(tester);
+    await pickPeriod(tester, 'Woche');
     expect(find.byType(PickCurve), findsNothing);
     expect(find.text('Verlauf'), findsNothing);
   });

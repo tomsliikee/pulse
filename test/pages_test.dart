@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pulse/data/health_repository.dart';
 import 'package:pulse/data/snapshot_builder.dart';
+import 'package:pulse/features/detail/metric_detail_page.dart';
+import 'package:pulse/features/heart/heart_detail_page.dart';
 
 import 'support/fixtures.dart';
 
@@ -85,16 +87,24 @@ void main() {
 
     testWidgets('a tile opens its detail page at $label', (tester) async {
       await pumpApp(tester, size: size);
+      await tapInView(tester, stepsTile());
+      // Opens on today; the other spans are one tab away.
+      expect(find.text('Gestern'), findsWidgets);
+      await pickPeriod(tester, 'Woche');
+      expect(find.text('Wochenschnitt pro Tag'), findsOneWidget);
+      expect(find.text('Höchstwert'), findsOneWidget);
+    });
+
+    testWidgets('the pulse tile opens the page of the day at $label', (
+      tester,
+    ) async {
+      await pumpApp(tester, size: size);
       await tester.ensureVisible(find.text('Herzfrequenz'));
       await advance(tester);
       await tester.tap(find.text('Herzfrequenz'));
       await advance(tester);
-      // Opens on today; the other spans are one tab away.
-      expect(find.text('Gestern'), findsWidgets);
-      await tester.tap(find.text('Woche').hitTestable());
-      await advance(tester);
-      expect(find.text('Wochenschnitt pro Tag'), findsOneWidget);
-      expect(find.text('Höchstwert'), findsOneWidget);
+      expect(find.byType(HeartDetailPage), findsOneWidget);
+      expect(find.byType(MetricDetailPage), findsNothing);
     });
   }
 

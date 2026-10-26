@@ -1095,5 +1095,18 @@
   "introAgain": "See the introduction",
   "historyOff": "Pulse reads only what Health Connect hands out by itself: the 30 days before access was first allowed and everything since.",
   "historyLoad": "Load older data",
-  "introHello": "Hello, {name}"
+  "introHello": "Hello, {name}",
+  "caloriesInDetail": "Calories in detail",
+  "caloriesBalance": "Balance",
+  "caloriesBurned": "Burned",
+  "caloriesEaten": "Eaten",
+  "caloriesDeficit": "Deficit",
+  "caloriesSurplus": "Surplus",
+  "caloriesBurnParts": "What the burn is made of",
+  "caloriesOverDay": "Active calories over the day",
+  "caloriesMeals": "Meals",
+  "caloriesMealsNone": "No meal entered for this day",
+  "caloriesNoData": "There are no calories for this day",
+  "caloriesHistory": "History",
+  "calmMode": "Calm mode: no scenes or figures"
 }

@@ -159,10 +159,7 @@ void main() {
     );
 
     expect(pill().contains(centre('Heute')), isTrue);
-    await tester.tap(
-      find.descendant(of: bar, matching: find.bySemanticsLabel('Woche')),
-    );
-    await advance(tester);
+    await pickPeriod(tester, 'Woche');
     expect(pill().contains(centre('Woche')), isTrue);
     expect(pill().contains(centre('Heute')), isFalse);
     expect(tester.takeException(), isNull);
@@ -186,13 +183,13 @@ void main() {
       final gesture = await tester.startGesture(tester.getCenter(tab('Heute')));
       await gesture.moveBy(const Offset(30, 0));
       await tester.pump(const Duration(milliseconds: 100));
-      await gesture.moveTo(tester.getCenter(tab('Monat')));
+      await gesture.moveTo(tester.getCenter(tab('Gestern')));
       await tester.pump(const Duration(milliseconds: 300));
       // The tab only changes when the pill is let go.
       expect(selected('Heute'), isTrue);
       await gesture.up();
       await advance(tester);
-      expect(selected('Monat'), isTrue);
+      expect(selected('Gestern'), isTrue);
       expect(selected('Heute'), isFalse);
       expect(tester.takeException(), isNull);
     });

@@ -8,6 +8,8 @@ import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
+import '../calories/calories_detail_page.dart';
+import '../heart/heart_detail_page.dart';
 import '../sleep/sleep_detail_page.dart';
 import 'metric_detail_page.dart';
 
@@ -238,7 +240,7 @@ extension MetricPresentation on Metric {
 }
 
 /// Opens the detail page for [metric], growing it out of the tile at [origin].
-/// Sleep has a page of its own.
+/// Sleep, the pulse and the calories have pages of their own.
 void openMetric(BuildContext context, Metric metric, Rect origin) {
   final scheme = Theme.of(context).colorScheme;
   final health = AppScope.of(context).health;
@@ -246,9 +248,14 @@ void openMetric(BuildContext context, Metric metric, Rect origin) {
     ContainerRoute<void>(
       origin: origin,
       originColor: scheme.tone(metric.spec.tone).container,
-      builder: (_) => metric == Metric.sleep
-          ? SleepDetailPage(date: health.latestNight?.date ?? health.today)
-          : MetricDetailPage(metric: metric),
+      builder: (_) => switch (metric) {
+        Metric.sleep => SleepDetailPage(
+          date: health.latestNight?.date ?? health.today,
+        ),
+        Metric.heartRate => HeartDetailPage(date: health.today),
+        Metric.totalEnergy => CaloriesDetailPage(date: health.today),
+        _ => MetricDetailPage(metric: metric),
+      },
     ),
   );
 }

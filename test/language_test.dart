@@ -11,7 +11,6 @@ import 'package:pulse/features/age/body_age_page.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/sleep/sleep_detail_page.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
-import 'package:pulse/widgets/floating_tab_bar.dart';
 
 import 'support/fixtures.dart';
 
@@ -311,13 +310,14 @@ void main() {
         await tapInView(tester, stepsTile(formatsOf(language).integer(7432)));
         expect(find.byType(MetricDetailPage), findsOneWidget);
         for (final kind in PeriodKind.values) {
-          await tester.tap(
-            find.descendant(
-              of: find.byType(FloatingTabBar),
-              matching: find.text(kind.tab(l10n)),
-            ),
-          );
-          await advance(tester);
+          switch (kind) {
+            case PeriodKind.today:
+              await tapBarTab(tester, 0);
+            case PeriodKind.yesterday:
+              await tapBarTab(tester, 1);
+            default:
+              await pickPeriod(tester, kind.tab(l10n));
+          }
           await tester.drag(
             find.byType(CustomScrollView),
             const Offset(0, -2000),

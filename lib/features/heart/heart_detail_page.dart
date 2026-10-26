@@ -27,6 +27,7 @@ import '../../widgets/segment_group.dart';
 import '../../widgets/shape_badge.dart';
 import '../../widgets/stat_tile.dart';
 import '../../widgets/sub_page.dart';
+import '../detail/metric_detail_page.dart';
 import '../detail/metric_spec.dart';
 import '../detail/usual_value_row.dart';
 import 'heart_curve.dart';
@@ -97,6 +98,19 @@ class _HeartDetailPageState extends State<HeartDetailPage> {
                       earlier: _earlier(health),
                       glass: scope.settings.liquidGlass,
                       onSelected: _show,
+                      // The weeks, months and years of the pulse.
+                      extras: [
+                        DayExtra(
+                          label: Formats.of(context).l10n.trendRows,
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const MetricDetailPage(
+                                metric: Metric.heartRate,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

@@ -19,6 +19,7 @@ import '../../widgets/animated_count.dart';
 import '../../widgets/entrance.dart';
 import '../../widgets/sub_page.dart';
 import '../../widgets/bar_chart.dart';
+import '../../widgets/day_switcher.dart';
 import '../../widgets/floating_tab_bar.dart';
 import '../../widgets/line_chart.dart';
 import '../../widgets/page_header.dart';
@@ -62,7 +63,7 @@ extension PeriodKindLabel on PeriodKind {
 }
 
 /// One measurement over a day, a week, a month, a year or everything that
-/// has been collected, chosen with the tabs floating at the bottom. For what the app can
+/// has been collected, chosen with the bar floating at the bottom. For what the app can
 /// record itself, a day also lists its single entries. The weight opens on
 /// its week and has a line above the bars, with the target weight across it.
 class MetricDetailPage extends StatefulWidget {
@@ -144,15 +145,31 @@ class _MetricDetailPageState extends State<MetricDetailPage> {
                       right: 16,
                       bottom: 16 + media.padding.bottom,
                       child: Center(
-                        child: FloatingTabBar(
-                          labels: [
-                            for (final kind in PeriodKind.values)
-                              kind.tab(l10n),
-                          ],
-                          selectedIndex: _kind.index,
+                        child: DaySwitcher(
+                          today: health.today,
+                          selected: _kind == PeriodKind.yesterday
+                              ? DateTime(
+                                  health.today.year,
+                                  health.today.month,
+                                  health.today.day - 1,
+                                )
+                              : health.today,
+                          earlier: const [],
                           glass: settings.liquidGlass,
-                          onSelected: (index) =>
-                              _show(PeriodKind.values[index]),
+                          onSelected: (day) => _show(
+                            day == health.today
+                                ? PeriodKind.today
+                                : PeriodKind.yesterday,
+                          ),
+                          // The longer spans wait under "Weitere".
+                          extras: [
+                            for (final kind in PeriodKind.values.skip(2))
+                              DayExtra(
+                                label: kind.tab(l10n),
+                                selected: _kind == kind,
+                                onTap: () => _show(kind),
+                              ),
+                          ],
                         ),
                       ),
                     ),

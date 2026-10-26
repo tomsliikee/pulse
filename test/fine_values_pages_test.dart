@@ -5,6 +5,7 @@ import 'package:pulse/app/app_scope.dart';
 import 'package:pulse/data/energy_balance.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/features/detail/energy_balance_card.dart';
+import 'package:pulse/features/calories/calories_detail_page.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/detail/metric_spec.dart';
 import 'package:pulse/data/step_counting.dart';
@@ -73,24 +74,34 @@ void main() {
           (Metric.intensityMinutes, l10n.fineIntensityNote),
         ]) {
           await tapInView(tester, find.text(metric.title(l10n)).last);
-          expect(find.byType(MetricDetailPage), findsOneWidget);
+          expect(
+            find.byType(
+              metric == Metric.totalEnergy
+                  ? CaloriesDetailPage
+                  : MetricDetailPage,
+            ),
+            findsOneWidget,
+          );
           await tester.drag(
             find.byType(CustomScrollView).last,
             const Offset(0, -4000),
           );
           await advance(tester);
           expect(find.text(note, skipOffstage: false), findsOneWidget);
-          // The active energy of the day says what it is made of.
-          for (final part in [
-            l10n.finePartsTitle,
-            l10n.finePartWorkouts,
-            l10n.finePartSteps,
-          ]) {
-            expect(
-              find.text(part, skipOffstage: false),
-              metric == Metric.activeEnergy ? findsOneWidget : findsNothing,
-              reason: '$metric $part',
-            );
+          // The active energy of the day says what it is made of; the page of
+          // the total lists its parts in its own way.
+          if (metric != Metric.totalEnergy) {
+            for (final part in [
+              l10n.finePartsTitle,
+              l10n.finePartWorkouts,
+              l10n.finePartSteps,
+            ]) {
+              expect(
+                find.text(part, skipOffstage: false),
+                metric == Metric.activeEnergy ? findsOneWidget : findsNothing,
+                reason: '$metric $part',
+              );
+            }
           }
           // The total says what the real burn would need.
           expect(

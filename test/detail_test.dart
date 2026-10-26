@@ -15,13 +15,14 @@ Future<void> _openSteps(WidgetTester tester) async {
 }
 
 Future<void> _tab(WidgetTester tester, String label) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(FloatingTabBar),
-      matching: find.text(label),
-    ),
-  );
-  await advance(tester);
+  switch (label) {
+    case 'Heute':
+      await tapBarTab(tester, 0);
+    case 'Gestern':
+      await tapBarTab(tester, 1);
+    default:
+      await pickPeriod(tester, label);
+  }
 }
 
 FixtureRepository _withTwoYears() => FixtureRepository()
