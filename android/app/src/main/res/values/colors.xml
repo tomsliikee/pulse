@@ -3,4 +3,9 @@
     <color name="ic_launcher_background">#1B6B5F</color>
     <color name="ic_launcher_shape">#FFD9C7</color>
     <color name="ic_launcher_line">#8C4A1F</color>
+    <color name="widget_surface">#F1F4F2</color>
+    <color name="widget_text">#1B1C1B</color>
+    <color name="widget_muted">#5D6360</color>
+    <color name="widget_accent">#1B6B5F</color>
+    <color name="widget_track">#D5DBD8</color>
 </resources>

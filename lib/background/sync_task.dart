@@ -15,7 +15,9 @@ import '../data/step_counting.dart';
 import '../data/sync_report.dart';
 import '../data/workout_archive.dart';
 import 'morning_notice.dart';
+import 'day_notice.dart';
 import 'week_notice.dart';
+import 'widget_data.dart';
 
 const String _uniqueName = 'pulse.sync';
 const String _taskName = 'sync';
@@ -114,6 +116,29 @@ Future<void> syncOnce(
       return index == null ? null : snapshot.value(metric, index);
     },
     nights: nights,
+    now: now,
+    language: language,
+  );
+  // The day's score likewise, once the user has asked for it.
+  await leaveDayAlarm(
+    store,
+    settings: settings,
+    valueOf: (metric, day) {
+      final index = snapshot.indexOf(day);
+      return index == null ? null : snapshot.value(metric, index);
+    },
+    nights: nights,
+    now: now,
+    language: language,
+  );
+  // The widget on the home screen; the platform draws it once this run has ended.
+  await leaveWidgetData(
+    store,
+    settings: settings,
+    valueOf: (metric, day) {
+      final index = snapshot.indexOf(day);
+      return index == null ? null : snapshot.value(metric, index);
+    },
     now: now,
     language: language,
   );

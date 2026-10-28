@@ -5,7 +5,9 @@ import 'package:material_ui/material_ui.dart';
 
 import '../background/morning_notice.dart';
 import '../background/supplement_notice.dart';
+import '../background/day_notice.dart';
 import '../background/week_notice.dart';
+import '../background/widget_data.dart';
 import '../data/health_controller.dart';
 import '../data/health_repository.dart';
 import '../data/json_store.dart';
@@ -183,6 +185,36 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
         language:
             WidgetsBinding.instance.platformDispatcher.locale.languageCode,
       );
+      final dayChanged = await leaveDayAlarm(
+        widget.store,
+        settings: {
+          'dayNotice': _settings.dayNotice,
+          'language': _settings.language,
+          'stepGoal': _settings.stepGoal,
+          'activeEnergyGoal': _settings.activeEnergyGoal,
+          'waterGoalMl': _settings.waterGoalMl,
+          'sleepGoalHours': _settings.sleepGoalHours,
+        },
+        valueOf: _health.valueOn,
+        nights: _health.nights,
+        now: widget.clock(),
+        language:
+            WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+      );
+      final widgetChanged = await leaveWidgetData(
+        widget.store,
+        settings: {
+          'language': _settings.language,
+          'stepGoal': _settings.stepGoal,
+          'activeEnergyGoal': _settings.activeEnergyGoal,
+          'waterGoalMl': _settings.waterGoalMl,
+          'sleepGoalHours': _settings.sleepGoalHours,
+        },
+        valueOf: _health.valueOn,
+        now: widget.clock(),
+        language:
+            WidgetsBinding.instance.platformDispatcher.locale.languageCode,
+      );
       final supplementsChanged = await leaveSupplementAlarm(
         widget.store,
         _supplements.data,
@@ -192,7 +224,12 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       );
       // Once in every start as well: an alarm does not outlive everything
       // that can happen to the app while it is closed.
-      if (changed || weekChanged || supplementsChanged || !_alarmSet) {
+      if (changed ||
+          weekChanged ||
+          dayChanged ||
+          widgetChanged ||
+          supplementsChanged ||
+          !_alarmSet) {
         await MorningNotices.schedule();
       }
       _alarmSet = true;

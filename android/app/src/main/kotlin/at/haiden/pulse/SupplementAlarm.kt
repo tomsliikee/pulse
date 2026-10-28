@@ -126,6 +126,8 @@ object SupplementAlarm {
                         context,
                         alarm.getString("title"),
                         alarm.getString("body").replace("%s", open.joinToString(", ")),
+                        total = items?.length() ?: 0,
+                        done = (items?.length() ?: 0) - open.size,
                     )
                 }
                 File(context.filesDir, "supplementNotice.json").writeText(
@@ -139,7 +141,7 @@ object SupplementAlarm {
         schedule(context, afterNow = true)
     }
 
-    private fun show(context: Context, title: String, body: String) {
+    private fun show(context: Context, title: String, body: String, total: Int, done: Int) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
@@ -151,17 +153,18 @@ object SupplementAlarm {
             context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        manager.notify(
-            ID,
-            NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build(),
-        )
+        val builder = NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+        if (LiveNotice.on(context, "liveSupplements")) {
+            // How many of the time of day are taken, as a bar and in the chip.
+            LiveNotice.apply(builder.setProgress(total, done, false), "$done/$total")
+        }
+        manager.notify(ID, builder.build())
     }
 }
 

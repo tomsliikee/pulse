@@ -33,6 +33,30 @@ abstract final class MorningNotices {
     }
   }
 
+  /// Whether Android lets the app highlight live messages. True where the
+  /// platform knows no such thing, as there is nothing to ask for.
+  static Future<bool> promotable() async {
+    try {
+      return await _channel.invokeMethod<bool>('promotable') ?? true;
+    } on MissingPluginException {
+      return true;
+    } on PlatformException catch (error) {
+      debugPrint('Asking whether live messages are allowed failed: $error');
+      return true;
+    }
+  }
+
+  /// Opens the system's setting for live messages.
+  static Future<void> openPromotionSettings() async {
+    try {
+      await _channel.invokeMethod<void>('promotionSettings');
+    } on MissingPluginException {
+      // No such thing on the desktop and in tests.
+    } on PlatformException catch (error) {
+      debugPrint('Opening the setting for live messages failed: $error');
+    }
+  }
+
   /// What the notification the app was opened from was about ("week"), or
   /// null when it was opened another way. Told once.
   static Future<String?> opened() async {

@@ -29,7 +29,12 @@ object MorningNotice {
         try {
             val notice = JSONObject(file.readText())
             file.delete()
-            show(context, notice.getString("title"), notice.getString("body"))
+            show(
+                context,
+                notice.getString("title"),
+                notice.getString("body"),
+                notice.optString("short").ifEmpty { null },
+            )
         } catch (error: Exception) {
             // SecurityException included: the consent can go at any moment.
             Log.w("Pulse", "The morning's notification failed", error)
@@ -38,7 +43,7 @@ object MorningNotice {
     }
 
     /** Shows the greeting. Without the consent to notifications it is dropped. */
-    fun show(context: Context, title: String, body: String) {
+    fun show(context: Context, title: String, body: String, short: String? = null) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
@@ -55,17 +60,19 @@ object MorningNotice {
             context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        manager.notify(
-            ID,
-            NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                // Gone by itself when the morning is over.
-                .setTimeoutAfter(3 * 60 * 60 * 1000L)
-                .build(),
-        )
+        val builder = NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(open)
+            .setAutoCancel(true)
+        // A live message stays until it is swiped away or the app is opened;
+        // the other goes by itself when the morning is over.
+        if (LiveNotice.on(context, "liveMorning")) {
+            LiveNotice.apply(builder, short)
+        } else {
+            builder.setTimeoutAfter(3 * 60 * 60 * 1000L)
+        }
+        manager.notify(ID, builder.build())
     }
 }

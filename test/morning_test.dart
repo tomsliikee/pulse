@@ -273,6 +273,7 @@ void main() {
       expect(notice(), (
         title: 'Guten Morgen',
         body: '7 h 30 min geschlafen · Schlaf-Score 94',
+        short: '94',
       ));
       expect(
         notice(settings: {'name': 'Thomas'})!.title,
@@ -297,6 +298,7 @@ void main() {
       expect(notice(nights: [], now: _at(7)), (
         title: 'Guten Morgen',
         body: 'Dein Morgen wartet. Tippen zum Öffnen.',
+        short: null,
       ));
       expect(notice(nights: [], now: _at(11, 59)), isNotNull);
       expect(notice(nights: [], now: _at(12)), isNull);
@@ -353,6 +355,7 @@ void main() {
       expect(await store.read(StoreKeys.morningNotice), {
         'title': 'Guten Morgen',
         'body': '7 h 30 min geschlafen · Schlaf-Score 94',
+        'short': '94',
       });
       expect(await store.read(StoreKeys.morning), {'notified': dayKey(_day)});
 

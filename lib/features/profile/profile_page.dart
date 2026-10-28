@@ -23,6 +23,7 @@ import 'color_style_row.dart';
 import 'height_sheet.dart';
 import 'target_weight_sheet.dart';
 import 'language_sheet.dart';
+import 'live_settings.dart';
 import 'name_sheet.dart';
 import 'place_sheet.dart';
 import 'step_counting_sheet.dart';
@@ -406,6 +407,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ],
               ),
+              LiveSettings(settings: settings),
               SectionTitle(l10n.routeTitle),
               if (health.routesNeedConsent) ...[
                 SurfaceCard(

@@ -99,6 +99,7 @@ class MorningAlarmRestorer : BroadcastReceiver() {
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
                 MorningAlarm.schedule(context)
                 WeekAlarm.schedule(context)
+                DayAlarm.schedule(context)
                 SupplementAlarm.schedule(context)
             }
         }

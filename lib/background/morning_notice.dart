@@ -11,8 +11,9 @@ import '../data/night_insights.dart';
 import '../data/settings_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 
-/// What the morning's notification says.
-typedef MorningNotice = ({String title, String body});
+/// What the morning's notification says; [short] is the night's score
+/// alone, for the small chip of a live message, null without a night.
+typedef MorningNotice = ({String title, String body, String? short});
 
 /// When the morning is said without a night, where the nights before do not
 /// tell when this person gets up.
@@ -61,6 +62,7 @@ MorningNotice? morningNoticeFor({
             _duration(l10n, night.asleepMinutes),
             '${sleepScore(night, goal, nights).total}',
           ),
+    short: night == null ? null : '${sleepScore(night, goal, nights).total}',
   );
 }
 
@@ -157,6 +159,7 @@ Future<void> leaveMorningNotice(
   await store.write(StoreKeys.morningNotice, {
     'title': notice.title,
     'body': notice.body,
+    'short': ?notice.short,
   });
   await store.write(StoreKeys.morning, {'notified': dayKey(now)});
 }

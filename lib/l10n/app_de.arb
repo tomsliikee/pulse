@@ -1991,6 +1991,25 @@
       }
     }
   },
+  "dayNoticeSwitchNote": "Um 21 Uhr eine Benachrichtigung mit dem Wert des Tages.",
+  "dayNoticeTitle": "Dein Tag",
+  "dayNoticePlain": "Der Rückblick auf deinen Tag ist da.",
+  "dayNoticeScore": "Tageswert {score}.",
+  "@dayNoticeScore": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "liveTitle": "Live-Nachrichten",
+  "liveNote": "Eine Live-Nachricht bleibt oben stehen, bis du sie wegwischst oder Pulse öffnest. Ob Android sie hervorgehoben zeigt, entscheidet das System.",
+  "liveMorning": "Guten Morgen",
+  "liveSupplements": "Supplements",
+  "liveWeek": "Wochenbericht",
+  "liveDay": "Tageswert",
+  "liveSystemOff": "Android zeigt Live-Nachrichten für Pulse noch nicht hervorgehoben.",
+  "liveSystemOpen": "Einstellung öffnen",
   "foodsOften": "Oft gegessen",
   "foodsMore": "Weitere",
   "foodNew": "Neu erstellen",

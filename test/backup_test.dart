@@ -78,6 +78,8 @@ void main() {
           StoreKeys.sync,
           StoreKeys.morningAlarm,
           StoreKeys.weekAlarm,
+          StoreKeys.dayAlarm,
+          StoreKeys.widget,
         }.contains(name)) {
           continue;
         }

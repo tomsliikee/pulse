@@ -98,6 +98,7 @@ object WeekAlarm {
                     context,
                     alarm.getString("title"),
                     alarm.getString(if (fresh) "body" else "plain"),
+                    if (fresh) alarm.optString("short").ifEmpty { null } else null,
                 )
                 File(context.filesDir, "week.json")
                     .writeText(JSONObject().put("notified", monday).toString())
@@ -110,7 +111,7 @@ object WeekAlarm {
     }
 
     /** Shows the notification. Without the consent to notifications it is dropped. */
-    private fun show(context: Context, title: String, body: String) {
+    private fun show(context: Context, title: String, body: String, short: String?) {
         val manager = NotificationManagerCompat.from(context)
         if (!manager.areNotificationsEnabled()) return
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
@@ -125,16 +126,14 @@ object WeekAlarm {
             launch,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        manager.notify(
-            ID,
-            NotificationCompat.Builder(context, CHANNEL)
-                .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setContentTitle(title)
-                .setContentText(body)
-                .setContentIntent(open)
-                .setAutoCancel(true)
-                .build(),
-        )
+        val builder = NotificationCompat.Builder(context, CHANNEL)
+            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+            .setContentTitle(title)
+            .setContentText(body)
+            .setContentIntent(open)
+            .setAutoCancel(true)
+        if (LiveNotice.on(context, "liveWeek")) LiveNotice.apply(builder, short)
+        manager.notify(ID, builder.build())
     }
 }
 

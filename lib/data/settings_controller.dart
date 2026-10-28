@@ -206,6 +206,11 @@ class SettingsController extends ChangeNotifier {
   bool _morningBrief = true;
   bool _morningTileAllDay = false;
   bool _weekReport = true;
+  bool _dayNotice = false;
+  bool _liveMorning = false;
+  bool _liveSupplements = false;
+  bool _liveWeek = false;
+  bool _liveDay = false;
   bool _routeSplits = true;
   bool _routeClimb = true;
   bool _routeOnTiles = true;
@@ -264,6 +269,16 @@ class SettingsController extends ChangeNotifier {
   /// Whether the app says on Sunday evening that the week's report is
   /// ready: with a tile on the Today page and a notification.
   bool get weekReport => _weekReport;
+
+  /// A notification with the day's score at nine in the evening.
+  bool get dayNotice => _dayNotice;
+
+  /// Which notifications stay on top as live messages until they are swiped
+  /// away or the app is opened. Read by the platform from the saved file.
+  bool get liveMorning => _liveMorning;
+  bool get liveSupplements => _liveSupplements;
+  bool get liveWeek => _liveWeek;
+  bool get liveDay => _liveDay;
 
   /// Whether a workout with a route shows the time of each kilometre.
   bool get routeSplits => _routeSplits;
@@ -404,6 +419,11 @@ class SettingsController extends ChangeNotifier {
     if (json['morningBrief'] case final bool v) _morningBrief = v;
     if (json['morningTileAllDay'] case final bool v) _morningTileAllDay = v;
     if (json['weekReport'] case final bool v) _weekReport = v;
+    if (json['dayNotice'] case final bool v) _dayNotice = v;
+    if (json['liveMorning'] case final bool v) _liveMorning = v;
+    if (json['liveSupplements'] case final bool v) _liveSupplements = v;
+    if (json['liveWeek'] case final bool v) _liveWeek = v;
+    if (json['liveDay'] case final bool v) _liveDay = v;
     if (json['routeSplits'] case final bool v) _routeSplits = v;
     if (json['routeClimb'] case final bool v) _routeClimb = v;
     if (json['routeOnTiles'] case final bool v) _routeOnTiles = v;
@@ -593,6 +613,17 @@ class SettingsController extends ChangeNotifier {
 
   void setWeekReport(bool value) => _update(() => _weekReport = value);
 
+  void setDayNotice(bool value) => _update(() => _dayNotice = value);
+
+  void setLiveMorning(bool value) => _update(() => _liveMorning = value);
+
+  void setLiveSupplements(bool value) =>
+      _update(() => _liveSupplements = value);
+
+  void setLiveWeek(bool value) => _update(() => _liveWeek = value);
+
+  void setLiveDay(bool value) => _update(() => _liveDay = value);
+
   void setRouteSplits(bool value) => _update(() => _routeSplits = value);
 
   void setRouteClimb(bool value) => _update(() => _routeClimb = value);
@@ -697,6 +728,11 @@ class SettingsController extends ChangeNotifier {
             'morningBrief': _morningBrief,
             'morningTileAllDay': _morningTileAllDay,
             'weekReport': _weekReport,
+            'dayNotice': _dayNotice,
+            'liveMorning': _liveMorning,
+            'liveSupplements': _liveSupplements,
+            'liveWeek': _liveWeek,
+            'liveDay': _liveDay,
             'routeSplits': _routeSplits,
             'routeClimb': _routeClimb,
             'routeOnTiles': _routeOnTiles,

@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.LocaleList
+import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.NotificationManagerCompat
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -55,6 +56,12 @@ class MainActivity : FlutterFragmentActivity() {
             pendingRoute?.success(answer.resultCode == RESULT_OK)
             pendingRoute = null
         }
+
+    // Live messages go when the app is in front.
+    override fun onResume() {
+        super.onResume()
+        LiveNotice.cancel(this)
+    }
 
     // A notification tapped while the app is open arrives here; kept so the
     // app can ask what it was about.
@@ -112,7 +119,25 @@ class MainActivity : FlutterFragmentActivity() {
                     // The app left a new time or text for one of its alarms.
                     MorningAlarm.schedule(this)
                     WeekAlarm.schedule(this)
+                    DayAlarm.schedule(this)
                     SupplementAlarm.schedule(this)
+                    PulseWidget.refresh(this)
+                    result.success(null)
+                    return@setMethodCallHandler
+                }
+                if (call.method == "promotable") {
+                    // Whether Android lets live messages be highlighted.
+                    result.success(LiveNotice.promotable(this))
+                    return@setMethodCallHandler
+                }
+                if (call.method == "promotionSettings") {
+                    // Android 16 only; its page for live messages of this app.
+                    if (Build.VERSION.SDK_INT >= 36) {
+                        startActivity(
+                            Intent("android.settings.MANAGE_APP_PROMOTED_NOTIFICATIONS")
+                                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        )
+                    }
                     result.success(null)
                     return@setMethodCallHandler
                 }

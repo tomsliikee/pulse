@@ -14,7 +14,13 @@ import '../l10n/generated/app_localizations.dart';
 /// What the platform's alarm says on Sunday evening: [body] tells the
 /// week's score as it stood on [day] (a day key), [plain] is said when that
 /// is not today, because nothing has run since.
-typedef WeekAlarm = ({String title, String body, String plain, int day});
+typedef WeekAlarm = ({
+  String title,
+  String body,
+  String plain,
+  int day,
+  String? short,
+});
 
 /// What the days are judged against in the saved settings [json], with the
 /// app's own goals where it names none.
@@ -75,6 +81,7 @@ WeekAlarm? weekAlarmFor({
           ),
     plain: l10n.weekNoticePlain,
     day: dayKey(today),
+    short: score?.toString(),
   );
 }
 
@@ -107,6 +114,7 @@ Future<bool> leaveWeekAlarm(
     'body': alarm.body,
     'plain': alarm.plain,
     'day': alarm.day,
+    'short': ?alarm.short,
   };
   if (stored is Map<String, Object?> && mapEquals(stored, document)) {
     return false;

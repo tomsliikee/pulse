@@ -6,6 +6,8 @@
     <!-- The notification that says good morning. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Live messages: lets Android 16 show them as a chip. Asked of no one. -->
+    <uses-permission android:name="android.permission.POST_PROMOTED_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
     <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
     <uses-permission android:name="android.permission.health.READ_FLOORS_CLIMBED"/>
@@ -87,6 +89,16 @@
         <receiver android:name=".MorningAlarmReceiver" android:exported="false"/>
         <receiver android:name=".WeekAlarmReceiver" android:exported="false"/>
         <receiver android:name=".SupplementAlarmReceiver" android:exported="false"/>
+        <receiver android:name=".DayAlarmReceiver" android:exported="false"/>
+        <!-- The widget on the home screen. -->
+        <receiver android:name=".PulseWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/pulse_widget_info"/>
+        </receiver>
         <receiver android:name=".MorningAlarmRestorer" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>

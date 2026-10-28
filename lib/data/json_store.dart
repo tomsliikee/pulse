@@ -41,6 +41,12 @@ abstract final class StoreKeys {
 
   /// Read by the platform, which sets its alarm for Sunday evening by it.
   static const String weekAlarm = 'weekAlarm';
+
+  /// Read by the platform, which sets its alarm for nine in the evening by it.
+  static const String dayAlarm = 'dayAlarm';
+
+  /// Read by the platform, which draws the widget on the home screen by it.
+  static const String widget = 'widget';
 }
 
 class FileJsonStore implements JsonStore {

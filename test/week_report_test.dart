@@ -307,6 +307,7 @@ void main() {
         'body': 'Wochenwert 80, 20 mehr als in der Woche davor.',
         'plain': 'Der Rückblick auf deine Woche ist da.',
         'day': dayKey(now),
+        'short': '80',
       });
       // Nothing new, nothing written.
       expect(await leave(null), isFalse);
