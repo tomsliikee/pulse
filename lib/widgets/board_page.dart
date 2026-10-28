@@ -7,6 +7,7 @@ import '../app/app_scope.dart';
 import '../app/haptics.dart';
 import '../app/layout.dart';
 import '../theme/app_motion.dart';
+import 'entrance.dart';
 import 'floating_surface.dart';
 import 'glass_scope.dart';
 import 'page_header.dart';
@@ -96,6 +97,21 @@ class _BoardPageState extends State<BoardPage>
 
   /// From the top of the screen to the board, at rest.
   double? _boardTop;
+
+  int? _visit;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A page opened again starts at its top, as a new one would.
+    final visit = PageVisits.of(context);
+    if (_visit != null && _visit != visit) {
+      for (final position in _scroll.positions) {
+        position.jumpTo(0);
+      }
+    }
+    _visit = visit;
+  }
 
   @override
   void dispose() {

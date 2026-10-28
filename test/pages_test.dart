@@ -109,7 +109,7 @@ void main() {
     });
   }
 
-  testWidgets('a page opened again keeps its place and comes in again', (
+  testWidgets('a page opened again starts at its top and comes in again', (
     tester,
   ) async {
     await pumpApp(tester);
@@ -138,8 +138,8 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Heute'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 16));
-    // The same page, where it was left, and its tiles coming in anew.
-    expect(scrolled(), before);
+    // At its top again, and its tiles coming in anew.
+    expect(scrolled(), 0);
     expect(rising(), isNotEmpty);
     await advance(tester);
     expect(rising(), isEmpty);
