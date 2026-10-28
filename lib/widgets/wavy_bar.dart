@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
+import 'entrance.dart';
 
 /// A share of something as the wavy line of Material 3 Expressive. It grows
 /// from nothing when it appears and follows the value on a spring.
@@ -24,6 +25,8 @@ class WavyBar extends StatelessWidget {
     // The wave never rests; in a layer of its own it redraws only itself.
     return RepaintBoundary(
       child: SingleMotionBuilder(
+        // From nothing again on every visit of the page.
+        key: ValueKey(PageVisits.of(context)),
         from: 0,
         value: value.clamp(0, 1).toDouble(),
         // An effects spring: a bar that overshoots would show more than is.

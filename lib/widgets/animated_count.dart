@@ -5,6 +5,7 @@ import '../app/formatters.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_type.dart';
 import 'pressable.dart';
+import 'entrance.dart';
 
 /// Counts up to [value] when it appears and whenever the value changes.
 class AnimatedCount extends StatelessWidget {
@@ -27,6 +28,8 @@ class AnimatedCount extends StatelessWidget {
     final type = AppType.of(context);
     final pressed = PressState.of(context);
     return SingleMotionBuilder(
+      // From nothing again on every visit of the page.
+      key: ValueKey(PageVisits.of(context)),
       from: 0,
       value: value.toDouble(),
       // An effects spring: a number that overshoots would show a wrong value.
@@ -65,6 +68,8 @@ class AnimatedNumber extends StatelessWidget {
     final type = AppType.of(context);
     final pressed = PressState.of(context);
     return SingleMotionBuilder(
+      // From nothing again on every visit of the page.
+      key: ValueKey(PageVisits.of(context)),
       from: 0,
       value: value,
       motion: AppMotion.effectsSlow,

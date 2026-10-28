@@ -123,22 +123,22 @@ void main() {
   testWidgets('the tiles wake up when the page is opened, and not again when '
       'it is edited', (tester) async {
     await pumpApp(tester);
-    double opacity() => tester
-        .widget<Opacity>(
-          find
-              .ancestor(
-                of: find.byType(DayCard),
-                matching: find.byType(Opacity),
-              )
-              .first,
+    // How far below its place the card stands while it comes in.
+    double below() => tester
+        .widgetList<Transform>(
+          find.ancestor(
+            of: find.byType(DayCard),
+            matching: find.byType(Transform),
+          ),
         )
-        .opacity;
-    expect(opacity(), 1);
+        .map((transform) => transform.transform.getTranslation().y)
+        .fold(0, (a, b) => a > b ? a : b);
+    expect(below(), 0);
 
     await tester.tap(find.byTooltip('Kacheln anordnen'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
-    expect(opacity(), 1);
+    expect(below(), 0);
     await advance(tester);
 
     // Coming back to the page from another one starts it afresh.
@@ -147,9 +147,9 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Heute'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 30));
-    expect(opacity(), lessThan(1));
+    expect(below(), greaterThan(0));
     await advance(tester);
-    expect(opacity(), 1);
+    expect(below(), 0);
   });
 
   testWidgets('without hours for yesterday the day is set against nothing', (

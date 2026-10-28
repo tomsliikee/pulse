@@ -5,7 +5,7 @@ import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
 
-/// Lets [child] come in when it is first built: it fades in, rises and grows
+/// Lets [child] come in when it is first built: it appears, rises and grows
 /// into place on a spring. [order] staggers neighbours, so a page wakes up
 /// from the top down. Where the system asks for no animations the child is
 /// simply there.
@@ -47,18 +47,37 @@ class _EntranceState extends State<Entrance> {
   bool _shown = false;
   late final bool _animate;
 
+  /// The child moves along when a new visit restarts the spring, and keeps
+  /// its state and its build on the way.
+  final GlobalKey _child = GlobalKey();
+  int? _visit;
+
   @override
   void initState() {
     super.initState();
-    final place = widget.order.clamp(0, Entrance.staggered);
     _animate = widget.animate;
+    _start();
+  }
+
+  void _start() {
+    final place = widget.order.clamp(0, Entrance.staggered);
+    _wait?.cancel();
     if (place == 0 || !_animate) {
       _shown = true;
     } else {
+      _shown = false;
       _wait = Timer(Entrance.stagger * place, () {
         if (mounted) setState(() => _shown = true);
       });
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visit = PageVisits.of(context);
+    if (_visit != null && _visit != visit) _start();
+    _visit = visit;
   }
 
   @override
@@ -72,13 +91,17 @@ class _EntranceState extends State<Entrance> {
     // Where nothing is to move, the child is there from the first frame.
     final still = !_animate || MediaQuery.disableAnimationsOf(context);
     return SingleMotionBuilder(
+      key: ValueKey(_visit),
       from: still ? 1 : 0,
       value: _shown || still ? 1 : 0,
       motion: AppMotion.spatial,
       // The same widgets around the child all along, so it keeps its state
-      // when it has arrived. At full opacity they cost no layer.
+      // when it has arrived. It is hidden until its turn and then there at
+      // once, rising and growing: an opacity in between would draw every
+      // tile into a layer of its own in each frame, too much for a page of
+      // them at the display's rate.
       builder: (context, t, child) => Opacity(
-        opacity: t.clamp(0, 1).toDouble(),
+        opacity: t <= 0 ? 0 : 1,
         child: Transform.translate(
           offset: Offset(0, Entrance._rise * (1 - t)),
           child: Transform.scale(
@@ -87,9 +110,25 @@ class _EntranceState extends State<Entrance> {
           ),
         ),
       ),
-      child: widget.child,
+      child: KeyedSubtree(key: _child, child: widget.child),
     );
   }
+}
+
+/// How often the page around has been opened. A page that is kept while
+/// another is shown is not built anew when it comes back, so what comes in
+/// from nothing on it, tiles, bars and numbers, starts over by this count.
+class PageVisits extends InheritedWidget {
+  const PageVisits({super.key, required this.visit, required super.child});
+
+  final int visit;
+
+  /// The count of the page around [context]; 0 outside a kept page.
+  static int of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<PageVisits>()?.visit ?? 0;
+
+  @override
+  bool updateShouldNotify(PageVisits oldWidget) => oldWidget.visit != visit;
 }
 
 /// [children] with an [Entrance] each, one after the other from [from] on.

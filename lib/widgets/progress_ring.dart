@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
+import 'entrance.dart';
 
 /// A circular progress track whose arc springs to [value] (0 to 1). A ring
 /// that is full turns into a wave that travels slowly around it; the wave
@@ -72,6 +73,8 @@ class _ProgressRingState extends State<ProgressRing>
     // A layer of its own, so the travelling wave redraws the ring alone.
     return RepaintBoundary(
       child: SingleMotionBuilder(
+        // From nothing again on every visit of the page.
+        key: ValueKey(PageVisits.of(context)),
         from: 0,
         value: widget.value.clamp(0, 1).toDouble(),
         motion: AppMotion.spatialSlow,

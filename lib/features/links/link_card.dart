@@ -10,6 +10,7 @@ import '../../theme/app_motion.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
 import 'link_format.dart';
+import '../../widgets/entrance.dart';
 
 /// One connection: its sentence, and below it the two sides as bars, each
 /// with its mean and how many days, nights or weeks stand behind it.
@@ -127,6 +128,8 @@ class _Side extends StatelessWidget {
           child: ColoredBox(
             color: scheme.surfaceContainerHighest,
             child: SingleMotionBuilder(
+              // From nothing again on every visit of the page.
+              key: ValueKey(PageVisits.of(context)),
               from: 0,
               value: share,
               // An effects spring: a bar that overshoots would show more

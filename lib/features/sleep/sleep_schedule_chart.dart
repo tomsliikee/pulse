@@ -4,6 +4,7 @@ import 'package:motor/motor.dart';
 import '../../data/models.dart';
 import '../../data/sleep_insights.dart';
 import '../../theme/app_motion.dart';
+import '../../widgets/entrance.dart';
 
 /// One floating bar per night, from bedtime at the top to waking at the
 /// bottom, so nights that began and ended alike line up.
@@ -45,6 +46,8 @@ class SleepScheduleChart extends StatelessWidget {
       height: height,
       width: double.infinity,
       child: SingleMotionBuilder(
+        // From nothing again on every visit of the page.
+        key: ValueKey(PageVisits.of(context)),
         from: 0,
         value: 1,
         motion: AppMotion.effectsSlow,

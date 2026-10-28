@@ -3,6 +3,7 @@ import 'package:motor/motor.dart';
 
 import '../app/haptics.dart';
 import '../theme/app_motion.dart';
+import 'entrance.dart';
 
 /// Vertical bars that spring up from the baseline.
 ///
@@ -121,6 +122,8 @@ class _Bar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SingleMotionBuilder(
+      // From nothing again on every visit of the page.
+      key: ValueKey(PageVisits.of(context)),
       from: 0,
       value: fraction ?? 0,
       motion: AppMotion.spatial,

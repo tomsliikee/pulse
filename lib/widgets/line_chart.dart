@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
+import 'entrance.dart';
 
 /// A smoothed line with a soft fill that draws in from the left.
 class LineChart extends StatelessWidget {
@@ -52,6 +53,8 @@ class LineChart extends StatelessWidget {
       height: height,
       width: double.infinity,
       child: SingleMotionBuilder(
+        // From nothing again on every visit of the page.
+        key: ValueKey(PageVisits.of(context)),
         from: 0,
         value: 1,
         motion: AppMotion.effectsSlow,

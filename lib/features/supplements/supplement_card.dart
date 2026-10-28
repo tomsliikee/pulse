@@ -18,6 +18,7 @@ import 'supplement_detail_page.dart';
 import 'supplement_format.dart';
 import 'supplement_row.dart';
 import 'supplements_page.dart';
+import '../../widgets/entrance.dart';
 
 /// The user's supplements on the Today page: which are taken today and
 /// which are open. A tap on the circle of one notes it as taken now, or
@@ -276,6 +277,8 @@ class _LargeHead extends StatelessWidget {
               // Smaller on a narrow phone, so the count keeps its room.
               dimension: MediaQuery.sizeOf(context).width < 400 ? 112 : 136,
               child: SingleMotionBuilder(
+                // From nothing again on every visit of the page.
+                key: ValueKey(PageVisits.of(context)),
                 from: 0,
                 value: count == 0 ? 0 : done / count,
                 motion: AppMotion.effectsSlow,

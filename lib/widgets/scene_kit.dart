@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../theme/mascot_colors.dart';
 import '../theme/pulse_look.dart';
+import 'entrance.dart';
 import 'turtle.dart';
 
 /// Runs the time of a small animated scene and hands it to [builder] as
@@ -61,9 +62,18 @@ class _SceneClockState extends State<SceneClock>
     WidgetsBinding.instance.addObserver(this);
   }
 
+  int? _visit;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // A page opened again plays its scene's coming in again.
+    final visit = PageVisits.of(context);
+    if (_visit != null && _visit != visit) {
+      _stop();
+      _seconds.value = _still;
+    }
+    _visit = visit;
     _enabled = TickerMode.valuesOf(context).enabled;
     _sync();
   }

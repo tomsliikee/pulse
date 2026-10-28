@@ -4,6 +4,7 @@ import 'package:pulse/data/health_repository.dart';
 import 'package:pulse/data/snapshot_builder.dart';
 import 'package:pulse/features/detail/metric_detail_page.dart';
 import 'package:pulse/features/heart/heart_detail_page.dart';
+import 'package:pulse/widgets/entrance.dart';
 
 import 'support/fixtures.dart';
 
@@ -107,6 +108,42 @@ void main() {
       expect(find.byType(MetricDetailPage), findsNothing);
     });
   }
+
+  testWidgets('a page opened again keeps its place and comes in again', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.drag(find.byType(ListView).first, const Offset(0, -300));
+    await advance(tester);
+    double scrolled() => tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+    final before = scrolled();
+    expect(before, greaterThan(0));
+    // Tiles on their way in stand lower than their place.
+    Iterable<double> rising() => tester
+        .widgetList<Transform>(
+          find.descendant(
+            of: find.byType(Entrance),
+            matching: find.byType(Transform),
+          ),
+        )
+        .map((transform) => transform.transform.getTranslation().y)
+        .where((dy) => dy > 0.01);
+    expect(rising(), isEmpty);
+
+    await tester.tap(find.bySemanticsLabel('Aktivität'));
+    await advance(tester);
+    await tester.tap(find.bySemanticsLabel('Heute'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 16));
+    // The same page, where it was left, and its tiles coming in anew.
+    expect(scrolled(), before);
+    expect(rising(), isNotEmpty);
+    await advance(tester);
+    expect(rising(), isEmpty);
+  });
 
   testWidgets('Today stays on today when another day is selected elsewhere', (
     tester,

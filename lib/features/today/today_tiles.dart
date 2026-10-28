@@ -45,6 +45,7 @@ import '../week/week_tile.dart';
 import 'day_format.dart';
 import 'day_tiles.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../widgets/entrance.dart';
 
 /// The height of a tile that is one row of a list.
 const double _rowTileHeight = 72;
@@ -572,6 +573,8 @@ class _NutritionRingBody extends StatelessWidget {
             // Smaller on a narrow phone, so the nutrients keep their names.
             dimension: MediaQuery.sizeOf(context).width < 400 ? 112 : 136,
             child: SingleMotionBuilder(
+              // From nothing again on every visit of the page.
+              key: ValueKey(PageVisits.of(context)),
               from: 0,
               value: 1,
               motion: AppMotion.effectsSlow,

@@ -6,6 +6,7 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/models.dart';
 import '../../theme/app_motion.dart';
+import '../../widgets/entrance.dart';
 
 /// A hypnogram: one lane per sleep stage, one rounded block per segment.
 ///
@@ -65,8 +66,8 @@ class _SleepStagesChartState extends State<SleepStagesChart> {
     height: widget.height,
     width: double.infinity,
     child: SingleMotionBuilder(
-      // Redraw from the left for every night.
-      key: ValueKey(night.date),
+      // Redraw from the left for every night and every visit of the page.
+      key: ValueKey((night.date, PageVisits.of(context))),
       from: 0,
       value: 1,
       motion: AppMotion.effectsSlow,
