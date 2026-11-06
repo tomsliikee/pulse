@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/physics.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -18,47 +20,110 @@ class MonoTab {
 }
 
 /// Frosted glass in the shape of a capsule: the shadow outside the clip so
-/// it falls soft on every side, the blur and a thin rim inside. The only
-/// place in the look that blurs.
+/// it falls soft on every side, the blur and a thin rim inside. Every
+/// floating element of the look stands on it. With the glass setting off it
+/// is the same capsule, opaque and without the blur.
 class MonoGlass extends StatelessWidget {
   const MonoGlass({
     super.key,
     required this.child,
     this.radius = 30,
     this.lift = 0,
+    this.opacity = 1,
+    this.backdrop = true,
   });
 
   final Widget child;
   final double radius;
 
+  /// Fades the fill, rim and shadow, for a pill that comes in: the blur
+  /// behind stays, so no layer has to be made to fade it.
+  final double opacity;
+
+  /// Whether this glass blurs what is behind it itself. Glass that shares
+  /// the blur of a group, or that is moving, leaves it out.
+  final bool backdrop;
+
   /// 0 resting, 1 held up: a deeper shadow.
   final double lift;
+
+  /// One filter for all of them: a new instance on every build would make the
+  /// engine set the blur up again each frame.
+  static final ImageFilter blur = ImageFilter.blur(sigmaX: 16, sigmaY: 16);
+
+  Color _fade(Color c) =>
+      opacity >= 1 ? c : c.withValues(alpha: c.a * opacity.clamp(0.0, 1.0));
 
   @override
   Widget build(BuildContext context) {
     final t = MonoTokens.of(context);
     final shape = BorderRadius.circular(radius);
-    return DecoratedBox(
+    final face = DecoratedBox(
       decoration: BoxDecoration(
+        color: _fade(t.floatFill),
         borderRadius: shape,
-        boxShadow: t.barShadowLifted(lift),
+        border: Border.all(color: _fade(t.barRim), width: 0.8),
       ),
-      child: ClipRRect(
-        borderRadius: shape,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: t.bar,
-              borderRadius: shape,
-              border: Border.all(color: t.barRim, width: 0.8),
-            ),
-            child: child,
-          ),
+      child: child,
+    );
+    return RepaintBoundary(
+      child: CustomPaint(
+        painter: _OuterShadow(
+          radius: radius,
+          shadows: [
+            for (final s in t.barShadowLifted(lift))
+              BoxShadow(
+                color: _fade(s.color),
+                blurRadius: s.blurRadius,
+                spreadRadius: s.spreadRadius,
+                offset: s.offset,
+              ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: shape,
+          child: t.glass && backdrop
+              ? BackdropFilter(filter: blur, child: face)
+              : face,
         ),
       ),
     );
   }
+}
+
+/// The shadow of a capsule, drawn only outside it. A box shadow also falls
+/// under the box, and through a see-through glass that shows as a grey patch.
+class _OuterShadow extends CustomPainter {
+  const _OuterShadow({required this.radius, required this.shadows});
+
+  final double radius;
+  final List<BoxShadow> shadows;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final shape = RRect.fromRectAndRadius(
+      Offset.zero & size,
+      Radius.circular(radius),
+    );
+    canvas.save();
+    canvas.clipPath(
+      Path()
+        ..fillType = PathFillType.evenOdd
+        ..addRect((Offset.zero & size).inflate(400))
+        ..addRRect(shape),
+    );
+    for (final shadow in shadows) {
+      canvas.drawRRect(
+        shape.shift(shadow.offset).inflate(shadow.spreadRadius),
+        shadow.toPaint(),
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_OuterShadow old) =>
+      old.radius != radius || !listEquals(old.shadows, shadows);
 }
 
 /// The capsule at the bottom: the open page as a solid pill with icon and
@@ -91,43 +156,86 @@ class MonoFloatingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = MonoTokens.of(context);
+    // One blur behind the capsule and the +: two separate ones would blur
+    // the same strip of the page twice.
     return SizedBox(
       height: height,
       width: width,
-      child: Row(
+      child: Stack(
         children: [
-          SizedBox(
-            width: tabsWidth,
-            child: _Tabs(
-              tabs: tabs,
-              selected: selected,
-              onSelected: onSelected,
-            ),
-          ),
-          const SizedBox(width: gap),
-          Semantics(
-            button: true,
-            label: addLabel,
-            child: ExcludeSemantics(
-              child: MonoPress(
-                onTap: () {
-                  Haptics.tap();
-                  onAdd();
-                },
-                squash: 0.08,
-                child: MonoGlass(
-                  child: SizedBox.square(
-                    dimension: height,
-                    child: Icon(Icons.add_rounded, size: 30, color: t.ink),
-                  ),
+          if (t.glass)
+            Positioned.fill(
+              child: ClipPath(
+                clipper: const _BarShape(),
+                child: BackdropFilter(
+                  filter: MonoGlass.blur,
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
+          Row(
+            children: [
+              SizedBox(
+                width: tabsWidth,
+                child: _Tabs(
+                  tabs: tabs,
+                  selected: selected,
+                  onSelected: onSelected,
+                ),
+              ),
+              const SizedBox(width: gap),
+              Semantics(
+                button: true,
+                label: addLabel,
+                child: ExcludeSemantics(
+                  child: MonoPress(
+                    onTap: () {
+                      Haptics.tap();
+                      onAdd();
+                    },
+                    squash: 0.08,
+                    child: MonoGlass(
+                      backdrop: false,
+                      child: SizedBox.square(
+                        dimension: height,
+                        child: Icon(Icons.add_rounded, size: 30, color: t.ink),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
+}
+
+/// The two capsules of the bar, for the one blur behind them.
+class _BarShape extends CustomClipper<Path> {
+  const _BarShape();
+
+  @override
+  Path getClip(Size size) {
+    const r = Radius.circular(MonoFloatingBar.height / 2);
+    return Path()
+      ..addRRect(
+        RRect.fromLTRBR(0, 0, MonoFloatingBar.tabsWidth, size.height, r),
+      )
+      ..addRRect(
+        RRect.fromLTRBR(
+          MonoFloatingBar.tabsWidth + MonoFloatingBar.gap,
+          0,
+          size.width,
+          size.height,
+          r,
+        ),
+      );
+  }
+
+  @override
+  bool shouldReclip(_BarShape old) => false;
 }
 
 class _Tabs extends StatefulWidget {
@@ -229,6 +337,7 @@ class _TabsState extends State<_Tabs> with SingleTickerProviderStateMixin {
             builder: (context, _) {
               final lift = _lift.value;
               return MonoGlass(
+                backdrop: false,
                 lift: lift.clamp(0.0, 1.0),
                 child: Padding(
                   padding: const EdgeInsets.all(_pad),
@@ -356,9 +465,24 @@ class _MonoSearchPillState extends State<MonoSearchPill> with RouteAware {
   final FocusNode _focus = FocusNode();
   ModalRoute<void>? _route;
 
+  // While the keyboard slides the pill goes without its blur: the page moves
+  // under it and the blur would be made again every frame.
+  double? _inset;
+  bool _sliding = false;
+  Timer? _settle;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final inset = MediaQuery.viewInsetsOf(context).bottom;
+    if (_inset != null && inset != _inset) {
+      _sliding = true;
+      _settle?.cancel();
+      _settle = Timer(const Duration(milliseconds: 120), () {
+        if (mounted) setState(() => _sliding = false);
+      });
+    }
+    _inset = inset;
     final route = ModalRoute.of(context);
     if (route != _route) {
       if (_route != null) appRouteObserver.unsubscribe(this);
@@ -379,6 +503,7 @@ class _MonoSearchPillState extends State<MonoSearchPill> with RouteAware {
 
   @override
   void dispose() {
+    _settle?.cancel();
     appRouteObserver.unsubscribe(this);
     _text.dispose();
     _focus.dispose();
@@ -390,6 +515,7 @@ class _MonoSearchPillState extends State<MonoSearchPill> with RouteAware {
     final t = MonoTokens.of(context);
     return MonoGlass(
       radius: 26,
+      backdrop: !_sliding,
       child: SizedBox(
         height: 52,
         child: Row(

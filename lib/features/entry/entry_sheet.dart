@@ -9,7 +9,10 @@ import '../../app/haptics.dart';
 import '../../data/food_archive.dart';
 import '../../data/metric_catalog.dart';
 import '../../data/models.dart';
+import '../../looks/insights_mono/theme/mono_tokens.dart';
+import '../../looks/insights_mono/widgets/mono_floating_bar.dart';
 import '../../theme/app_shapes.dart';
+import '../../theme/pulse_look.dart';
 import '../detail/metric_spec.dart';
 import 'food_sheet.dart';
 import 'foods_page.dart';
@@ -57,9 +60,17 @@ Future<void> showEntrySheet(
 Future<T?> showAppSheet<T>(BuildContext context, WidgetBuilder builder) {
   final navigator = Navigator.of(context);
   final localizations = MaterialLocalizations.of(context);
+  // The Insights looks let the page show through the sheet, blurred.
+  final glass = PulseLook.monoOf(context) && MonoTokens.of(context).glass;
   return navigator.push(
     _EntrySheetRoute<T>(
-      builder: builder,
+      builder: glass
+          ? (context) =>
+                BackdropFilter(filter: MonoGlass.blur, child: builder(context))
+          : builder,
+      backgroundColor: glass ? MonoTokens.of(context).bar : null,
+      elevation: glass ? 0 : null,
+      clipBehavior: glass ? Clip.antiAlias : null,
       capturedThemes: InheritedTheme.capture(
         from: context,
         to: navigator.context,
@@ -83,6 +94,9 @@ class _EntrySheetRoute<T> extends ModalBottomSheetRoute<T>
     super.barrierLabel,
     super.barrierOnTapHint,
     super.modalBarrierColor,
+    super.backgroundColor,
+    super.elevation,
+    super.clipBehavior,
   }) : super(isScrollControlled: true, showDragHandle: true);
 
   static final _scale = Tween<double>(begin: 1, end: 0.9);

@@ -419,6 +419,33 @@ class ProfilePage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (settings.look.isInsights)
+                    SettingSwitch(
+                      title: l10n.glassBlur,
+                      note: l10n.glassBlurNote,
+                      value: settings.glassBlur,
+                      onChanged: settings.setGlassBlur,
+                    ),
+                  if (settings.look.isInsights && settings.glassBlur)
+                    SettingBlock(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.glassLevel, style: muted),
+                          const SizedBox(height: 8),
+                          LookToggle(
+                            size: M3EButtonSize.md,
+                            labels: [
+                              l10n.glassLevelFrosted,
+                              l10n.glassLevelClearer,
+                              l10n.glassLevelClear,
+                            ],
+                            selected: settings.glassLevel,
+                            onChanged: settings.setGlassLevel,
+                          ),
+                        ],
+                      ),
+                    ),
                   if (settings.look == AppLook.insightsFlex)
                     SettingSwitch(
                       title: l10n.flexTint,

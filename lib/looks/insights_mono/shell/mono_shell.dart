@@ -40,19 +40,26 @@ class _MonoShellState extends State<MonoShell> {
     });
   }
 
-  Widget _page(int index) => switch (index) {
-    0 => MonoInsightsPage(onOpenBrowse: () => _open(_browse)),
-    1 => const MonoLongevityPage(),
-    _ => MonoBrowsePage(query: _query),
-  };
+  /// The pages are built once: the same widget again lets the framework skip
+  /// them, so the keyboard sliding in does not rebuild every page per frame.
+  final Map<int, Widget> _pages = {};
+
+  Widget _page(int index) => _pages.putIfAbsent(
+    index,
+    () => switch (index) {
+      0 => MonoInsightsPage(onOpenBrowse: () => _open(_browse)),
+      1 => const MonoLongevityPage(),
+      _ => MonoBrowsePage(query: _query),
+    },
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final t = MonoTokens.of(context);
-    final media = MediaQuery.of(context);
-    final barBottom = 28 + media.padding.bottom;
-    final keyboard = media.viewInsets.bottom;
+    final width = MediaQuery.sizeOf(context).width;
+    final barBottom = 28 + MediaQuery.paddingOf(context).bottom;
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
       backgroundColor: t.bg,
       // The bar stays where it is; only the search rides up on the keyboard.
@@ -93,8 +100,8 @@ class _MonoShellState extends State<MonoShell> {
           ),
           if (_index == _browse)
             Positioned(
-              left: (media.size.width - MonoFloatingBar.width) / 2,
-              right: (media.size.width - MonoFloatingBar.width) / 2,
+              left: (width - MonoFloatingBar.width) / 2,
+              right: (width - MonoFloatingBar.width) / 2,
               bottom: keyboard > 0
                   ? keyboard + 12
                   : barBottom + MonoFloatingBar.height + 14,

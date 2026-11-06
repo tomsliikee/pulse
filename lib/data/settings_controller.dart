@@ -229,6 +229,8 @@ class SettingsController extends ChangeNotifier {
   bool _calm = false;
   AppLook _look = AppLook.standard;
   bool _flexTint = false;
+  bool _glassBlur = true;
+  int _glassLevel = 0;
   bool _expressive = false;
   bool _haptics = true;
   bool _introDone = true;
@@ -337,6 +339,14 @@ class SettingsController extends ChangeNotifier {
 
   /// Whether Insights Flex tints its greys with the colour of the wallpaper.
   bool get flexTint => _flexTint;
+
+  /// Whether the floating elements of the Insights looks are translucent
+  /// with a blur behind them. Off, they are plain and opaque.
+  bool get glassBlur => _glassBlur;
+
+  /// How much the page shows through the glass: 0 frosted, 1 clearer,
+  /// 2 clear.
+  int get glassLevel => _glassLevel;
 
   /// Whether the app wears the expressive rework: wide type, more shapes,
   /// large headers.
@@ -469,6 +479,8 @@ class SettingsController extends ChangeNotifier {
     if (json['flexTint'] case final bool v) {
       _flexTint = v;
     }
+    if (json['glassBlur'] case final bool v) _glassBlur = v;
+    if (json['glassLevel'] case final int v) _glassLevel = v.clamp(0, 2);
     if (json['expressive'] case final bool v) _expressive = v;
     if (json['haptics'] case final bool v) _haptics = v;
     if (json['introDone'] case final bool v) _introDone = v;
@@ -674,6 +686,9 @@ class SettingsController extends ChangeNotifier {
   void setCalm(bool value) => _update(() => _calm = value);
   void setLook(AppLook value) => _update(() => _look = value);
   void setFlexTint(bool value) => _update(() => _flexTint = value);
+  void setGlassBlur(bool value) => _update(() => _glassBlur = value);
+  void setGlassLevel(int value) =>
+      _update(() => _glassLevel = value.clamp(0, 2));
   void setExpressive(bool value) => _update(() => _expressive = value);
 
   void setHaptics(bool value) => _update(() => _haptics = value);
@@ -767,6 +782,8 @@ class SettingsController extends ChangeNotifier {
             'calm': _calm,
             'look': _look.name,
             'flexTint': _flexTint,
+            'glassBlur': _glassBlur,
+            'glassLevel': _glassLevel,
             'expressive': _expressive,
             'haptics': _haptics,
             'introDone': _introDone,

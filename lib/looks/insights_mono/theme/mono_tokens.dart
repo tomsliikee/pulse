@@ -33,6 +33,8 @@ class MonoTokens extends ThemeExtension<MonoTokens> {
     required this.down,
     required this.dark,
     this.face = MonoFace.mono,
+    this.glass = true,
+    this.glassLevel = 0,
   });
 
   /// The tokens for [brightness], with the recovery colour in the hue of
@@ -43,6 +45,8 @@ class MonoTokens extends ThemeExtension<MonoTokens> {
     Color seed, {
     bool tint = false,
     MonoFace face = MonoFace.mono,
+    bool glass = true,
+    int glassLevel = 0,
   }) {
     final dark = brightness == Brightness.dark;
     final hue = Hct.fromInt(seed.toARGB32()).hue;
@@ -87,11 +91,15 @@ class MonoTokens extends ThemeExtension<MonoTokens> {
       solid: dark ? const Color(0xFFF5F5F7) : const Color(0xFF0C0C0E),
       onSolid: dark ? const Color(0xFF000000) : const Color(0xFFFFFFFF),
       // Thin enough that the blur behind is seen.
-      bar: tint
-          ? tone(6, 99, 14).withValues(alpha: dark ? 0.68 : 0.72)
-          : dark
-          ? const Color(0xAD1C1C1E)
-          : const Color(0xB8FFFFFF),
+      bar:
+          (tint
+                  ? tone(6, 99, 14)
+                  : dark
+                  ? const Color(0xFF1C1C1E)
+                  : const Color(0xFFFFFFFF))
+              .withValues(
+                alpha: _barAlpha[glassLevel.clamp(0, 2)] + (dark ? 0.02 : 0),
+              ),
       barRim: dark ? const Color(0x1FFFFFFF) : const Color(0x14000000),
       recovery: tone(48, 42, 80),
       recoveryBg: tone(26, 94, 24),
@@ -101,8 +109,14 @@ class MonoTokens extends ThemeExtension<MonoTokens> {
       down: dark ? const Color(0xFFFF8A80) : const Color(0xFFBA1A1A),
       dark: dark,
       face: face,
+      glass: glass,
+      glassLevel: glassLevel,
     );
   }
+
+  /// How much of the bar's colour stays over the blur, by glass level: the
+  /// frosted one, a clearer and a clear one.
+  static const List<double> _barAlpha = [0.4, 0.2, 0.08];
 
   final Color bg;
   final Color card;
@@ -130,14 +144,25 @@ class MonoTokens extends ThemeExtension<MonoTokens> {
   final bool dark;
   final MonoFace face;
 
+  /// Whether floating elements are see-through with a blur behind them; off,
+  /// they stand on the opaque colour of the bar laid over the ground.
+  final bool glass;
+
+  /// 0 frosted, 1 clearer, 2 clear: how much the page shows through.
+  final int glassLevel;
+
+  /// The fill of a floating element: the veil of the bar, or its opaque
+  /// equivalent without [glass].
+  Color get floatFill => glass ? bar : bar.withValues(alpha: 1);
+
   /// The shadow of the floating bar: a wide soft one that lifts it off the
   /// page and a tight one under its edge. [lift] 1 is held up by a finger.
   List<BoxShadow> barShadowLifted(double lift) => [
     BoxShadow(
       color: Colors.black.withValues(alpha: (dark ? 0.5 : 0.14) + 0.08 * lift),
-      blurRadius: 32 + 12 * lift,
-      spreadRadius: -2,
-      offset: Offset(0, 12 + 6 * lift),
+      blurRadius: 24 + 10 * lift,
+      spreadRadius: -4,
+      offset: Offset(0, 14 + 6 * lift),
     ),
     BoxShadow(
       color: Colors.black.withValues(alpha: dark ? 0.3 : 0.08),
@@ -170,12 +195,16 @@ ThemeData monoTheme(
   ThemeData base, {
   bool tint = false,
   MonoFace face = MonoFace.mono,
+  bool glass = true,
+  int glassLevel = 0,
 }) {
   final tokens = MonoTokens.from(
     base.brightness,
     base.colorScheme.primary,
     tint: tint,
     face: face,
+    glass: glass,
+    glassLevel: glassLevel,
   );
   final scheme = base.colorScheme.copyWith(
     surface: tokens.bg,

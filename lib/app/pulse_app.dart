@@ -262,6 +262,32 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  // The theme of a look is kept while nothing it is made from changes: a new
+  // one on every settings change would rebuild everything that reads it.
+  (ThemeData, bool, MonoFace, bool, int)? _monoKey;
+  ThemeData? _monoThemed;
+
+  ThemeData _monoTheme(
+    ThemeData base, {
+    required bool tint,
+    required MonoFace face,
+    required bool glass,
+    required int glassLevel,
+  }) {
+    final key = (base, tint, face, glass, glassLevel);
+    if (_monoKey != key) {
+      _monoKey = key;
+      _monoThemed = monoTheme(
+        base,
+        tint: tint,
+        face: face,
+        glass: glass,
+        glassLevel: glassLevel,
+      );
+    }
+    return _monoThemed!;
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScope(
@@ -322,12 +348,14 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
                             ),
                     child: look.isInsights
                         ? Theme(
-                            data: monoTheme(
+                            data: _monoTheme(
                               Theme.of(context),
                               tint:
                                   look == AppLook.insightsFlex &&
                                   _settings.flexTint,
                               face: face,
+                              glass: _settings.glassBlur,
+                              glassLevel: _settings.glassLevel,
                             ),
                             child: child!,
                           )

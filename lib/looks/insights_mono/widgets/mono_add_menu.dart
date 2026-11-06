@@ -15,7 +15,6 @@ import 'mono_motion.dart';
 /// meal or a supplement, fanned out above it. [bottom] is where the bar
 /// stands from the lower edge of the screen.
 Future<void> showMonoAddMenu(BuildContext context, {required double bottom}) {
-  final t = MonoTokens.of(context);
   final l10n = AppLocalizations.of(context);
   final health = AppScope.of(context).health;
   return Navigator.of(context).push(
@@ -23,7 +22,6 @@ Future<void> showMonoAddMenu(BuildContext context, {required double bottom}) {
       opaque: false,
       barrierDismissible: true,
       barrierLabel: l10n.close,
-      barrierColor: t.bg.withValues(alpha: 0.72),
       transitionDuration: monoStill(context)
           ? Duration.zero
           : const Duration(milliseconds: 380),
@@ -108,11 +106,12 @@ class _Menu extends StatelessWidget {
                   animation: animation,
                   // The one nearest the + comes first.
                   order: n - 1 - i,
-                  child: _Item(
+                  builder: (p) => _Item(
                     icon: items[i].$1,
                     label: items[i].$2,
                     onTap: items[i].$3,
                     tokens: t,
+                    fade: p,
                   ),
                 ),
               ],
@@ -158,12 +157,14 @@ class _Rise extends StatelessWidget {
   const _Rise({
     required this.animation,
     required this.order,
-    required this.child,
+    required this.builder,
   });
 
   final Animation<double> animation;
   final int order;
-  final Widget child;
+
+  /// The item for how far it has come in, 0 to 1.
+  final Widget Function(double p) builder;
 
   @override
   Widget build(BuildContext context) {
@@ -173,23 +174,21 @@ class _Rise extends StatelessWidget {
       curve: Interval(start, 1, curve: Curves.easeOutBack),
       reverseCurve: Curves.easeIn,
     );
+    // No fading layer: it would have to hold the blur of the glass in it
+    // for every frame. The item fades its own fill and content instead.
     return AnimatedBuilder(
       animation: curved,
-      builder: (context, child) {
+      builder: (context, _) {
         final p = curved.value;
-        return Opacity(
-          opacity: p.clamp(0.0, 1.0),
-          child: Transform.translate(
-            offset: Offset(0, (1 - p) * 24),
-            child: Transform.scale(
-              scale: 0.86 + 0.14 * p,
-              alignment: Alignment.centerRight,
-              child: child,
-            ),
+        return Transform.translate(
+          offset: Offset(0, (1 - p) * 24),
+          child: Transform.scale(
+            scale: 0.86 + 0.14 * p,
+            alignment: Alignment.centerRight,
+            child: builder(p.clamp(0.0, 1.0)),
           ),
         );
       },
-      child: child,
     );
   }
 }
@@ -200,8 +199,10 @@ class _Item extends StatelessWidget {
     required this.label,
     required this.onTap,
     required this.tokens,
+    required this.fade,
   });
 
+  final double fade;
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -220,32 +221,34 @@ class _Item extends StatelessWidget {
             onTap();
           },
           squash: 0.04,
-          child: Container(
-            height: 56,
-            padding: const EdgeInsets.only(left: 22, right: 6),
-            decoration: BoxDecoration(
-              color: t.card,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: t.barShadow,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: MonoType.inter(16, 22, FontWeight.w600, t.ink),
+          child: MonoGlass(
+            radius: 28,
+            opacity: fade,
+            child: Opacity(
+              opacity: fade,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.only(left: 22, right: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: MonoType.inter(16, 22, FontWeight.w600, t.ink),
+                    ),
+                    const SizedBox(width: 14),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: t.solid,
+                      ),
+                      child: Icon(icon, size: 22, color: t.onSolid),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: t.solid,
-                  ),
-                  child: Icon(icon, size: 22, color: t.onSolid),
-                ),
-              ],
+              ),
             ),
           ),
         ),
