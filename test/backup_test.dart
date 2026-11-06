@@ -158,6 +158,7 @@ void main() {
       await pumpApp(tester, locale: Locale(code), files: files);
       await tester.tap(find.bySemanticsLabel(_profile[code]!));
       await advance(tester);
+      await unfoldSettings(tester);
 
       await tester.drag(
         find.byType(CustomScrollView).last,

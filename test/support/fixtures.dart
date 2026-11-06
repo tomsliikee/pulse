@@ -23,6 +23,7 @@ import 'package:pulse/data/step_counting.dart';
 import 'package:pulse/l10n/generated/app_localizations.dart';
 import 'package:pulse/theme/app_theme.dart';
 import 'package:pulse/widgets/floating_tab_bar.dart';
+import 'package:pulse/widgets/fold_section.dart';
 import 'package:pulse/widgets/metric_card.dart';
 
 /// The moment every test treats as "now": Tuesday afternoon.
@@ -673,4 +674,17 @@ Future<bool> moves(WidgetTester tester) async {
   if (tester.hasRunningAnimations) return true;
   await tester.binding.delayed(const Duration(milliseconds: 50));
   return tester.binding.hasScheduledFrame;
+}
+
+/// Folds open every part of the settings, and the folds inside them.
+Future<void> unfoldSettings(WidgetTester tester) async {
+  for (var round = 0; round < 2; round++) {
+    for (final fold in tester.stateList<FoldSectionState>(
+      find.byType(FoldSection, skipOffstage: false),
+    )) {
+      fold.open();
+    }
+    await tester.pump();
+  }
+  await tester.pump(const Duration(milliseconds: 400));
 }

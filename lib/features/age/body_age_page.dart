@@ -118,7 +118,7 @@ class BodyAgePage extends StatelessWidget {
           from: 1,
           children: [
             for (final factor in result.factors)
-              _FactorCard(factor: factor, sex: settings.sex),
+              AgeFactorView(factor: factor, sex: settings.sex),
           ],
         ),
       ),
@@ -246,8 +246,8 @@ class _Overview extends StatelessWidget {
 
 /// One factor: the user's value, what it is judged against, and where it
 /// lies between the worst and the best end.
-class _FactorCard extends StatelessWidget {
-  const _FactorCard({required this.factor, required this.sex});
+class AgeFactorView extends StatelessWidget {
+  const AgeFactorView({super.key, required this.factor, required this.sex});
 
   final AgeFactor factor;
   final Sex? sex;

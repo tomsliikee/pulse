@@ -25,10 +25,18 @@ import 'workout_format.dart';
 import 'workout_list_page.dart';
 import 'workout_scene.dart';
 import 'workout_style.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../theme/pulse_look.dart';
+import '../../looks/insights_mono/pages/workout_page.dart';
 
 /// Opens the page about [workout], growing it out of the rectangle [origin]
 /// of what was tapped.
 void openWorkout(BuildContext context, Workout workout, Rect origin) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    monoPush<void>(context, MonoWorkoutPage(workout: workout));
+    return;
+  }
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,

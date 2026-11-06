@@ -35,6 +35,7 @@ Future<void> _openLanguageSheet(WidgetTester tester, String language) async {
   final l10n = _l10n(language);
   await tester.tap(find.bySemanticsLabel(l10n.profile));
   await advance(tester);
+  await unfoldSettings(tester);
   // The list builds its lower rows only once they come near.
   await tester.scrollUntilVisible(
     find.text(l10n.language),
@@ -279,7 +280,8 @@ void main() {
         await pumpApp(tester, size: size, locale: locale);
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
-        expect(find.text(l10n.goals), findsOneWidget);
+        await unfoldSettings(tester);
+        expect(find.text(l10n.settingsGoalsSupps), findsOneWidget);
         await tester.drag(
           find.byType(CustomScrollView).last,
           const Offset(0, -6000),
@@ -537,6 +539,7 @@ void main() {
         await pumpApp(tester);
         await tester.tap(find.bySemanticsLabel('Profil'));
         await advance(tester);
+        await unfoldSettings(tester);
         await tester.scrollUntilVisible(
           find.text('Sprache'),
           200,

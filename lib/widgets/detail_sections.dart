@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_type.dart';
 import '../theme/page_accent.dart';
+import '../theme/pulse_look.dart';
 import 'page_header.dart';
 import 'segment_group.dart';
 import 'shape_badge.dart';
@@ -35,6 +36,43 @@ class SceneSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final type = AppType.of(context);
+    // The Insights looks have no scenes: the mark beside its words.
+    if (PulseLook.monoOf(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                // The mark keeps what it says, in small.
+                SizedBox.square(
+                  dimension: 76,
+                  child: FittedBox(
+                    child: SizedBox.square(dimension: markSize, child: mark),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
+            child: child,
+          ),
+        ],
+      );
+    }
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -81,8 +119,9 @@ class SceneFrame extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) =>
-      SurfaceCard(padding: EdgeInsets.zero, child: child);
+  Widget build(BuildContext context) => PulseLook.monoOf(context)
+      ? const SizedBox.shrink()
+      : SurfaceCard(padding: EdgeInsets.zero, child: child);
 }
 
 /// Sentences as segments under a free title, each with the same icon on a

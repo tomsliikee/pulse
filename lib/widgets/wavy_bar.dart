@@ -2,7 +2,9 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
+import '../looks/insights_mono/widgets/mono_charts.dart';
 import '../theme/app_motion.dart';
+import '../theme/pulse_look.dart';
 import 'entrance.dart';
 
 /// A share of something as the wavy line of Material 3 Expressive. It grows
@@ -22,6 +24,10 @@ class WavyBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // The Insights looks draw a plain track instead of the wave.
+    if (PulseLook.monoOf(context)) {
+      return MonoTrack(value: value.clamp(0.0, 1.0), color: color);
+    }
     // The wave never rests; in a layer of its own it redraws only itself.
     return RepaintBoundary(
       child: SingleMotionBuilder(

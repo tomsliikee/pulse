@@ -98,6 +98,7 @@ class _SceneClockState extends State<SceneClock>
     final wanted =
         !still &&
         !PulseLook.calmOf(context) &&
+        !PulseLook.monoOf(context) &&
         _enabled &&
         (state == null || state == AppLifecycleState.resumed);
     if (still) _seconds.value = _still;
@@ -161,7 +162,8 @@ class _SceneClockState extends State<SceneClock>
   }
 
   @override
-  Widget build(BuildContext context) => PulseLook.calmOf(context)
+  Widget build(BuildContext context) =>
+      PulseLook.calmOf(context) || PulseLook.monoOf(context)
       // No scene at all; what stands around it keeps its place.
       ? const SizedBox.shrink()
       : ExcludeSemantics(

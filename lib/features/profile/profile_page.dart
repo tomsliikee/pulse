@@ -8,11 +8,11 @@ import '../../app/haptics.dart';
 import '../../app/morning_notices.dart';
 import '../../data/health_controller.dart';
 import '../../data/models.dart';
-import '../../widgets/segment_group.dart';
+import '../../data/settings_controller.dart';
 import '../../widgets/entrance.dart';
+import '../../widgets/fold_section.dart';
+import '../../widgets/look_toggle.dart';
 import '../../widgets/sub_page.dart';
-import '../../widgets/page_header.dart';
-import '../../widgets/stat_tile.dart';
 import '../goals/goal_format.dart';
 import '../goals/goals_page.dart';
 import '../intro/intro_page.dart';
@@ -23,12 +23,14 @@ import 'color_style_row.dart';
 import 'height_sheet.dart';
 import 'target_weight_sheet.dart';
 import 'language_sheet.dart';
+import '../../theme/pulse_look.dart';
 import 'live_settings.dart';
 import 'name_sheet.dart';
 import 'place_sheet.dart';
 import 'step_counting_sheet.dart';
 
-/// Goals, appearance and background refresh.
+/// The settings, in parts that fold open: you, goals and supplements, the
+/// notifications, the values, the look, the numbers, the data and the app.
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -102,6 +104,7 @@ class ProfilePage extends StatelessWidget {
     final muted = theme.textTheme.bodyMedium?.copyWith(
       color: scheme.onSurfaceVariant,
     );
+    final mono = PulseLook.monoOf(context);
 
     return ListenableBuilder(
       listenable: Listenable.merge([
@@ -109,12 +112,27 @@ class ProfilePage extends StatelessWidget {
         settings,
         scope.language,
         scope.systemPalette,
+        scope.supplements,
       ]),
       builder: (context, _) {
         final ready = health.status == HealthStatus.ready;
         final loadedAt = ready ? health.snapshot.loadedAt : null;
         final backfill = health.backfillReached;
         final sync = ready ? health.backgroundSync : null;
+        final mine = scope.supplements.data.mine;
+        final themeLabels = [l10n.themeSystem, l10n.themeLight, l10n.themeDark];
+        final lookLabels = [l10n.lookStandard, l10n.lookMono, l10n.lookFlex];
+        String? notGiven(String? value) => value ?? l10n.notGiven;
+        final notices = [
+          if (settings.morningBrief) l10n.morningTitle,
+          if (settings.weekReport) l10n.weekTitle,
+          if (settings.dayNotice) l10n.liveDay,
+          if (settings.liveMorning ||
+              settings.liveSupplements ||
+              settings.liveWeek ||
+              settings.liveDay)
+            l10n.liveTitle,
+        ];
         return SubPage(
           title: l10n.profile,
           glass: settings.liquidGlass,
@@ -146,644 +164,543 @@ class ProfilePage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             // The sections come in one after the other.
             children: staggered([
-              SectionTitle(l10n.simpleTitle),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: M3EToggleButtonGroup(
-                  type: M3EButtonGroupType.connected,
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.md,
-                  haptic: Haptics.widget,
-                  selectedIndex: settings.simple ? 0 : 1,
-                  onSelectedIndexChanged: (index) {
-                    if (index != null) settings.setSimple(index == 0);
-                  },
-                  actions: [
-                    M3EToggleButtonGroupAction(label: Text(l10n.simpleOn)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.simpleOff)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 12, 4, 12),
-                child: Text(
-                  settings.simple ? l10n.simpleOnNote : l10n.simpleOffNote,
-                  style: muted,
-                ),
-              ),
-              SurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  spacing: 4,
-                  children: [
-                    Text(
-                      l10n.simpleTilesTitle,
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    Text(l10n.simpleTilesBody, style: muted),
-                  ],
-                ),
-              ),
-              SectionTitle(l10n.aboutYou),
-              SegmentGroup(
-                padding: EdgeInsets.zero,
+              FoldSection(
+                icon: Icons.person_rounded,
+                title: l10n.aboutYou,
+                summary: [
+                  ?settings.name,
+                  if (settings.birthDate case final date?)
+                    formats.birthDate(date),
+                  if (settings.heightCm case final cm?) '$cm cm',
+                ].join(' · '),
                 children: [
-                  for (final (label, value, open) in [
-                    (
-                      l10n.nameLabel,
-                      settings.name ?? l10n.notGiven,
-                      showNameSheet,
+                  SettingLink(
+                    title: l10n.nameLabel,
+                    value: notGiven(settings.name),
+                    onTap: () => showNameSheet(context),
+                  ),
+                  SettingLink(
+                    title: l10n.birthDate,
+                    value: switch (settings.birthDate) {
+                      final date? => formats.birthDate(date),
+                      null => l10n.notGiven,
+                    },
+                    onTap: () => showBirthDateSheet(context),
+                  ),
+                  SettingLink(
+                    title: l10n.heightLabel,
+                    value: switch (settings.heightCm) {
+                      final height? => '$height cm',
+                      null => l10n.notGiven,
+                    },
+                    onTap: () => showHeightSheet(context),
+                  ),
+                  SettingLink(
+                    title: l10n.targetWeightLabel,
+                    value: switch (settings.targetWeightKg) {
+                      final kg? => '${formats.decimal(kg)} kg',
+                      null => l10n.notGiven,
+                    },
+                    onTap: () => showTargetWeightSheet(context),
+                  ),
+                  SettingLink(
+                    title: l10n.placeLabel,
+                    value: notGiven(settings.place?.name),
+                    onTap: () => showPlaceSheet(context),
+                  ),
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.sex, style: muted),
+                        const SizedBox(height: 8),
+                        _SexToggle(settings: settings),
+                      ],
                     ),
-                    (
-                      l10n.birthDate,
-                      switch (settings.birthDate) {
-                        final date? => formats.birthDate(date),
-                        null => l10n.notGiven,
-                      },
-                      showBirthDateSheet,
-                    ),
-                    (
-                      l10n.heightLabel,
-                      switch (settings.heightCm) {
-                        final height? => '$height cm',
-                        null => l10n.notGiven,
-                      },
-                      showHeightSheet,
-                    ),
-                    (
-                      l10n.targetWeightLabel,
-                      switch (settings.targetWeightKg) {
-                        final kg? => '${formats.decimal(kg)} kg',
-                        null => l10n.notGiven,
-                      },
-                      showTargetWeightSheet,
-                    ),
-                    (
-                      l10n.placeLabel,
-                      settings.place?.name ?? l10n.notGiven,
-                      showPlaceSheet,
-                    ),
-                  ])
-                    InkWell(
-                      onTap: () => open(context),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                label,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // A long name or place gives way to its label.
-                            Flexible(
-                              child: Text(
-                                value,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: context.emphasizedTextTheme.titleMedium
-                                    ?.copyWith(color: scheme.primary),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: M3EToggleButtonGroup(
-                  type: M3EButtonGroupType.connected,
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.md,
-                  haptic: Haptics.widget,
-                  selectedIndex: switch (settings.sex) {
-                    final sex? => _sexes.indexOf(sex),
-                    null => null,
-                  },
-                  onSelectedIndexChanged: (index) =>
-                      settings.setSex(index == null ? null : _sexes[index]),
-                  actions: [
-                    M3EToggleButtonGroupAction(label: Text(l10n.female)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.male)),
-                  ],
-                ),
-              ),
-              SectionTitle(l10n.goals),
-              M3ESegmentedColumn(
-                color: scheme.surfaceBright,
-                haptic: Haptics.widget,
-                onTap: (_) => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const GoalsPage()),
-                ),
-                children: [
-                  M3EListItem(
-                    headline: Text(l10n.goalsOpen),
-                    supportingText: Text(
-                      [for (final goal in settings.goals) goal.label(l10n)]
-                          .join(' · '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: const Icon(Icons.chevron_right_rounded),
                   ),
                 ],
               ),
-              SectionTitle(l10n.supplements),
-              ListenableBuilder(
-                listenable: scope.supplements,
-                builder: (context, _) {
-                  final mine = scope.supplements.data.mine;
-                  return M3ESegmentedColumn(
-                    color: scheme.surfaceBright,
-                    haptic: Haptics.widget,
-                    onTap: (_) => Navigator.of(context).push(
+              FoldSection(
+                icon: Icons.flag_rounded,
+                title: l10n.settingsGoalsSupps,
+                summary: [for (final goal in settings.goals) goal.label(l10n)]
+                    .join(' · '),
+                children: [
+                  SettingLink(
+                    title: l10n.goalsOpen,
+                    subtitle: [
+                      for (final goal in settings.goals) goal.label(l10n),
+                    ].join(' · '),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GoalsPage(),
+                      ),
+                    ),
+                  ),
+                  SettingLink(
+                    title: l10n.supplementsChoose,
+                    subtitle: mine.isEmpty
+                        ? l10n.supplementsNone
+                        : [
+                            for (final supplement in mine)
+                              supplement.title(l10n),
+                          ].join(' · '),
+                    onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const SupplementsPage(),
                       ),
                     ),
-                    children: [
-                      M3EListItem(
-                        headline: Text(l10n.supplementsChoose),
-                        supportingText: Text(
-                          mine.isEmpty
-                              ? l10n.supplementsNone
-                              : [
-                                  for (final supplement in mine)
-                                    supplement.title(l10n),
-                                ].join(' · '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: const Icon(Icons.chevron_right_rounded),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              SectionTitle(l10n.morningTitle),
-              SegmentGroup(
-                padding: EdgeInsets.zero,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.morningSwitchNote,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.morningBrief,
-                          onChanged: (value) {
-                            Haptics.selection();
-                            settings.setMorningBrief(value);
-                            // The notification needs the system's consent.
-                            if (value) MorningNotices.allow();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.morningTileAllDayNote,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.morningTileAllDay,
-                          // Without the overview there is no tile to keep.
-                          onChanged: !settings.morningBrief
-                              ? null
-                              : (value) {
-                                  Haptics.selection();
-                                  settings.setMorningTileAllDay(value);
-                                },
-                        ),
-                      ],
-                    ),
                   ),
                 ],
               ),
-              SectionTitle(l10n.weekTitle),
-              SegmentGroup(
-                padding: EdgeInsets.zero,
+              FoldSection(
+                icon: Icons.notifications_rounded,
+                title: l10n.settingsNotifications,
+                summary: notices.join(' · '),
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.weekSwitchNote,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.weekReport,
-                          onChanged: (value) {
-                            Haptics.selection();
-                            settings.setWeekReport(value);
-                            // The notification needs the system's consent.
-                            if (value) MorningNotices.allow();
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              LiveSettings(settings: settings),
-              SectionTitle(l10n.routeTitle),
-              if (health.routesNeedConsent) ...[
-                SurfaceCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  SettingSwitch(
+                    title: l10n.morningTitle,
+                    note: l10n.morningSwitchNote,
+                    value: settings.morningBrief,
+                    onChanged: (value) {
+                      settings.setMorningBrief(value);
+                      // The notification needs the system's consent.
+                      if (value) MorningNotices.allow();
+                    },
                     children: [
-                      Text(l10n.routeConsentNote, style: muted),
-                      const SizedBox(height: 12),
-                      M3EFilledButton.tonal(
-                        onPressed: health.requestRoutes,
-                        child: Text(l10n.routeAllow),
+                      SettingSwitch(
+                        title: l10n.morningTileAllDayNote,
+                        value: settings.morningTileAllDay,
+                        onChanged: settings.setMorningTileAllDay,
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              SegmentGroup(
-                padding: EdgeInsets.zero,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.routeSplitsSwitch,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.routeSplits,
-                          onChanged: (value) {
-                            Haptics.selection();
-                            settings.setRouteSplits(value);
-                          },
-                        ),
-                      ],
-                    ),
+                  SettingSwitch(
+                    title: l10n.weekTitle,
+                    note: l10n.weekSwitchNote,
+                    value: settings.weekReport,
+                    onChanged: (value) {
+                      settings.setWeekReport(value);
+                      if (value) MorningNotices.allow();
+                    },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.routeClimbSwitch,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.routeClimb,
-                          onChanged: (value) {
-                            Haptics.selection();
-                            settings.setRouteClimb(value);
-                          },
-                        ),
-                      ],
-                    ),
+                  SettingSwitch(
+                    title: l10n.liveDay,
+                    note: l10n.dayNoticeSwitchNote,
+                    value: settings.dayNotice,
+                    onChanged: (value) {
+                      settings.setDayNotice(value);
+                      if (value) MorningNotices.allow();
+                    },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.routeTilesSwitch,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Switch(
-                          value: settings.routeOnTiles,
-                          onChanged: (value) {
-                            Haptics.selection();
-                            settings.setRouteOnTiles(value);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              SectionTitle(l10n.valuesTitle),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: M3EToggleButtonGroup(
-                  type: M3EButtonGroupType.connected,
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.md,
-                  haptic: Haptics.widget,
-                  selectedIndex: settings.fineValues ? 1 : 0,
-                  onSelectedIndexChanged: (index) {
-                    if (index != null) settings.setFineValues(index == 1);
-                  },
-                  actions: [
-                    M3EToggleButtonGroupAction(label: Text(l10n.valuesCoarse)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.valuesFine)),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
-                child: Text(
-                  settings.fineValues
-                      ? l10n.valuesFineNote
-                      : l10n.valuesCoarseNote,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (settings.fineValues)
-                if ([
-                      if (health.fineMissing.birthDate) l10n.birthDate,
-                      if (health.fineMissing.sex) l10n.sex,
-                      if (health.fineMissing.weight) l10n.metricWeight,
-                    ]
-                    case final missing when missing.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
+                  SettingBlock(
                     child: Text(
-                      l10n.valuesFineMissing(missing.join(', ')),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.error,
+                      l10n.liveTitle,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
-              const SizedBox(height: 12),
-              SegmentGroup(
-                padding: EdgeInsets.zero,
+                  LiveSettings(settings: settings),
+                ],
+              ),
+              FoldSection(
+                icon: Icons.tune_rounded,
+                title: l10n.settingsValues,
+                summary: [
+                  settings.fineValues ? l10n.valuesFine : l10n.valuesCoarse,
+                  settings.stepCounting.label(l10n),
+                ].join(' · '),
                 children: [
-                  InkWell(
-                    onTap: () => showStepCountingSheet(context),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l10n.stepCounting,
-                              style: theme.textTheme.titleMedium,
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LookToggle(
+                          size: M3EButtonSize.md,
+                          labels: [l10n.valuesCoarse, l10n.valuesFine],
+                          selected: settings.fineValues ? 1 : 0,
+                          onChanged: (index) =>
+                              settings.setFineValues(index == 1),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          settings.fineValues
+                              ? l10n.valuesFineNote
+                              : l10n.valuesCoarseNote,
+                          style: muted,
+                        ),
+                        if (settings.fineValues)
+                          if ([
+                                if (health.fineMissing.birthDate)
+                                  l10n.birthDate,
+                                if (health.fineMissing.sex) l10n.sex,
+                                if (health.fineMissing.weight)
+                                  l10n.metricWeight,
+                              ]
+                              case final missing when missing.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                l10n.valuesFineMissing(missing.join(', ')),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: scheme.error,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            settings.stepCounting.label(l10n),
-                            style: context.emphasizedTextTheme.titleMedium
-                                ?.copyWith(color: scheme.primary),
+                      ],
+                    ),
+                  ),
+                  SettingLink(
+                    title: l10n.stepCounting,
+                    value: settings.stepCounting.label(l10n),
+                    onTap: () => showStepCountingSheet(context),
+                  ),
+                  SettingBlock(
+                    child: Text(
+                      l10n.routeTitle,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (health.routesNeedConsent)
+                    SettingBlock(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(l10n.routeConsentNote, style: muted),
+                          const SizedBox(height: 12),
+                          M3EFilledButton.tonal(
+                            onPressed: health.requestRoutes,
+                            child: Text(l10n.routeAllow),
                           ),
                         ],
                       ),
                     ),
+                  SettingSwitch(
+                    title: l10n.routeSplitsSwitch,
+                    value: settings.routeSplits,
+                    onChanged: settings.setRouteSplits,
+                  ),
+                  SettingSwitch(
+                    title: l10n.routeClimbSwitch,
+                    value: settings.routeClimb,
+                    onChanged: settings.setRouteClimb,
+                  ),
+                  SettingSwitch(
+                    title: l10n.routeTilesSwitch,
+                    value: settings.routeOnTiles,
+                    onChanged: settings.setRouteOnTiles,
                   ),
                 ],
               ),
-              SectionTitle(l10n.appearance),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: M3EToggleButtonGroup(
-                  type: M3EButtonGroupType.connected,
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.md,
-                  haptic: Haptics.widget,
-                  selectedIndex: _modes.indexOf(settings.themeMode),
-                  onSelectedIndexChanged: (index) {
-                    if (index != null) settings.setThemeMode(_modes[index]);
-                  },
-                  actions: [
-                    M3EToggleButtonGroupAction(label: Text(l10n.themeSystem)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.themeLight)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.themeDark)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // The switches and the language as one group of segments.
-              SegmentGroup(
-                padding: EdgeInsets.zero,
+              FoldSection(
+                icon: Icons.palette_rounded,
+                title: l10n.appearance,
+                summary: [
+                  lookLabels[settings.look.index],
+                  themeLabels[_modes.indexOf(settings.themeMode)],
+                ].join(' · '),
                 children: [
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.settingsLook, style: muted),
+                        const SizedBox(height: 8),
+                        LookToggle(
+                          size: M3EButtonSize.md,
+                          labels: lookLabels,
+                          selected: settings.look.index,
+                          onChanged: (index) =>
+                              settings.setLook(AppLook.values[index]),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (settings.look == AppLook.insightsFlex)
+                    SettingSwitch(
+                      title: l10n.flexTint,
+                      note: l10n.flexTintNote,
+                      value: settings.flexTint,
+                      onChanged: settings.setFlexTint,
+                    ),
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.themeLabel, style: muted),
+                        const SizedBox(height: 8),
+                        LookToggle(
+                          size: M3EButtonSize.md,
+                          labels: themeLabels,
+                          selected: _modes.indexOf(settings.themeMode),
+                          onChanged: (index) =>
+                              settings.setThemeMode(_modes[index]),
+                        ),
+                      ],
+                    ),
+                  ),
                   ColorStyleRow(
                     selected: settings.colorStyle,
                     system: scope.systemPalette.value,
                     onSelected: settings.setColorStyle,
                   ),
-                  for (final (label, value, set) in [
-                    (
-                      'Liquid Glass',
-                      settings.liquidGlass,
-                      settings.setLiquidGlass,
-                    ),
-                    (
-                      l10n.edgeHero,
-                      settings.edgeToEdgeHero,
-                      settings.setEdgeToEdgeHero,
-                    ),
-                    (l10n.flexFont, settings.flexFont, settings.setFlexFont),
-                    (l10n.calmMode, settings.calm, settings.setCalm),
-                    (l10n.mascot, settings.mascot, settings.setMascot),
-                    (
-                      l10n.expressiveRework,
-                      settings.expressive,
-                      settings.setExpressive,
-                    ),
-                    (l10n.hapticsLabel, settings.haptics, settings.setHaptics),
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 12, 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              label,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                          ),
-                          Switch(
-                            value: value,
-                            onChanged: (value) {
-                              // After the change, so switching the haptics
-                              // off is silent and switching them on is felt.
-                              set(value);
-                              Haptics.selection();
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  InkWell(
+                  SettingSwitch(
+                    title: l10n.hapticsLabel,
+                    value: settings.haptics,
+                    onChanged: settings.setHaptics,
+                  ),
+                  SettingLink(
+                    title: l10n.language,
+                    value: switch (scope.language.choice) {
+                      final code? => languageName(code),
+                      null => l10n.languageSystem,
+                    },
                     onTap: () => showLanguageSheet(context),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l10n.language,
-                              style: theme.textTheme.titleMedium,
-                            ),
+                  ),
+                  // What only the standard look draws; the Insights looks
+                  // bring their own.
+                  if (!mono)
+                    FoldSection.inner(
+                      title: l10n.settingsStandardExtras,
+                      children: [
+                        for (final (label, value, set) in [
+                          (
+                            l10n.liquidGlass,
+                            settings.liquidGlass,
+                            settings.setLiquidGlass,
                           ),
-                          Text(
-                            switch (scope.language.choice) {
-                              final code? => languageName(code),
-                              null => l10n.languageSystem,
-                            },
-                            style: context.emphasizedTextTheme.titleMedium
-                                ?.copyWith(color: scheme.primary),
+                          (
+                            l10n.edgeHero,
+                            settings.edgeToEdgeHero,
+                            settings.setEdgeToEdgeHero,
                           ),
-                        ],
-                      ),
+                          (
+                            l10n.flexFont,
+                            settings.flexFont,
+                            settings.setFlexFont,
+                          ),
+                          (l10n.calmMode, settings.calm, settings.setCalm),
+                          (l10n.mascot, settings.mascot, settings.setMascot),
+                          (
+                            l10n.expressiveRework,
+                            settings.expressive,
+                            settings.setExpressive,
+                          ),
+                        ])
+                          SettingSwitch(
+                            title: label,
+                            value: value,
+                            onChanged: set,
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+              FoldSection(
+                icon: Icons.tag_rounded,
+                title: l10n.simpleTitle,
+                summary: settings.simple ? l10n.simpleOn : l10n.simpleOff,
+                children: [
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        LookToggle(
+                          size: M3EButtonSize.md,
+                          labels: [l10n.simpleOn, l10n.simpleOff],
+                          selected: settings.simple ? 0 : 1,
+                          onChanged: (index) => settings.setSimple(index == 0),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          settings.simple
+                              ? l10n.simpleOnNote
+                              : l10n.simpleOffNote,
+                          style: muted,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          l10n.simpleTilesTitle,
+                          style: theme.textTheme.titleSmall,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(l10n.simpleTilesBody, style: muted),
+                      ],
                     ),
                   ),
-                  InkWell(
+                ],
+              ),
+              FoldSection(
+                icon: Icons.storage_rounded,
+                title: l10n.settingsDataBackup,
+                summary: loadedAt == null
+                    ? null
+                    : l10n.dateAtTime(
+                        formats.shortDate(loadedAt),
+                        formatClock(loadedAt.hour * 60 + loadedAt.minute),
+                      ),
+                children: [
+                  if (ready)
+                    SettingBlock(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.lastUpdated,
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          if (loadedAt != null)
+                            Text(
+                              l10n.dateAtTime(
+                                formats.shortDate(loadedAt),
+                                formatClock(
+                                  loadedAt.hour * 60 + loadedAt.minute,
+                                ),
+                              ),
+                              style: muted,
+                            ),
+                          if (sync != null)
+                            Text(
+                              (sync.error == null
+                                  ? l10n.backgroundLast
+                                  : l10n.backgroundFailed)(
+                                l10n.dateAtTime(
+                                  formats.shortDate(sync.at),
+                                  formatClock(
+                                    sync.at.hour * 60 + sync.at.minute,
+                                  ),
+                                ),
+                              ),
+                              style: muted,
+                            ),
+                          if (backfill != null) ...[
+                            const SizedBox(height: 14),
+                            Text(
+                              l10n.loadingOlderData,
+                              style: theme.textTheme.titleSmall,
+                            ),
+                            Text(
+                              l10n.reachedSoFar(
+                                '${formats.shortDate(backfill)} '
+                                '${backfill.year}',
+                              ),
+                              style: muted,
+                            ),
+                          ],
+                          const SizedBox(height: 14),
+                          Text(
+                            health.backgroundAccess
+                                ? l10n.backgroundOn
+                                : l10n.backgroundOff,
+                            style: muted,
+                          ),
+                          if (!health.backgroundAccess) ...[
+                            const SizedBox(height: 12),
+                            M3EFilledButton.tonal(
+                              onPressed: health.requestBackgroundAccess,
+                              child: Text(l10n.refreshInBackground),
+                            ),
+                          ],
+                          if (!health.historyAccess) ...[
+                            const SizedBox(height: 14),
+                            Text(l10n.historyOff, style: muted),
+                            const SizedBox(height: 12),
+                            M3EFilledButton.tonal(
+                              onPressed: health.requestHistoryAccess,
+                              child: Text(l10n.historyLoad),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  SettingBlock(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.backup, style: theme.textTheme.titleSmall),
+                        const SizedBox(height: 2),
+                        Text(l10n.backupAbout, style: muted),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            M3EFilledButton.tonal(
+                              onPressed: () => _saveBackup(context),
+                              child: Text(l10n.backupSave),
+                            ),
+                            M3EFilledButton.tonal(
+                              onPressed: () => _openBackup(context),
+                              child: Text(l10n.backupOpen),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              FoldSection(
+                icon: Icons.info_outline_rounded,
+                title: l10n.settingsAbout,
+                children: [
+                  SettingLink(
+                    title: l10n.introAgain,
                     onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         fullscreenDialog: true,
                         builder: (_) => const IntroPage(again: true),
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              l10n.introAgain,
-                              style: theme.textTheme.titleMedium,
-                            ),
-                          ),
-                          const Icon(Icons.chevron_right_rounded),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               ),
-              if (ready) ...[
-                SectionTitle(l10n.data),
-                SurfaceCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.lastUpdated,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      if (loadedAt != null)
-                        Text(
-                          l10n.dateAtTime(
-                            formats.shortDate(loadedAt),
-                            formatClock(loadedAt.hour * 60 + loadedAt.minute),
-                          ),
-                          style: muted,
-                        ),
-                      if (sync != null)
-                        Text(
-                          (sync.error == null
-                              ? l10n.backgroundLast
-                              : l10n.backgroundFailed)(
-                            l10n.dateAtTime(
-                              formats.shortDate(sync.at),
-                              formatClock(sync.at.hour * 60 + sync.at.minute),
-                            ),
-                          ),
-                          style: muted,
-                        ),
-                      if (backfill != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          l10n.loadingOlderData,
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        Text(
-                          l10n.reachedSoFar(
-                            '${formats.shortDate(backfill)} ${backfill.year}',
-                          ),
-                          style: muted,
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      Text(
-                        health.backgroundAccess
-                            ? l10n.backgroundOn
-                            : l10n.backgroundOff,
-                        style: muted,
-                      ),
-                      if (!health.backgroundAccess) ...[
-                        const SizedBox(height: 12),
-                        M3EFilledButton.tonal(
-                          onPressed: health.requestBackgroundAccess,
-                          child: Text(l10n.refreshInBackground),
-                        ),
-                      ],
-                      if (!health.historyAccess) ...[
-                        const SizedBox(height: 16),
-                        Text(l10n.historyOff, style: muted),
-                        const SizedBox(height: 12),
-                        M3EFilledButton.tonal(
-                          onPressed: health.requestHistoryAccess,
-                          child: Text(l10n.historyLoad),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                SectionTitle(l10n.backup),
-                SurfaceCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.backupAbout, style: muted),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          M3EFilledButton.tonal(
-                            onPressed: () => _saveBackup(context),
-                            child: Text(l10n.backupSave),
-                          ),
-                          M3EFilledButton.tonal(
-                            onPressed: () => _openBackup(context),
-                            child: Text(l10n.backupOpen),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ]),
           ),
         );
       },
+    );
+  }
+}
+
+/// Female or male, or neither while none is chosen.
+class _SexToggle extends StatelessWidget {
+  const _SexToggle({required this.settings});
+
+  final SettingsController settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = Formats.of(context).l10n;
+    const sexes = ProfilePage._sexes;
+    final selected = switch (settings.sex) {
+      final sex? => sexes.indexOf(sex),
+      null => null,
+    };
+    // The slider of the Insights looks always shows a choice; the group of
+    // buttons can show none, and a second tap takes the choice back.
+    if (PulseLook.monoOf(context) && selected != null) {
+      return LookToggle(
+        labels: [l10n.female, l10n.male],
+        selected: selected,
+        onChanged: (index) => settings.setSex(sexes[index]),
+      );
+    }
+    return M3EToggleButtonGroup(
+      type: M3EButtonGroupType.connected,
+      style: M3EButtonStyle.tonal,
+      size: M3EButtonSize.md,
+      haptic: Haptics.widget,
+      selectedIndex: selected,
+      onSelectedIndexChanged: (index) =>
+          settings.setSex(index == null ? null : sexes[index]),
+      actions: [
+        M3EToggleButtonGroupAction(label: Text(l10n.female)),
+        M3EToggleButtonGroupAction(label: Text(l10n.male)),
+      ],
     );
   }
 }

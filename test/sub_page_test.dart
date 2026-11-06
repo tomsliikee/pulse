@@ -150,7 +150,8 @@ void main() {
     expect(_pencilIcon, findsOneWidget);
     await tester.tap(profile);
     await advance(tester);
-    expect(find.text('Ziele'), findsOneWidget);
+    await unfoldSettings(tester);
+    expect(find.text('Ziele & Supplements'), findsOneWidget);
   });
 
   testWidgets('without a profile button the pencil floats at the right edge', (

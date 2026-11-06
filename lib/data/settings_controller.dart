@@ -12,6 +12,7 @@ import 'models.dart';
 import 'step_counting.dart';
 import 'weather.dart';
 import '../theme/color_style.dart';
+import '../theme/pulse_look.dart' show AppLook;
 
 /// The Today tile that shows the latest workout instead of a measurement.
 const String workoutTileId = 'workout';
@@ -226,6 +227,8 @@ class SettingsController extends ChangeNotifier {
   bool _flexFont = false;
   bool _mascot = false;
   bool _calm = false;
+  AppLook _look = AppLook.standard;
+  bool _flexTint = false;
   bool _expressive = false;
   bool _haptics = true;
   bool _introDone = true;
@@ -328,6 +331,12 @@ class SettingsController extends ChangeNotifier {
   /// Whether the scenes, with their figures, are left out: the heroes keep
   /// their numbers and nothing on them moves.
   bool get calm => _calm;
+
+  /// The look the app is drawn in.
+  AppLook get look => _look;
+
+  /// Whether Insights Flex tints its greys with the colour of the wallpaper.
+  bool get flexTint => _flexTint;
 
   /// Whether the app wears the expressive rework: wide type, more shapes,
   /// large headers.
@@ -454,6 +463,12 @@ class SettingsController extends ChangeNotifier {
     if (json['flexFont'] case final bool v) _flexFont = v;
     if (json['mascot'] case final bool v) _mascot = v;
     if (json['calm'] case final bool v) _calm = v;
+    if (json['look'] case final String v) {
+      _look = AppLook.values.asNameMap()[v] ?? AppLook.standard;
+    }
+    if (json['flexTint'] case final bool v) {
+      _flexTint = v;
+    }
     if (json['expressive'] case final bool v) _expressive = v;
     if (json['haptics'] case final bool v) _haptics = v;
     if (json['introDone'] case final bool v) _introDone = v;
@@ -657,6 +672,8 @@ class SettingsController extends ChangeNotifier {
   void setFlexFont(bool value) => _update(() => _flexFont = value);
   void setMascot(bool value) => _update(() => _mascot = value);
   void setCalm(bool value) => _update(() => _calm = value);
+  void setLook(AppLook value) => _update(() => _look = value);
+  void setFlexTint(bool value) => _update(() => _flexTint = value);
   void setExpressive(bool value) => _update(() => _expressive = value);
 
   void setHaptics(bool value) => _update(() => _haptics = value);
@@ -748,6 +765,8 @@ class SettingsController extends ChangeNotifier {
             'flexFont': _flexFont,
             'mascot': _mascot,
             'calm': _calm,
+            'look': _look.name,
+            'flexTint': _flexTint,
             'expressive': _expressive,
             'haptics': _haptics,
             'introDone': _introDone,

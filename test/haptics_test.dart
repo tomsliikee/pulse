@@ -147,6 +147,7 @@ void main() {
         final app = await pumpApp(tester, size: size, locale: Locale(language));
         await tester.tap(find.byIcon(Icons.person_rounded).first);
         await advance(tester);
+        await unfoldSettings(tester);
         await bringIntoView(tester, find.text(label));
         final toggle = find.descendant(
           of: find.ancestor(of: find.text(label), matching: find.byType(Row)),

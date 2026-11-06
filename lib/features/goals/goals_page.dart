@@ -20,9 +20,10 @@ import '../../widgets/sub_page.dart';
 import '../../widgets/wavy_bar.dart';
 import 'goal_format.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../widgets/look_shape.dart';
 
 /// The spans the goals page can show.
-enum _Span { day, week, month, year }
+enum GoalSpan { day, week, month, year }
 
 /// Every goal the user follows, and whether it was reached: today, over a
 /// week or a month day by day, and over a year month by month. Below them
@@ -35,12 +36,12 @@ class GoalsPage extends StatefulWidget {
 }
 
 class _GoalsPageState extends State<GoalsPage> {
-  _Span _span = _Span.day;
+  GoalSpan _span = GoalSpan.day;
 
   /// How many spans back from the current one.
   int _offset = 0;
 
-  void _show(_Span span) {
+  void _show(GoalSpan span) {
     if (span == _span) return;
     setState(() {
       _span = span;
@@ -55,11 +56,11 @@ class _GoalsPageState extends State<GoalsPage> {
 
   /// The first and the last day of the span that is shown.
   (DateTime, DateTime) _range(DateTime today) => switch (_span) {
-    _Span.day => (
+    GoalSpan.day => (
       DateTime(today.year, today.month, today.day - _offset),
       DateTime(today.year, today.month, today.day - _offset),
     ),
-    _Span.week => () {
+    GoalSpan.week => () {
       final monday = weekStart(today);
       final from = DateTime(
         monday.year,
@@ -68,11 +69,11 @@ class _GoalsPageState extends State<GoalsPage> {
       );
       return (from, DateTime(from.year, from.month, from.day + 6));
     }(),
-    _Span.month => (
+    GoalSpan.month => (
       DateTime(today.year, today.month - _offset),
       DateTime(today.year, today.month - _offset + 1, 0),
     ),
-    _Span.year => (
+    GoalSpan.year => (
       DateTime(today.year - _offset),
       DateTime(today.year - _offset, 12, 31),
     ),
@@ -80,10 +81,10 @@ class _GoalsPageState extends State<GoalsPage> {
 
   String _rangeLabel(Formats formats, DateTime from, DateTime to) =>
       switch (_span) {
-        _Span.day => formats.longDate(from),
-        _Span.week => formats.dayRange(from, to),
-        _Span.month => formats.month(from),
-        _Span.year => '${from.year}',
+        GoalSpan.day => formats.longDate(from),
+        GoalSpan.week => formats.dayRange(from, to),
+        GoalSpan.month => formats.month(from),
+        GoalSpan.year => '${from.year}',
       };
 
   @override
@@ -116,7 +117,7 @@ class _GoalsPageState extends State<GoalsPage> {
                       ],
                       selectedIndex: _span.index,
                       glass: settings.liquidGlass,
-                      onSelected: (index) => _show(_Span.values[index]),
+                      onSelected: (index) => _show(GoalSpan.values[index]),
                     ),
                   ),
                 ),
@@ -149,7 +150,7 @@ class _GoalsPageState extends State<GoalsPage> {
 
     final cards = <Widget>[
       for (final goal in settings.goals)
-        _GoalCard(
+        GoalCard(
           // A new card per span, so its bars and marks come in afresh.
           key: ValueKey((goal, _span, _offset)),
           goal: goal,
@@ -193,7 +194,7 @@ class _GoalsPageState extends State<GoalsPage> {
           // Keyed by what is shown, so the segments come in again for
           // another span.
           SegmentGroup(key: cards.first.key, children: cards),
-          if (_span == _Span.week || _span == _Span.month)
+          if (_span == GoalSpan.week || _span == GoalSpan.month)
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 12, 4, 0),
               child: Text(
@@ -241,8 +242,8 @@ class _GoalsPageState extends State<GoalsPage> {
 }
 
 /// One goal over the span that is shown.
-class _GoalCard extends StatelessWidget {
-  const _GoalCard({
+class GoalCard extends StatelessWidget {
+  const GoalCard({
     super.key,
     required this.goal,
     required this.target,
@@ -255,7 +256,7 @@ class _GoalCard extends StatelessWidget {
 
   final Goal goal;
   final double target;
-  final _Span span;
+  final GoalSpan span;
   final DateTime from;
   final DateTime to;
   final DateTime today;
@@ -271,7 +272,8 @@ class _GoalCard extends StatelessWidget {
       color: scheme.onSurfaceVariant,
     );
     // A weekly goal has one value for a week, as a daily one has for a day.
-    final single = span == _Span.day || (span == _Span.week && goal.weekly);
+    final single =
+        span == GoalSpan.day || (span == GoalSpan.week && goal.weekly);
 
     Widget? trailing;
     String? note;
@@ -287,7 +289,7 @@ class _GoalCard extends StatelessWidget {
           : null;
       note = goal.formatProgress(formats, progress);
       body = WavyBar(value: progress.share);
-    } else if (span == _Span.year) {
+    } else if (span == GoalSpan.year) {
       final rates = goalYear(goal, target, from.year, today, data);
       body = _YearBars(rates: rates, labels: formats.monthInitials);
     } else {
@@ -295,7 +297,7 @@ class _GoalCard extends StatelessWidget {
       if (row.counted > 0) {
         note = l10n.goalReachedOf(row.reached, row.counted);
       }
-      body = goal.weekly || span == _Span.week
+      body = goal.weekly || span == GoalSpan.week
           ? _MarkRow(
               marks: row.marks,
               labels: goal.weekly ? null : formats.weekdayShort,
@@ -359,7 +361,7 @@ class _Mark extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context);
     final Widget shape = switch (mark) {
-      GoalMark.reached => M3EContainer(
+      GoalMark.reached => LookShape(
         Shapes.c9SidedCookie,
         width: size,
         height: size,

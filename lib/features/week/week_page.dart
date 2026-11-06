@@ -37,11 +37,19 @@ import '../sleep/night_tiles.dart';
 import '../today/day_format.dart';
 import '../today/day_tiles.dart';
 import 'week_scene.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../theme/pulse_look.dart';
+import '../../looks/insights_mono/pages/week_page.dart' show MonoWeekPage;
 
 /// Opens the weekly report: out of what was tapped at [origin], or from
 /// below when a notification leads here. Without [monday] it shows the
 /// latest week whose report is ready.
 void openWeek(BuildContext context, {Rect? origin, DateTime? monday}) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    monoPush<void>(context, MonoWeekPage(monday: monday));
+    return;
+  }
   Navigator.of(context).push(
     origin == null
         ? MaterialPageRoute<void>(builder: (_) => WeekPage(monday: monday))

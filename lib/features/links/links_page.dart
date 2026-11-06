@@ -21,9 +21,16 @@ import '../week/week_page.dart';
 import 'link_card.dart';
 import 'links_scene.dart';
 import 'link_format.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../looks/insights_mono/pages/links_page.dart';
 
 /// Opens the page of all connections, growing it out of [origin].
 void openLinks(BuildContext context, Rect origin) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    monoPush<void>(context, const MonoLinksPage());
+    return;
+  }
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,

@@ -50,7 +50,8 @@ void main() {
       await pumpApp(tester, size: size);
       await tester.tap(find.bySemanticsLabel('Profil'));
       await advance(tester);
-      expect(find.text('Ziele'), findsOneWidget);
+      await unfoldSettings(tester);
+      expect(find.text('Ziele & Supplements'), findsOneWidget);
       await tester.drag(
         find.byType(CustomScrollView).last,
         const Offset(0, -4000),
@@ -177,6 +178,7 @@ void main() {
     final app = await pumpApp(tester);
     await tester.tap(find.bySemanticsLabel('Profil'));
     await advance(tester);
+    await unfoldSettings(tester);
     // The button group lays out a second, hidden copy of each label.
     final dark = find.text('Dunkel').hitTestable();
     await tester.ensureVisible(find.text('Dunkel').first);

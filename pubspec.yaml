@@ -44,6 +44,8 @@ dependencies:
   workmanager: ^0.10.10
   path_provider: ^2.1.6
   dynamic_color: ^2.1.0
+  # Tone-exact palettes for the Insights Mono look; already pulled in by Flutter.
+  material_color_utilities: ^0.13.0
   liquid_glass_renderer: 0.2.0-dev.4
 
 dev_dependencies:
@@ -69,3 +71,13 @@ flutter:
     - family: Google Sans Flex
       fonts:
         - asset: assets/fonts/GoogleSansFlex.ttf
+    # The Insights Mono look: Geist Serif for titles, Inter for the rest.
+    - family: Geist Serif
+      fonts:
+        - asset: assets/fonts/GeistSerif-Regular.ttf
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/InterVariable.ttf
+    - family: Inter Ext
+      fonts:
+        - asset: assets/fonts/InterVariableExt.ttf

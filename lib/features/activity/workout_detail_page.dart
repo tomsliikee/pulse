@@ -10,6 +10,7 @@ import '../../data/workout_archive.dart';
 import '../../data/workout_insights.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/look_toggle.dart';
 import '../../widgets/headline.dart';
 import '../../widgets/detail_sections.dart';
 import '../../widgets/page_header.dart';
@@ -412,19 +413,10 @@ class _ProgressState extends State<_Progress> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (offered.length > 1) ...[
-            M3EToggleButtonGroup(
-              type: M3EButtonGroupType.connected,
-              style: M3EButtonStyle.tonal,
-              size: M3EButtonSize.sm,
-              haptic: Haptics.widget,
-              selectedIndex: offered.indexOf(measure),
-              onSelectedIndexChanged: (index) {
-                if (index != null) setState(() => _shown = index);
-              },
-              actions: [
-                for (final offer in offered)
-                  M3EToggleButtonGroupAction(label: Text(offer.label(l10n))),
-              ],
+            LookToggle(
+              labels: [for (final offer in offered) offer.label(l10n)],
+              selected: offered.indexOf(measure),
+              onChanged: (index) => setState(() => _shown = index),
             ),
             const SizedBox(height: 16),
           ],

@@ -1,5 +1,3 @@
-import '../../app/haptics.dart';
-
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -9,6 +7,7 @@ import '../../data/health_controller.dart';
 import '../../data/metric_catalog.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
+import '../../widgets/look_toggle.dart';
 import '../../widgets/animated_count.dart';
 import '../../widgets/bar_chart.dart';
 import '../../widgets/board_page.dart';
@@ -213,19 +212,10 @@ class _StepsChartState extends State<_StepsChart> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                M3EToggleButtonGroup(
-                  type: M3EButtonGroupType.connected,
-                  style: M3EButtonStyle.tonal,
-                  size: M3EButtonSize.sm,
-                  haptic: Haptics.widget,
-                  selectedIndex: _month ? 1 : 0,
-                  onSelectedIndexChanged: (index) {
-                    if (index != null) setState(() => _month = index == 1);
-                  },
-                  actions: [
-                    M3EToggleButtonGroupAction(label: Text(l10n.periodWeek)),
-                    M3EToggleButtonGroupAction(label: Text(l10n.periodMonth)),
-                  ],
+                LookToggle(
+                  labels: [l10n.periodWeek, l10n.periodMonth],
+                  selected: _month ? 1 : 0,
+                  onChanged: (index) => setState(() => _month = index == 1),
                 ),
                 const Spacer(),
                 BarChart(

@@ -47,6 +47,7 @@ void main() {
     final app = await pumpApp(tester);
     await tester.tap(find.bySemanticsLabel('Profil'));
     await advance(tester);
+    await unfoldSettings(tester);
     // The list builds its lower rows only once they come near.
     await tester.scrollUntilVisible(
       find.text('Liquid Glass'),

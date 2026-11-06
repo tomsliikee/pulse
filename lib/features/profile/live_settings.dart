@@ -2,15 +2,13 @@ import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/formatters.dart';
-import '../../app/haptics.dart';
 import '../../app/morning_notices.dart';
 import '../../data/settings_controller.dart';
-import '../../widgets/page_header.dart';
-import '../../widgets/segment_group.dart';
+import '../../widgets/fold_section.dart';
 
-/// The notification with the day's score, and the switches that make the
-/// notifications live messages: they stay on top until they are swiped away
-/// or the app is opened. All of it is off until the user turns it on.
+/// The switches that make the notifications live messages: they stay on top
+/// until they are swiped away or the app is opened. All of them are off
+/// until the user turns them on.
 class LiveSettings extends StatefulWidget {
   const LiveSettings({required this.settings, super.key});
 
@@ -49,32 +47,15 @@ class _LiveSettingsState extends State<LiveSettings>
     if (mounted) setState(() => _promotable = value);
   }
 
-  Widget _row(
-    BuildContext context,
-    String text,
-    bool value,
-    void Function(bool) set, {
-    bool needsConsent = true,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 4, 12, 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(text, style: Theme.of(context).textTheme.bodyMedium),
-          ),
-          const SizedBox(width: 12),
-          Switch(
-            value: value,
-            onChanged: (on) {
-              Haptics.selection();
-              set(on);
-              // A notification needs the system's consent.
-              if (on && needsConsent) MorningNotices.allow();
-            },
-          ),
-        ],
-      ),
+  Widget _row(String text, bool value, void Function(bool) set) {
+    return SettingSwitch(
+      title: text,
+      value: value,
+      onChanged: (on) {
+        set(on);
+        // A notification needs the system's consent.
+        if (on) MorningNotices.allow();
+      },
     );
   }
 
@@ -87,67 +68,32 @@ class _LiveSettingsState extends State<LiveSettings>
     return ListenableBuilder(
       listenable: settings,
       builder: (context, _) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SectionTitle(l10n.liveDay),
-          SegmentGroup(
-            padding: EdgeInsets.zero,
-            children: [
-              _row(
-                context,
-                l10n.dayNoticeSwitchNote,
-                settings.dayNotice,
-                settings.setDayNotice,
-              ),
-            ],
+          _row(l10n.liveMorning, settings.liveMorning, settings.setLiveMorning),
+          _row(
+            l10n.liveSupplements,
+            settings.liveSupplements,
+            settings.setLiveSupplements,
           ),
-          SectionTitle(l10n.liveTitle),
-          SegmentGroup(
-            padding: EdgeInsets.zero,
-            children: [
-              _row(
-                context,
-                l10n.liveMorning,
-                settings.liveMorning,
-                settings.setLiveMorning,
-              ),
-              _row(
-                context,
-                l10n.liveSupplements,
-                settings.liveSupplements,
-                settings.setLiveSupplements,
-              ),
-              _row(
-                context,
-                l10n.liveWeek,
-                settings.liveWeek,
-                settings.setLiveWeek,
-              ),
-              _row(
-                context,
-                l10n.liveDay,
-                settings.liveDay,
-                settings.setLiveDay,
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.liveNote, style: muted),
-                    if (_promotable == false) ...[
-                      const SizedBox(height: 8),
-                      Text(l10n.liveSystemOff, style: muted),
-                      const SizedBox(height: 8),
-                      M3EFilledButton.tonal(
-                        onPressed: MorningNotices.openPromotionSettings,
-                        child: Text(l10n.liveSystemOpen),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
+          _row(l10n.liveWeek, settings.liveWeek, settings.setLiveWeek),
+          _row(l10n.liveDay, settings.liveDay, settings.setLiveDay),
+          SettingBlock(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l10n.liveNote, style: muted),
+                if (_promotable == false) ...[
+                  const SizedBox(height: 8),
+                  Text(l10n.liveSystemOff, style: muted),
+                  const SizedBox(height: 8),
+                  M3EFilledButton.tonal(
+                    onPressed: MorningNotices.openPromotionSettings,
+                    child: Text(l10n.liveSystemOpen),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

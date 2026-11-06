@@ -167,6 +167,7 @@ void main() {
     await pumpApp(tester, repository: repository);
     await tester.tap(find.bySemanticsLabel(de.profile));
     await advance(tester);
+    await unfoldSettings(tester);
     expect(find.byType(ProfilePage), findsOneWidget);
 
     await tapInView(tester, find.text(de.routeAllow));
@@ -222,6 +223,7 @@ void main() {
 
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         await tester.scrollUntilVisible(
           find.text(l10n.routeTilesSwitch),
           300,

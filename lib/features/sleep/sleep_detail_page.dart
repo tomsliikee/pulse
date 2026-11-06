@@ -12,6 +12,8 @@ import '../../data/night_insights.dart';
 import '../../data/settings_controller.dart';
 import '../../data/sleep_insights.dart';
 import '../../data/workout_insights.dart' show Trend;
+import '../../looks/insights_mono/widgets/mono_charts.dart';
+import '../../theme/pulse_look.dart';
 import '../../theme/app_shapes.dart';
 import '../../theme/app_type.dart';
 import '../../theme/page_accent.dart';
@@ -244,7 +246,7 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
       if (night.hasStages)
         SectionCard(
           title: l10n.stagesCompared,
-          child: _StageComparison(night: night, colors: stageColors),
+          child: StageComparisonView(night: night, colors: stageColors),
         )
       else
         SectionCard(
@@ -256,7 +258,7 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
         SectionCard(
           title: l10n.regularity,
           trailing: l10n.nightsCount(regularity.nights),
-          child: _Regularity(
+          child: SleepRegularityView(
             nights: days,
             selectedIndex: days.length - 1,
             regularity: regularity,
@@ -264,7 +266,7 @@ class _SleepDetailPageState extends State<SleepDetailPage> {
         ),
       SectionCard(
         title: l10n.sleepDebt,
-        child: _Debt(nights: week, until: date, goalHours: goalHours),
+        child: SleepDebtView(nights: week, until: date, goalHours: goalHours),
       ),
       if (heart.length >= 2)
         SectionCard(
@@ -694,8 +696,12 @@ class _Figure extends StatelessWidget {
 }
 
 /// Each stage with its duration, its share and the share that is typical.
-class _StageComparison extends StatelessWidget {
-  const _StageComparison({required this.night, required this.colors});
+class StageComparisonView extends StatelessWidget {
+  const StageComparisonView({
+    super.key,
+    required this.night,
+    required this.colors,
+  });
 
   final SleepNight night;
   final Map<SleepStage, Color> colors;
@@ -777,11 +783,17 @@ class _StageComparison extends StatelessWidget {
       ),
       const SizedBox(height: 8),
       RepaintBoundary(
-        child: M3ELinearWavyProgressIndicator(
-          value: (share / _scale).clamp(0, 1).toDouble(),
-          color: color,
-          backgroundColor: color.withValues(alpha: 0.2),
-        ),
+        // The Insights looks draw a plain track instead of the wave.
+        child: PulseLook.monoOf(context)
+            ? MonoTrack(
+                value: (share / _scale).clamp(0, 1).toDouble(),
+                color: color,
+              )
+            : M3ELinearWavyProgressIndicator(
+                value: (share / _scale).clamp(0, 1).toDouble(),
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.2),
+              ),
       ),
       const SizedBox(height: 6),
       Text(verdict, style: quiet),
@@ -789,8 +801,9 @@ class _StageComparison extends StatelessWidget {
   }
 }
 
-class _Regularity extends StatelessWidget {
-  const _Regularity({
+class SleepRegularityView extends StatelessWidget {
+  const SleepRegularityView({
+    super.key,
     required this.nights,
     required this.selectedIndex,
     required this.regularity,
@@ -868,8 +881,9 @@ class _Regularity extends StatelessWidget {
 
 /// The [nights] of the days up to [until] against the goal, and what they
 /// add up to.
-class _Debt extends StatelessWidget {
-  const _Debt({
+class SleepDebtView extends StatelessWidget {
+  const SleepDebtView({
+    super.key,
     required this.nights,
     required this.until,
     required this.goalHours,

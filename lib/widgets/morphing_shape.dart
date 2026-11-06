@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:motor/motor.dart';
 
 import '../theme/app_motion.dart';
+import '../theme/pulse_look.dart';
 
 /// Paints one of the expressive [Shapes] and morphs to the next one with a
 /// spatial spring whenever [shape] changes.
@@ -49,6 +50,16 @@ class _MorphingShapeState extends State<MorphingShape> {
 
   @override
   Widget build(BuildContext context) {
+    // The Insights looks have no expressive shapes: a plain circle.
+    if (PulseLook.monoOf(context)) {
+      return Container(
+        width: widget.size,
+        height: widget.size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+        child: widget.child,
+      );
+    }
     return SizedBox.square(
       dimension: widget.size,
       child: SingleMotionBuilder(

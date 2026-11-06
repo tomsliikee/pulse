@@ -327,10 +327,11 @@ void main() {
     final app = await pumpApp(tester, store: await _store(simple: true));
     await tester.tap(find.byIcon(Icons.person_rounded).first);
     await advance(tester);
+    await unfoldSettings(tester);
     expect(find.text(_de.simpleOnNote), findsOneWidget);
     expect(find.text(_de.simpleTilesTitle), findsOneWidget);
 
-    await tester.tap(find.text(_de.simpleOff).first);
+    await tapInView(tester, find.text(_de.simpleOff).first);
     await advance(tester);
     expect(find.text(_de.simpleOffNote), findsOneWidget);
     expect(app.store.documents[StoreKeys.settings], contains('"simple":false'));

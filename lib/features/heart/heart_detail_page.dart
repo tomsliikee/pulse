@@ -238,7 +238,7 @@ class _HeartDetailPageState extends State<HeartDetailPage> {
               ListSegment(
                 first: i == 0,
                 last: i == hours.length - 1,
-                child: _HourRow(
+                child: HeartHourRow(
                   hour: hour,
                   low: summary.low,
                   high: summary.high,
@@ -557,8 +557,13 @@ class _Comparison extends StatelessWidget {
 
 /// One hour of the day: when it was, how far the pulse ranged in it, where
 /// that lies within the day's range, and, at the end, its average.
-class _HourRow extends StatelessWidget {
-  const _HourRow({required this.hour, required this.low, required this.high});
+class HeartHourRow extends StatelessWidget {
+  const HeartHourRow({
+    super.key,
+    required this.hour,
+    required this.low,
+    required this.high,
+  });
 
   final HeartHour hour;
 

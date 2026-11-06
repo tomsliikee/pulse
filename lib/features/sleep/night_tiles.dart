@@ -24,10 +24,19 @@ import 'night_format.dart';
 import 'night_list_page.dart';
 import 'sleep_detail_page.dart';
 import 'sleep_scene.dart';
+import '../../widgets/look_shape.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../theme/pulse_look.dart';
+import '../../looks/insights_mono/pages/night_page.dart';
 
 /// Opens the page about [night], growing it out of the rectangle [origin] of
 /// what was tapped.
 void openNight(BuildContext context, SleepNight night, Rect origin) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    monoPush<void>(context, MonoNightPage(date: night.date));
+    return;
+  }
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,
@@ -386,7 +395,7 @@ class NightRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Row(
           children: [
-            M3EContainer(
+            LookShape(
               AppShapes.of(ShapeFamily.sleep, score),
               width: type.expressive ? 48 : 44,
               height: type.expressive ? 48 : 44,

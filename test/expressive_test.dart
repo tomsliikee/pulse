@@ -146,6 +146,7 @@ void main() {
       final app = await pumpApp(tester);
       await tester.tap(find.bySemanticsLabel('Profil'));
       await advance(tester);
+      await unfoldSettings(tester);
       final row = find.ancestor(
         of: find.text('Flex-Schrift', skipOffstage: false),
         matching: find.byType(Row, skipOffstage: false),
@@ -746,6 +747,7 @@ void main() {
         await advance(tester);
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         expect(tester.takeException(), isNull);
         await tapInView(tester, find.text(l10n.goalsOpen));
         await scroll(find.byType(CustomScrollView).last);

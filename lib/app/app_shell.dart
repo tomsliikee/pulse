@@ -23,6 +23,7 @@ import 'floating_nav_bar.dart';
 import 'glass_fab_menu.dart';
 import 'haptics.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../looks/insights_mono/shell/mono_shell.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -122,6 +123,7 @@ class _AppShellState extends State<AppShell> {
             if (health.status != HealthStatus.ready) {
               return SafeArea(child: AccessPage(status: health.status));
             }
+            if (settings.look.isInsights) return const MonoShell();
             final glass = settings.liquidGlass;
             return Stack(
               children: [
@@ -133,7 +135,8 @@ class _AppShellState extends State<AppShell> {
                       visit: _visits[index],
                       // Its own tone, so the colour the shell turns to does
                       // not build the pages again in every frame.
-                      theme: theme.extension<PageSchemes>()?.of(_tones[index]) ??
+                      theme:
+                          theme.extension<PageSchemes>()?.of(_tones[index]) ??
                           theme,
                       child: KeyedSubtree(
                         key: _keys[index],

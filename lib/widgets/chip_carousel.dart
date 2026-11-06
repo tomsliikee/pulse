@@ -10,6 +10,7 @@ import 'page_header.dart';
 import 'pressable.dart';
 import 'shape_badge.dart';
 import 'tile_surface.dart';
+import 'look_shape.dart';
 
 /// A few small cards to swipe through under a free title. The last one is
 /// usually a [CarouselEndChip], the way to everything.
@@ -183,7 +184,7 @@ class ScoreMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = PageAccent.colorsOf(context);
     final score = this.score;
-    return M3EContainer(
+    return LookShape(
       AppShapes.of(PageAccent.of(context).family, score),
       width: CarouselChip.markSize,
       height: CarouselChip.markSize,

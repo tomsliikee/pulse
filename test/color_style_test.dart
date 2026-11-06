@@ -167,6 +167,7 @@ void main() {
           await pumpApp(tester, size: size, locale: Locale(language));
           await tester.tap(find.bySemanticsLabel(l10n.profile));
           await advance(tester);
+          await unfoldSettings(tester);
           await bringIntoView(tester, find.byType(ColorStyleRow));
 
           // The tests have no wallpaper palette, so its dot is not there.
@@ -191,6 +192,7 @@ void main() {
       final l10n = lookupAppLocalizations(const Locale('de'));
       await tester.tap(find.bySemanticsLabel(l10n.profile));
       await advance(tester);
+      await unfoldSettings(tester);
       await tapInView(tester, find.bySemanticsLabel(l10n.colorGreen));
 
       final row = tester.element(find.byType(ColorStyleRow));

@@ -36,10 +36,18 @@ import 'day_format.dart';
 import 'day_list_page.dart';
 import 'day_scene.dart';
 import 'day_scores.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../theme/pulse_look.dart';
+import '../../looks/insights_mono/pages/day_page.dart';
 
 /// Opens the page about [day], growing it out of the rectangle [origin] of
 /// what was tapped.
 void openDay(BuildContext context, DateTime day, Rect origin) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    monoPush<void>(context, MonoDayPage(date: day));
+    return;
+  }
   Navigator.of(context).push(
     ContainerRoute<void>(
       origin: origin,

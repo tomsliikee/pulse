@@ -12,6 +12,12 @@ import '../calories/calories_detail_page.dart';
 import '../heart/heart_detail_page.dart';
 import '../sleep/sleep_detail_page.dart';
 import 'metric_detail_page.dart';
+import '../../looks/insights_mono/data/mono_data.dart' show monoPush;
+import '../../theme/pulse_look.dart';
+import '../../looks/insights_mono/pages/night_page.dart';
+import '../../looks/insights_mono/pages/heart_page.dart';
+import '../../looks/insights_mono/pages/calories_page.dart';
+import '../../looks/insights_mono/pages/metric_page.dart';
 
 /// How a [Metric] is drawn.
 @immutable
@@ -242,6 +248,21 @@ extension MetricPresentation on Metric {
 /// Opens the detail page for [metric], growing it out of the tile at [origin].
 /// Sleep, the pulse and the calories have pages of their own.
 void openMetric(BuildContext context, Metric metric, Rect origin) {
+  // The Insights looks have pages of their own.
+  if (PulseLook.monoOf(context)) {
+    final health = AppScope.of(context).health;
+    monoPush<void>(context, switch (metric) {
+      Metric.sleep => MonoNightPage(
+        date: health.latestNight?.date ?? health.today,
+      ),
+      Metric.heartRate => MonoHeartPage(date: health.today),
+      Metric.totalEnergy => MonoCaloriesPage(
+        backLabel: metric.title(AppLocalizations.of(context)),
+      ),
+      _ => MonoMetricPage(metric: metric),
+    });
+    return;
+  }
   final scheme = Theme.of(context).colorScheme;
   final health = AppScope.of(context).health;
   Navigator.of(context).push(

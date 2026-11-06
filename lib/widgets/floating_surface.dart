@@ -1,6 +1,8 @@
 import 'package:liquid_glass_renderer/liquid_glass_renderer.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../looks/insights_mono/widgets/mono_floating_bar.dart';
+import '../theme/pulse_look.dart';
 import 'glass_rim.dart';
 import 'glass_scope.dart';
 
@@ -37,6 +39,21 @@ class FloatingSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    // The Insights looks float everything on the frosted glass of their bar.
+    if (PulseLook.monoOf(context)) {
+      return SizedBox(
+        height: height,
+        child: MonoGlass(
+          radius: _radius,
+          child: Material(
+            type: MaterialType.transparency,
+            shape: const StadiumBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: child,
+          ),
+        ),
+      );
+    }
     if (!glass) {
       return SizedBox(
         height: height,

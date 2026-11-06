@@ -175,6 +175,7 @@ void main() {
         );
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         await bringIntoView(tester, find.text(l10n.supplementsChoose));
         await tapInView(tester, find.text(l10n.supplementsChoose));
         expect(find.byType(SupplementsPage), findsOneWidget);

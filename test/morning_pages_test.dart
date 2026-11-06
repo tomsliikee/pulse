@@ -421,6 +421,7 @@ void main() {
         );
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         final settings = AppScope.of(tester.element(find.byType(ProfilePage)))
             .settings;
 
@@ -459,7 +460,7 @@ void main() {
           isNull,
         );
 
-        await tapInView(tester, find.text(l10n.morningSwitchNote));
+        await bringIntoView(tester, find.text(l10n.morningSwitchNote));
         final toggle = find.descendant(
           of: find.ancestor(
             of: find.text(l10n.morningSwitchNote),
@@ -481,8 +482,8 @@ void main() {
 
         await tapInView(tester, toggle);
         expect(settings.morningBrief, isFalse);
-        // Nothing to keep without the overview.
-        expect(tester.widget<Switch>(keep).onChanged, isNull);
+        // Nothing to keep without the overview: the switch folds away.
+        expect(keep, findsNothing);
         expect(tester.takeException(), isNull);
       });
     }

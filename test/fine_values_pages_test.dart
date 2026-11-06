@@ -135,6 +135,7 @@ void main() {
         );
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         final scope = AppScope.of(tester.element(find.byType(ProfilePage)));
         await bringIntoView(tester, find.text(l10n.stepCounting));
         expect(find.text(l10n.stepsStore), findsOneWidget);
@@ -169,6 +170,7 @@ void main() {
         );
         await tester.tap(find.bySemanticsLabel(l10n.profile));
         await advance(tester);
+        await unfoldSettings(tester);
         final scope = AppScope.of(tester.element(find.byType(ProfilePage)));
         await bringIntoView(tester, find.text(l10n.valuesCoarseNote));
         expect(find.text(l10n.valuesFineNote), findsNothing);

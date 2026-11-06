@@ -111,6 +111,7 @@ void main() {
       final l10n = lookupAppLocalizations(const Locale('de'));
       await tester.tap(find.byIcon(Icons.person_rounded));
       await advance(tester);
+      await unfoldSettings(tester);
       for (final (label, key) in [
         (l10n.mascot, 'mascot'),
         (l10n.expressiveRework, 'expressive'),

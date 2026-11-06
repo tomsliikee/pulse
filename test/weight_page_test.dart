@@ -156,6 +156,7 @@ void main() {
       final app = await pumpApp(tester, repository: _weights());
       await tester.tap(find.byIcon(Icons.person_rounded).first);
       await advance(tester);
+      await unfoldSettings(tester);
       await tapInView(tester, find.text('Wunschgewicht'));
       await advance(tester);
       await tester.enterText(find.byType(TextField), '5');

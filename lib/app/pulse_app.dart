@@ -17,6 +17,8 @@ import '../data/weather.dart';
 import '../data/weather_controller.dart';
 import '../features/week/week_page.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../looks/insights_mono/theme/mono_tokens.dart';
+import '../looks/insights_mono/theme/mono_type.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_type.dart';
 import '../theme/pulse_look.dart';
@@ -297,10 +299,16 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
             // with icons that stand out from the theme.
             builder: (context, child) {
               final dark = Theme.of(context).brightness == Brightness.dark;
+              final look = _settings.look;
+              final face = look == AppLook.insightsFlex
+                  ? MonoFace.flex
+                  : MonoFace.mono;
+              MonoType.face = face;
               return PulseLook(
                 mascot: _settings.mascot,
                 expressive: _settings.expressive,
                 calm: _settings.calm,
+                look: _settings.look,
                 child: FlexType(
                   enabled: _settings.flexFont,
                   child: AnnotatedRegion<SystemUiOverlayStyle>(
@@ -312,7 +320,18 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
                               statusBarColor: Colors.transparent,
                               systemNavigationBarColor: Colors.transparent,
                             ),
-                    child: child!,
+                    child: look.isInsights
+                        ? Theme(
+                            data: monoTheme(
+                              Theme.of(context),
+                              tint:
+                                  look == AppLook.insightsFlex &&
+                                  _settings.flexTint,
+                              face: face,
+                            ),
+                            child: child!,
+                          )
+                        : child!,
                   ),
                 ),
               );

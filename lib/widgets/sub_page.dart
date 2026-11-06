@@ -7,6 +7,9 @@ import '../app/haptics.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_type.dart';
 import '../theme/pulse_look.dart';
+import '../looks/insights_mono/theme/mono_type.dart';
+import '../looks/insights_mono/widgets/mono_floating_bar.dart';
+import '../looks/insights_mono/widgets/mono_page.dart';
 import 'floating_surface.dart';
 import 'tile_blob.dart';
 
@@ -117,6 +120,7 @@ class _SubPageState extends State<SubPage> {
     double top,
     Widget? overlay,
   ) {
+    final mono = PulseLook.monoOf(context);
     return Scaffold(
       body: Stack(
         children: [
@@ -132,12 +136,21 @@ class _SubPageState extends State<SubPage> {
                     key: _titleKey,
                     child: _Head(
                       top: top,
-                      child:
-                          widget.largeTitle ??
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                            child: _title(context, theme),
-                          ),
+                      child: mono
+                          ? Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                              child: MonoSerif.title(widget.title),
+                            )
+                          : widget.largeTitle ??
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    20,
+                                    0,
+                                    20,
+                                    8,
+                                  ),
+                                  child: _title(context, theme),
+                                ),
                     ),
                   ),
                 ),
@@ -152,51 +165,78 @@ class _SubPageState extends State<SubPage> {
             ],
           ),
           ?overlay,
-          Positioned(
-            top: top,
-            left: 16,
-            right: 16,
-            child: Row(
-              children: [
-                FloatingSurface(
-                  glass: widget.glass,
-                  child: SizedBox.square(
-                    dimension: FloatingSurface.height,
-                    child: BackButton(
-                      onPressed: () {
-                        Haptics.tap();
-                        Navigator.maybePop(context);
-                      },
+          if (mono)
+            Positioned(
+              top: top,
+              left: 16,
+              right: 16,
+              child: Row(
+                children: [
+                  Flexible(child: MonoBackPill(label: widget.title)),
+                  if (widget.action case final action?) ...[
+                    const Spacer(),
+                    const SizedBox(width: 8),
+                    MonoGlass(
+                      radius: 22,
+                      child: SizedBox.square(dimension: 44, child: action),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: ValueListenableBuilder(
-                      valueListenable: _pill,
-                      builder: (context, shown, _) => _TitlePill(
-                        title: widget.title,
-                        glass: widget.glass,
-                        shown: shown,
-                      ),
-                    ),
-                  ),
-                ),
-                if (widget.action case final action?) ...[
-                  const SizedBox(width: 8),
+                  ],
+                ],
+              ),
+            )
+          else
+            Positioned(
+              top: top,
+              left: 16,
+              right: 16,
+              child: Row(
+                children: [
                   FloatingSurface(
                     glass: widget.glass,
                     child: SizedBox.square(
                       dimension: FloatingSurface.height,
-                      child: action,
+                      child: BackButton(
+                        onPressed: () {
+                          Haptics.tap();
+                          Navigator.maybePop(context);
+                        },
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: ValueListenableBuilder(
+                        valueListenable: _pill,
+                        builder: (context, shown, _) => _TitlePill(
+                          title: widget.title,
+                          glass: widget.glass,
+                          shown: shown,
+                          onTap: () => _scroll.animateTo(
+                            0,
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? const Duration(milliseconds: 1)
+                                : const Duration(milliseconds: 420),
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (widget.action case final action?) ...[
+                    const SizedBox(width: 8),
+                    FloatingSurface(
+                      glass: widget.glass,
+                      child: SizedBox.square(
+                        dimension: FloatingSurface.height,
+                        child: action,
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -238,7 +278,9 @@ class _Head extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!PulseLook.expressiveOf(context)) return child;
+    if (!PulseLook.expressiveOf(context) || PulseLook.monoOf(context)) {
+      return child;
+    }
     final scheme = Theme.of(context).colorScheme;
     final tint = Color.lerp(scheme.surfaceContainer, scheme.primary, 0.1)!;
     final reach = top + FloatingSurface.height + 12;
@@ -280,11 +322,15 @@ class _TitlePill extends StatelessWidget {
     required this.title,
     required this.glass,
     required this.shown,
+    required this.onTap,
   });
 
   final String title;
   final bool glass;
   final bool shown;
+
+  /// A tap on the pill scrolls the page back to its top.
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -303,18 +349,23 @@ class _TitlePill extends StatelessWidget {
               ),
             ),
       child: IgnorePointer(
-        child: FloatingSurface(
-          glass: glass,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Center(
-              widthFactor: 1,
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.emphasizedTextTheme.titleMedium?.copyWith(
-                  color: scheme.onSurface,
+        ignoring: !shown,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: FloatingSurface(
+            glass: glass,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.emphasizedTextTheme.titleMedium?.copyWith(
+                    color: scheme.onSurface,
+                  ),
                 ),
               ),
             ),

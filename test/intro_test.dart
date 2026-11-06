@@ -467,6 +467,7 @@ void main() {
     final (:repository, :store) = await pumpApp(tester);
     await tester.tap(find.byIcon(Icons.person_rounded).first);
     await advance(tester);
+    await unfoldSettings(tester);
     await tapInView(tester, find.text(l10n.introAgain));
     await advance(tester);
     expect(find.byType(IntroPage), findsOneWidget);
@@ -499,6 +500,7 @@ void main() {
     final asked = repository.historyPermissionRequests;
     await tester.tap(find.byIcon(Icons.person_rounded).first);
     await advance(tester);
+    await unfoldSettings(tester);
     repository
       ..historyAccess = true
       ..olderDays = fixtureOlderDays();
