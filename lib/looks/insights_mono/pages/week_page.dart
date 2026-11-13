@@ -325,7 +325,12 @@ class _MonoWeekPageState extends State<MonoWeekPage> {
                       '',
                       icon: Icons.emoji_events_rounded,
                     ),
-                    onTap: () => c.push(MonoDayPage(date: day(bestDay))),
+                    onTap: () => c.push(
+                      MonoDayPage(
+                        date: day(bestDay),
+                        backLabel: l10n.weekTitle,
+                      ),
+                    ),
                   ),
                 if (bestNight != null)
                   MonoRow(
@@ -348,7 +353,9 @@ class _MonoWeekPageState extends State<MonoWeekPage> {
                         '${weekday(record.day)} · '
                         '${record.measure.metric!.formatWithUnit(formats, record.value)}',
                     leading: const MonoScoreMark('', icon: Icons.star_rounded),
-                    onTap: () => c.push(MonoDayPage(date: record.day)),
+                    onTap: () => c.push(
+                      MonoDayPage(date: record.day, backLabel: l10n.weekTitle),
+                    ),
                   ),
               ],
             ),

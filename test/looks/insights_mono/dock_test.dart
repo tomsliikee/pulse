@@ -184,6 +184,75 @@ void main() {
     expect(_dock(tester).shrunk, isFalse);
   });
 
+  testWidgets('pulled down, the panel goes into the bar and stops there', (
+    tester,
+  ) async {
+    await pumpApp(tester, locale: const Locale('en'), store: _store());
+    Rect bar() => tester.getRect(
+      find
+          .ancestor(
+            of: find.byType(TextField),
+            matching: find.byType(MonoGlass),
+          )
+          .first,
+    );
+    final home = bar();
+    await tester.tap(find.byType(TextField));
+    await advance(tester);
+    expect(_dock(tester).searchOpen, isTrue);
+    // Grab the handle at the top of the panel and pull it down.
+    final handle = tester.getCenter(find.text('Pinned').first);
+    final gesture = await tester.startGesture(handle);
+    for (var i = 0; i < 12; i++) {
+      await gesture.moveBy(const Offset(0, 20));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    await gesture.up();
+    // From the release on, the bar only goes towards its place and never
+    // past it.
+    var gap = (bar().top - home.top).abs();
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      final now = (bar().top - home.top).abs();
+      expect(now, lessThanOrEqualTo(gap + 0.01));
+      expect(bar().top, greaterThanOrEqualTo(home.top - 0.5));
+      gap = now;
+    }
+    await advance(tester);
+    expect(_dock(tester).searchOpen, isFalse);
+    expect((bar().top - home.top).abs(), lessThan(0.5));
+    expect((bar().width - home.width).abs(), lessThan(0.5));
+  });
+
+  testWidgets('the pill follows the finger and lands on a tab', (tester) async {
+    await pumpApp(tester, locale: const Locale('en'), store: _store());
+    final tabs = find.byType(MonoTabs);
+    Rect pill() => tester.getRect(find.byKey(const ValueKey('mono-tab-pill')));
+    final start = pill();
+    final gesture = await tester.startGesture(start.center);
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.moveBy(const Offset(20, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    await gesture.moveBy(const Offset(30, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    // The pill is where the finger took it, between two tabs, and keeps
+    // its round ends.
+    final moved = pill();
+    expect(moved.center.dx - start.center.dx, closeTo(50, 2));
+    expect((moved.width - start.width).abs(), lessThan(3));
+    expect(_dock(tester).tab, 0);
+    await gesture.moveBy(const Offset(40, 0));
+    await gesture.up();
+    await advance(tester);
+    expect(_dock(tester).tab, 1);
+    final landed = pill();
+    final row = tester.getRect(tabs);
+    expect(
+      landed.left,
+      closeTo(row.left + MonoDockSize.pad + MonoDockSize.inactive, 1),
+    );
+  });
+
   testWidgets('with the setting off the dock keeps its size', (tester) async {
     await pumpApp(
       tester,
@@ -344,7 +413,14 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Set done').first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Rest'), findsOneWidget);
+    // The rest shows in the bar at the bottom and on the dashboard.
+    expect(find.text('Rest'), findsNWidgets(2));
+    expect(find.text('Skip'), findsOneWidget);
+    // The dashboard counts the set, and the open exercise is the current
+    // one; the others are folded.
+    expect(find.textContaining(RegExp(r'^1 of \d+$')), findsWidgets);
+    expect(find.text('Now'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('^Open ')), findsWidgets);
     expect(app.store.documents['training'], contains('"done":true'));
     handle.dispose();
     // Ends the rest's timer before the test is over.

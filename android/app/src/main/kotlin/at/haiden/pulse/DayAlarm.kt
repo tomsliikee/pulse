@@ -112,10 +112,7 @@ object DayAlarm {
             context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val builder = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle(title)
-            .setContentText(body)
+        val builder = Notices.text(Notices.base(context, CHANNEL), title, body)
             .setContentIntent(open)
             .setAutoCancel(true)
         if (LiveNotice.on(context, "liveDay")) LiveNotice.apply(builder, short)

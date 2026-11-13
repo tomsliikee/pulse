@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' show FontFeature, lerpDouble;
 
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/physics.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -21,16 +22,16 @@ import 'mono_dock_controller.dart';
 /// The sizes of the dock at full size and shrunk.
 abstract final class MonoDockSize {
   static const double bar = 56;
-  static const double barSmall = 48;
+  static const double barSmall = 52;
   static const double search = 48;
-  static const double searchSmall = 44;
+  static const double searchSmall = 46;
   static const double gap = 10;
   static const double margin = 28;
-  static const double marginSmall = 16;
+  static const double marginSmall = 20;
   static const double pad = 4;
-  static const double activeSmall = 66;
+  static const double activeSmall = 110;
   static const double inactive = 64;
-  static const double inactiveSmall = 56;
+  static const double inactiveSmall = 62;
 
   /// The capsule of the three tabs at full size: the open one as a pill with
   /// its label, the others as icons.
@@ -222,13 +223,26 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
     _still = monoStill(context);
   }
 
-  void _spring(AnimationController c, double target) {
+  void _spring(
+    AnimationController c,
+    double target, [
+    SpringDescription spring = monoSpring,
+  ]) {
     if (_still) {
       c.value = target;
       return;
     }
-    c.animateWith(SpringSimulation(monoSpring, c.value, target, c.velocity));
+    c.animateWith(SpringSimulation(spring, c.value, target, c.velocity));
   }
+
+  /// Where the search bar stands while closed, on the screen; kept from the
+  /// last frame for the panel to shrink into.
+  Rect _home = Rect.zero;
+
+  /// Where the open search bar stood when a pull began. The keyboard goes
+  /// down as the panel is pulled; the bar must not follow it below its place.
+  double _openBottom = 0;
+  double? _pullFrom;
 
   void _shrinkChanged() {
     if (!mounted) return;
@@ -263,12 +277,15 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
     final route = MonoSearchRoute(
       query: _query,
       onEdit: _focus.unfocus,
+      openness: _open,
+      home: () => _home,
       onDrag: _searchPulled,
       onRelease: _searchReleased,
     );
     _searchRoute = route;
+    _pullFrom = null;
     _c.searchOpen = true;
-    _spring(_open, 1);
+    _spring(_open, 1, monoSettle);
     if (!_focus.hasFocus) _focus.requestFocus();
     nav.push(route).whenComplete(_searchClosed);
     // The route does not take the focus, but make sure the field keeps it.
@@ -280,6 +297,7 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
   // The bar follows the panel as it is pulled down, back to its place.
   void _searchPulled(double share) {
     if (_still) return;
+    _pullFrom ??= _openBottom;
     _open
       ..stop()
       ..value = 1 - share;
@@ -291,7 +309,8 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
     if (closing) {
       _releaseVelocity = -velocity;
     } else {
-      _spring(_open, 1);
+      _pullFrom = null;
+      _spring(_open, 1, monoSettle);
     }
   }
 
@@ -307,7 +326,8 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
       if (_still) {
         _open.value = 0;
       } else {
-        _open.animateWith(SpringSimulation(monoSpring, _open.value, 0, v));
+        // Critically damped: the panel goes into the bar and stops there.
+        _open.animateWith(SpringSimulation(monoSettle, _open.value, 0, v));
       }
     }
   }
@@ -396,89 +416,92 @@ class _MonoDockState extends State<MonoDock> with TickerProviderStateMixin {
           final openW = width - 24;
           final searchW = lerpDouble(closedW, openW, o)!;
           final closedBottom = rowBottom + bar + MonoDockSize.gap;
-          final openBottom = keyboard > 0
+          _openBottom = keyboard > 0
               ? keyboard + 12
               : MonoDockSize.margin + safe;
-          final searchBottom = lerpDouble(closedBottom, openBottom, open)!;
+          final openBottom = _pullFrom ?? _openBottom;
+          final searchBottom = lerpDouble(closedBottom, openBottom, o)!;
           final searchLeft = lerpDouble(rowLeft, 12, o)!;
+          _home = Rect.fromLTWH(
+            rowLeft,
+            media.size.height - closedBottom - searchH,
+            closedW,
+            searchH,
+          );
 
-          // A touch on the small dock makes it big again.
-          return Listener(
-            onPointerDown: (_) {
-              if (_c.shrunk) _c.shrunk = false;
-            },
-            child: Stack(
-              children: [
-                // The bar of the tabs, which steps away while the search is
-                // open.
+          return Stack(
+            children: [
+              // The bar of the tabs, which steps away while the search is
+              // open.
+              Positioned(
+                left: rowLeft,
+                width: rowW,
+                bottom: rowBottom - o * 40,
+                height: bar,
+                child: IgnorePointer(
+                  ignoring: o > 0.05 || hide > 0.5,
+                  child: Opacity(
+                    opacity: (1 - o * 1.4).clamp(0.0, 1.0),
+                    child: _Row(
+                      small: s,
+                      height: bar,
+                      tabs: [
+                        MonoTab(
+                          const Icon(Icons.insights_rounded),
+                          l10n.monoInsights,
+                        ),
+                        MonoTab(
+                          const Icon(Icons.fitness_center_rounded),
+                          l10n.navTraining,
+                        ),
+                        MonoTab(const MonoLongevityIcon(), l10n.monoLongevity),
+                      ],
+                      selected: _c.tab,
+                      onSelected: _selectTab,
+                      // A touch on the small dock makes it big again, once
+                      // the finger is off: the bar keeps its size under it.
+                      onReleased: () {
+                        if (_c.shrunk) _c.shrunk = false;
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              if (live && o < 1)
                 Positioned(
-                  left: rowLeft,
-                  width: rowW,
-                  bottom: rowBottom - o * 40,
-                  height: bar,
+                  left: rowLeft + closedW + MonoDockSize.gap,
+                  width: closedW,
+                  bottom: closedBottom,
+                  height: searchH,
                   child: IgnorePointer(
                     ignoring: o > 0.05 || hide > 0.5,
                     child: Opacity(
-                      opacity: (1 - o * 1.4).clamp(0.0, 1.0),
-                      child: _Row(
-                        small: s,
-                        height: bar,
-                        tabs: [
-                          MonoTab(
-                            const Icon(Icons.insights_rounded),
-                            l10n.monoInsights,
-                          ),
-                          MonoTab(
-                            const Icon(Icons.fitness_center_rounded),
-                            l10n.navTraining,
-                          ),
-                          MonoTab(
-                            const MonoLongevityIcon(),
-                            l10n.monoLongevity,
-                          ),
-                        ],
-                        selected: _c.tab,
-                        onSelected: _selectTab,
-                      ),
+                      opacity: (1 - o * 2).clamp(0.0, 1.0),
+                      child: _LivePill(height: searchH, onTap: _openLive),
                     ),
                   ),
                 ),
-                if (live && o < 1)
-                  Positioned(
-                    left: rowLeft + closedW + MonoDockSize.gap,
-                    width: closedW,
-                    bottom: closedBottom,
+              Positioned(
+                left: searchLeft,
+                width: searchW,
+                bottom: searchBottom,
+                height: searchH,
+                child: IgnorePointer(
+                  ignoring: hide > 0.5,
+                  child: _SearchBar(
+                    text: _text,
+                    focus: _focus,
                     height: searchH,
-                    child: IgnorePointer(
-                      ignoring: o > 0.05 || hide > 0.5,
-                      child: Opacity(
-                        opacity: (1 - o * 2).clamp(0.0, 1.0),
-                        child: _LivePill(height: searchH, onTap: _openLive),
-                      ),
-                    ),
-                  ),
-                Positioned(
-                  left: searchLeft,
-                  width: searchW,
-                  bottom: searchBottom,
-                  height: searchH,
-                  child: IgnorePointer(
-                    ignoring: hide > 0.5,
-                    child: _SearchBar(
-                      text: _text,
-                      focus: _focus,
-                      height: searchH,
-                      open: _c.searchOpen,
-                      hint: l10n.monoSearch,
-                      clearLabel: l10n.close,
-                      tokens: t,
-                      onChanged: (v) => _query.value = v,
-                      onClose: _closeSearch,
-                    ),
+                    open: _c.searchOpen,
+                    hint: l10n.monoSearch,
+                    clearLabel: l10n.close,
+                    tokens: t,
+                    onChanged: (v) => _query.value = v,
+                    onClose: _closeSearch,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           );
         },
       ),
@@ -573,6 +596,7 @@ class _Row extends StatelessWidget {
     required this.tabs,
     required this.selected,
     required this.onSelected,
+    this.onReleased,
   });
 
   final double small;
@@ -580,6 +604,7 @@ class _Row extends StatelessWidget {
   final List<MonoTab> tabs;
   final int selected;
   final ValueChanged<int> onSelected;
+  final VoidCallback? onReleased;
 
   @override
   Widget build(BuildContext context) {
@@ -600,6 +625,7 @@ class _Row extends StatelessWidget {
           tabs: tabs,
           selected: selected,
           onSelected: onSelected,
+          onReleased: onReleased,
           small: small,
           height: height,
         ),
@@ -609,8 +635,9 @@ class _Row extends StatelessWidget {
 }
 
 /// The three tabs: the open one a solid pill with icon and label, the
-/// others icons; shrunk, the pill keeps only its icon. A finger can slide
-/// along it; the pill lifts while it is held and follows the finger.
+/// others icons; shrunk, the pill keeps only its icon. One pill slides
+/// under the icons: a finger held on the bar carries it, and on release it
+/// lands on the nearest tab.
 class MonoTabs extends StatefulWidget {
   const MonoTabs({
     super.key,
@@ -619,6 +646,7 @@ class MonoTabs extends StatefulWidget {
     required this.onSelected,
     this.small = 0,
     this.height = MonoDockSize.bar,
+    this.onReleased,
   });
 
   final List<MonoTab> tabs;
@@ -627,16 +655,32 @@ class MonoTabs extends StatefulWidget {
   final double small;
   final double height;
 
+  /// Called when a finger leaves the bar, after a tap or a slide.
+  final VoidCallback? onReleased;
+
   @override
   State<MonoTabs> createState() => _MonoTabsState();
 }
 
-class _MonoTabsState extends State<MonoTabs>
-    with SingleTickerProviderStateMixin {
+class _MonoTabsState extends State<MonoTabs> with TickerProviderStateMixin {
   late final AnimationController _lift = AnimationController.unbounded(
     vsync: this,
   );
-  int? _under;
+
+  /// Where the pill stands, as a tab index that may fall between two.
+  late final AnimationController _at = AnimationController.unbounded(
+    vsync: this,
+    value: widget.selected.toDouble(),
+  );
+
+  bool _dragging = false;
+
+  /// Where the finger came down, and where the pill stood then: a slide
+  /// moves the pill by as much as the finger moved.
+  double _grab = 0;
+  double _grabAt = 0;
+
+  int get _last => widget.tabs.length - 1;
 
   double get _inactive => lerpDouble(
     MonoDockSize.inactive,
@@ -644,96 +688,163 @@ class _MonoTabsState extends State<MonoTabs>
     widget.small,
   )!;
 
+  bool get _still => monoStill(context);
+
   void _hold(bool on) {
-    if (monoStill(context)) {
+    if (_still) {
       _lift.value = 0;
       return;
     }
     _lift.animateWith(
-      SpringSimulation(monoSpring, _lift.value, on ? 1 : 0, _lift.velocity),
+      SpringSimulation(monoSettle, _lift.value, on ? 1 : 0, _lift.velocity),
     );
   }
 
+  void _settle(double target, [double velocity = 0]) {
+    if (_still) {
+      _at.value = target;
+      return;
+    }
+    _at.animateWith(SpringSimulation(monoSettle, _at.value, target, velocity));
+  }
+
+  @override
+  void didUpdateWidget(MonoTabs old) {
+    super.didUpdateWidget(old);
+    if (old.selected != widget.selected && !_dragging) {
+      _settle(widget.selected.toDouble());
+    }
+  }
+
+  /// The tab under [x] as the bar stands now.
   int _indexAt(double x, double width) {
-    final shown = _under ?? widget.selected;
     final inactive = _inactive;
-    final active =
-        width - MonoDockSize.pad * 2 - inactive * (widget.tabs.length - 1);
+    final active = width - MonoDockSize.pad * 2 - inactive * _last;
     var left = MonoDockSize.pad;
     for (var i = 0; i < widget.tabs.length; i++) {
-      final w = i == shown ? active : inactive;
+      final w = lerpDouble(inactive, active, _weight(i))!;
       if (x < left + w) return i;
       left += w;
     }
-    return widget.tabs.length - 1;
+    return _last;
   }
 
-  void _slide(double x, double width) {
-    final i = _indexAt(x, width);
-    if (i == (_under ?? widget.selected)) return;
-    Haptics.selection();
-    setState(() => _under = i);
+  /// How much of the pill is over tab [i]: 1 under it, 0 one tab away.
+  double _weight(int i) => (1 - (_at.value - i).abs()).clamp(0.0, 1.0);
+
+  int _shownIndex() => _at.value.round().clamp(0, _last);
+
+  void _down(double x, double width) {
+    _at.stop();
+    _hold(true);
+    _grab = x;
+    _grabAt = _at.value;
   }
 
-  void _release() {
-    final chosen = _under;
-    setState(() => _under = null);
+  void _move(double x) {
+    _dragging = true;
+    final before = _shownIndex();
+    _at.value = (_grabAt + (x - _grab) / _inactive).clamp(0.0, _last * 1.0);
+    if (_shownIndex() != before) Haptics.selection();
+  }
+
+  void _end(double velocity) {
+    final v = velocity / _inactive;
+    // A flick carries the pill on by a little.
+    final aim = (_at.value + v * 0.08).round().clamp(0, _last);
+    _dragging = false;
     _hold(false);
-    if (chosen != null) widget.onSelected(chosen);
+    _settle(aim.toDouble(), v);
+    widget.onReleased?.call();
+    if (aim != widget.selected) widget.onSelected(aim);
+  }
+
+  void _tap(int i) {
+    _dragging = false;
+    _hold(false);
+    _settle(i.toDouble());
+    widget.onReleased?.call();
+    if (i != widget.selected) {
+      Haptics.selection();
+      widget.onSelected(i);
+    }
   }
 
   @override
   void dispose() {
     _lift.dispose();
+    _at.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final t = MonoTokens.of(context);
-    final shown = _under ?? widget.selected;
     final slot = widget.height - MonoDockSize.pad * 2;
+    final label = (1 - widget.small * 1.6).clamp(0.0, 1.0);
+    final icon = lerpDouble(22, 24, widget.small.clamp(0.0, 1.0))!;
     return LayoutBuilder(
       builder: (context, box) {
         final width = box.maxWidth;
         final inactive = _inactive;
-        final active =
-            width - MonoDockSize.pad * 2 - inactive * (widget.tabs.length - 1);
+        final active = width - MonoDockSize.pad * 2 - inactive * _last;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: (d) {
-            _hold(true);
-            _slide(d.localPosition.dx, width);
-          },
-          onTapUp: (_) => _release(),
+          // The slide counts from where the finger came down.
+          dragStartBehavior: DragStartBehavior.down,
+          onTapDown: (d) => _down(d.localPosition.dx, width),
+          onTapUp: (d) => _tap(_indexAt(d.localPosition.dx, width)),
           onTapCancel: () {
-            if (_under == null) _hold(false);
+            if (!_dragging) _hold(false);
           },
-          onHorizontalDragStart: (d) {
-            _hold(true);
-            _slide(d.localPosition.dx, width);
-          },
-          onHorizontalDragUpdate: (d) => _slide(d.localPosition.dx, width),
-          onHorizontalDragEnd: (_) => _release(),
-          onHorizontalDragCancel: _release,
-          child: AnimatedBuilder(
-            animation: _lift,
-            builder: (context, _) {
-              final lift = _lift.value;
-              return MonoGlass(
-                backdrop: false,
-                radius: widget.height / 2,
-                lift: lift.clamp(0.0, 1.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(MonoDockSize.pad),
-                  // The slots follow a change of size a moment later; for
-                  // that moment they may be wider than the capsule.
-                  child: ClipRect(
-                    child: OverflowBox(
-                      alignment: AlignmentDirectional.centerStart,
-                      maxWidth: double.infinity,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+          onHorizontalDragStart: (d) => _down(d.localPosition.dx, width),
+          onHorizontalDragUpdate: (d) => _move(d.localPosition.dx),
+          onHorizontalDragEnd: (d) => _end(d.primaryVelocity ?? 0),
+          onHorizontalDragCancel: () => _end(0),
+          child: MonoGlass(
+            backdrop: false,
+            radius: widget.height / 2,
+            child: Padding(
+              padding: const EdgeInsets.all(MonoDockSize.pad),
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_at, _lift]),
+                builder: (context, _) {
+                  final lift = _lift.value.clamp(0.0, 1.0);
+                  // The pill keeps its width and slides; the tabs make room
+                  // for it as it passes, so their widths always add up.
+                  final pillLeft = _at.value.clamp(0.0, _last * 1.0) * inactive;
+                  final grow = 1 + lift * 0.04;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        left: pillLeft,
+                        top: 0,
+                        width: active,
+                        height: slot,
+                        child: Transform.scale(
+                          scale: grow,
+                          child: DecoratedBox(
+                            key: const ValueKey('mono-tab-pill'),
+                            decoration: BoxDecoration(
+                              color: t.solid,
+                              borderRadius: BorderRadius.circular(slot / 2),
+                              boxShadow: lift > 0.01
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2 * lift,
+                                        ),
+                                        blurRadius: 16 * lift,
+                                        offset: Offset(0, 4 * lift),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Row(
                         children: [
                           for (var i = 0; i < widget.tabs.length; i++)
                             Semantics(
@@ -744,26 +855,26 @@ class _MonoTabsState extends State<MonoTabs>
                               child: ExcludeSemantics(
                                 child: _Slot(
                                   tab: widget.tabs[i],
-                                  chosen: i == shown,
-                                  active: active,
-                                  inactive: inactive,
+                                  on: _weight(i),
+                                  width: lerpDouble(
+                                    inactive,
+                                    active,
+                                    _weight(i),
+                                  )!,
                                   height: slot,
-                                  label: (1 - widget.small * 1.6).clamp(
-                                    0.0,
-                                    1.0,
-                                  ),
-                                  lift: i == shown ? lift : 0,
+                                  label: label,
+                                  icon: icon,
                                   tokens: t,
                                 ),
                               ),
                             ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-              );
-            },
+                    ],
+                  );
+                },
+              ),
+            ),
           ),
         );
       },
@@ -774,88 +885,63 @@ class _MonoTabsState extends State<MonoTabs>
 class _Slot extends StatelessWidget {
   const _Slot({
     required this.tab,
-    required this.chosen,
-    required this.active,
-    required this.inactive,
+    required this.on,
+    required this.width,
     required this.height,
     required this.label,
-    required this.lift,
+    required this.icon,
     required this.tokens,
   });
 
   final MonoTab tab;
-  final bool chosen;
 
-  /// The widths of the open tab and of the others. They follow the size of
-  /// the dock at once; only a change of tab is animated.
-  final double active;
-  final double inactive;
+  /// How much of the pill is under this tab, 0 to 1.
+  final double on;
+  final double width;
   final double height;
 
   /// How much of the label shows: none once shrunk.
   final double label;
-  final double lift;
+  final double icon;
   final MonoTokens tokens;
 
   @override
   Widget build(BuildContext context) {
     final t = tokens;
-    return TweenAnimationBuilder<double>(
-      tween: Tween(end: chosen ? 1 : 0),
-      duration: monoStill(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 420),
-      curve: Curves.easeOutBack,
-      builder: (context, c, _) {
-        final on = c.clamp(0.0, 1.0);
-        final color = Color.lerp(t.ink2, t.onSolid, on)!;
-        final shown = label * on;
-        return Container(
-          width: math.max(0, lerpDouble(inactive, active, c)!),
-          height: height,
-          transformAlignment: Alignment.center,
-          transform: Matrix4.diagonal3Values(1 + lift * 0.1, 1 + lift * 0.1, 1),
-          decoration: BoxDecoration(
-            color: t.solid.withValues(alpha: t.solid.a * on),
-            borderRadius: BorderRadius.circular(height / 2),
-            boxShadow: chosen && lift > 0.01
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.22 * lift),
-                      blurRadius: 18 * lift,
-                      offset: Offset(0, 6 * lift),
-                    ),
-                  ]
-                : null,
-          ),
-          child: ClipRect(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconTheme.merge(
-                  data: IconThemeData(size: 22, color: color),
-                  child: tab.icon,
-                ),
-                if (shown > 0.01) ...[
-                  SizedBox(width: 7 * shown),
-                  Flexible(
-                    child: Opacity(
-                      opacity: shown,
-                      child: Text(
-                        tab.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        softWrap: false,
-                        style: MonoType.inter(14, 18, FontWeight.w600, color),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+    final color = Color.lerp(t.ink2, t.onSolid, on)!;
+    // Only the tab the pill mostly covers shows its label, so two never
+    // stand on the pill at once.
+    final shown = label * ((on - 0.5) * 2).clamp(0.0, 1.0);
+    return SizedBox(
+      width: math.max(0, width),
+      height: height,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(height / 2),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconTheme.merge(
+              data: IconThemeData(size: icon, color: color),
+              child: tab.icon,
             ),
-          ),
-        );
-      },
+            if (shown > 0.01) ...[
+              SizedBox(width: 7 * shown),
+              Flexible(
+                child: Opacity(
+                  opacity: shown,
+                  child: Text(
+                    tab.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    softWrap: false,
+                    style: MonoType.inter(14, 18, FontWeight.w600, color),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

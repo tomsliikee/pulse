@@ -153,11 +153,7 @@ object SupplementAlarm {
             context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val builder = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+        val builder = Notices.text(Notices.base(context, CHANNEL), title, body)
             .setContentIntent(open)
             .setAutoCancel(true)
         if (LiveNotice.on(context, "liveSupplements")) {

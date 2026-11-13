@@ -1608,7 +1608,7 @@
   "morningTileAllDayNote": "Die Kachel „Guten Morgen“ den ganzen Tag auf Heute zeigen, nicht nur drei Stunden nach dem Aufstehen.",
   "morningSyncing": "Deine Nacht wird geladen …",
   "morningNoticePlain": "Dein Morgen wartet. Tippen zum Öffnen.",
-  "morningNoticeBody": "{duration} geschlafen · Schlaf-Score {score}",
+  "morningNoticeBody": "Du hast {duration} geschlafen. Schlaf-Score {score}.",
   "@morningNoticeBody": {
     "placeholders": {
       "duration": {
@@ -1967,7 +1967,7 @@
   "weekNewer": "Woche danach",
   "weekSwitchNote": "Am Sonntagabend eine Kachel auf Heute und eine Benachrichtigung mit dem Rückblick auf die Woche.",
   "weekLatest": "Letzter Wochenbericht",
-  "weekNoticeTitle": "Dein Wochenbericht",
+  "weekNoticeTitle": "Woche",
   "weekNoticePlain": "Der Rückblick auf deine Woche ist da.",
   "weekNoticeScore": "Wochenwert {score}.",
   "@weekNoticeScore": {
@@ -1992,7 +1992,7 @@
     }
   },
   "dayNoticeSwitchNote": "Um 21 Uhr eine Benachrichtigung mit dem Wert des Tages.",
-  "dayNoticeTitle": "Dein Tag",
+  "dayNoticeTitle": "Tag",
   "dayNoticePlain": "Der Rückblick auf deinen Tag ist da.",
   "dayNoticeScore": "Tageswert {score}.",
   "@dayNoticeScore": {
@@ -2546,5 +2546,28 @@
   "trainingCopyName": "{name} (Kopie)",
   "@trainingCopyName": {"placeholders": {"name": {"type": "String"}}},
   "trainingOpenSession": "Training öffnen",
-  "trainingLoggedHint": "Mit den Gewichten vom letzten Mal eingetragen. Passe an, was anders war."
+  "trainingLoggedHint": "Mit den Gewichten vom letzten Mal eingetragen. Passe an, was anders war.",
+  "trainingNow": "Jetzt",
+  "trainingNextSet": "Nächster Satz {set}",
+  "@trainingNextSet": {"placeholders": {"set": {"type": "String"}}},
+  "trainingAllSetsDone": "Alle Sätze erledigt",
+  "trainingSetsOf": "{done} von {total}",
+  "@trainingSetsOf": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+  "trainingLastSession": "Letztes Mal {volume} kg in {time}",
+  "@trainingLastSession": {"placeholders": {"volume": {"type": "String"}, "time": {"type": "String"}}},
+  "trainingAboveLast": "+{kg} kg über dem letzten Mal",
+  "@trainingAboveLast": {"placeholders": {"kg": {"type": "String"}}},
+  "trainingShareOfLast": "{percent} % vom letzten Mal",
+  "@trainingShareOfLast": {"placeholders": {"percent": {"type": "int"}}},
+  "trainingOpenExercise": "{name} öffnen",
+  "@trainingOpenExercise": {"placeholders": {"name": {"type": "String"}}},
+  "dayStepsByHour": "Schritte pro Stunde",
+  "dayScoreAverage": "Tagesscore im Schnitt",
+  "dayRangeNote": "Die Balken enden heute; der gewählte Tag ist hervorgehoben.",
+  "dayNoticeStrong": "Ein starker Tag. Tageswert {score}.",
+  "@dayNoticeStrong": {"placeholders": {"score": {"type": "int"}}},
+  "dayNoticeSolid": "Ein solider Tag. Tageswert {score}.",
+  "@dayNoticeSolid": {"placeholders": {"score": {"type": "int"}}},
+  "dayNoticeCalm": "Ein ruhiger Tag. Tageswert {score}.",
+  "@dayNoticeCalm": {"placeholders": {"score": {"type": "int"}}}
 }

@@ -30,12 +30,12 @@ void main() {
 
     test('it tells the score in the chosen language', () {
       final german = alarm(const {'dayNotice': true, 'language': 'de'})!;
-      expect(german.title, 'Dein Tag');
-      expect(german.body, startsWith('Tageswert '));
+      expect(german.title, 'Tag');
+      expect(german.body, contains('Tageswert '));
       expect(german.short, isNotNull);
       expect(german.day, dayKey(now));
       final english = alarm(const {'dayNotice': true})!;
-      expect(english.body, startsWith('Day score '));
+      expect(english.body, contains('Day score '));
     });
 
     test('it says only that the day is ready when nothing is known', () {

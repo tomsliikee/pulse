@@ -176,19 +176,7 @@ class _MonoNightPageState extends State<MonoNightPage> {
               Row(
                 children: [
                   if (!c.simple) ...[
-                    Container(
-                      width: 72,
-                      height: 72,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: t.solid,
-                      ),
-                      child: Text(
-                        '${score.total}',
-                        style: MonoType.number(t).copyWith(color: t.onSolid),
-                      ),
-                    ),
+                    MonoScoreDot(value: score.total, size: 72),
                     const SizedBox(width: 18),
                   ],
                   Expanded(

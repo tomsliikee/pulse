@@ -156,7 +156,8 @@ class MonoDayListPage extends StatelessWidget {
                   ? null
                   : Metric.steps.formatWithUnit(c.formats, steps),
               leading: MonoScoreMark(score == null ? '–' : '$score'),
-              onTap: () => c.push(MonoDayPage(date: day)),
+              onTap: () =>
+                  c.push(MonoDayPage(date: day, backLabel: c.l10n.allDays)),
             );
           },
         );

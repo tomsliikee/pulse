@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+import 'dart:ui' show lerpDouble;
+
 import 'package:flutter/physics.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -32,9 +35,19 @@ class MonoSearchRoute extends PopupRoute<void> with MonoDockKeeps {
   MonoSearchRoute({
     required this.query,
     required this.onEdit,
+    required this.openness,
+    required this.home,
     this.onDrag,
     this.onRelease,
   });
+
+  /// How open the search bar of the dock is, 0 in its place to 1 open. The
+  /// panel takes its shape from it, so the two move as one.
+  final Animation<double> openness;
+
+  /// Where the search bar stands in the dock while closed, on the screen:
+  /// the place the panel shrinks into.
+  final Rect Function() home;
 
   /// How far the panel is pulled down, 0 to 1, for the search bar to follow
   /// it back towards its place in the dock.
@@ -67,7 +80,8 @@ class MonoSearchRoute extends PopupRoute<void> with MonoDockKeeps {
   Duration get transitionDuration => const Duration(milliseconds: 550);
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 220);
+  // Long enough for the panel to reach the bar before the route goes.
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 360);
 
   @override
   Widget buildPage(
@@ -77,6 +91,8 @@ class MonoSearchRoute extends PopupRoute<void> with MonoDockKeeps {
   ) => _Panel(
     query: query,
     animation: animation,
+    openness: openness,
+    home: home,
     onDrag: onEdit,
     onPull: onDrag,
     onRelease: onRelease,
@@ -87,6 +103,8 @@ class _Panel extends StatefulWidget {
   const _Panel({
     required this.query,
     required this.animation,
+    required this.openness,
+    required this.home,
     required this.onDrag,
     this.onPull,
     this.onRelease,
@@ -94,6 +112,8 @@ class _Panel extends StatefulWidget {
 
   final ValueNotifier<String> query;
   final Animation<double> animation;
+  final Animation<double> openness;
+  final Rect Function() home;
   final VoidCallback onDrag;
   final ValueChanged<double>? onPull;
   final void Function(bool closing, double velocity)? onRelease;
@@ -112,8 +132,9 @@ class _PanelState extends State<_Panel> with SingleTickerProviderStateMixin {
   )..addListener(_pulled);
   double get _drag => _pull.value;
 
-  /// The pull at which the bar is back in its place.
-  static const double _reach = 320;
+  /// The pull at which the panel is back in the bar: as far as its top
+  /// edge goes, so the edge stays under the finger.
+  double _reach = 320;
 
   void _pulled() {
     widget.onPull?.call((_drag / _reach).clamp(0.0, 1.0));
@@ -132,8 +153,14 @@ class _PanelState extends State<_Panel> with SingleTickerProviderStateMixin {
 
   bool _closing = false;
 
+  /// The open shape when a pull began; the keyboard going down must not
+  /// stretch the panel while it shrinks into the bar.
+  Rect? _pullFrom;
+  Rect _openNow = Rect.zero;
+
   void _dragBy(double dy) {
     if (_closing) return;
+    _pullFrom ??= _openNow;
     widget.onDrag();
     _pull.value = (_drag + dy).clamp(0.0, 600.0);
   }
@@ -150,8 +177,9 @@ class _PanelState extends State<_Panel> with SingleTickerProviderStateMixin {
       if (monoStill(context)) {
         _pull.value = 0;
       } else {
-        _pull.animateWith(SpringSimulation(monoSpring, _drag, 0, velocity));
+        _pull.animateWith(SpringSimulation(monoSettle, _drag, 0, velocity));
       }
+      _pullFrom = null;
     }
   }
 
@@ -159,66 +187,72 @@ class _PanelState extends State<_Panel> with SingleTickerProviderStateMixin {
   Widget build(BuildContext context) {
     final c = MonoCtx.of(context);
     final t = c.t;
-    final still = monoStill(context);
     final media = MediaQuery.of(context);
-    final top = media.padding.top + 52;
-    final bottom = MonoDockSize.openBarTop(context) + 10;
-    final curve = still
-        ? widget.animation
-        : CurvedAnimation(
-            parent: widget.animation,
-            curve: Curves.easeOutBack,
-            reverseCurve: Curves.easeInCubic,
-          );
-    return Stack(
-      children: [
-        Positioned(
-          left: 12,
-          right: 12,
-          top: top,
-          bottom: bottom,
-          child: AnimatedBuilder(
-            animation: Listenable.merge([curve, _pull]),
-            builder: (context, child) {
-              final p = curve.value;
-              // The glass comes in quickly and with its blur from the first
-              // frame: no fading layer over it, only its fill and the
-              // content fade.
-              final fade = still
-                  ? 1.0
-                  : Curves.easeOut.transform(
-                      (widget.animation.value / 0.35).clamp(0.0, 1.0),
-                    );
-              // Pulled down, the panel fades as the bar goes home.
-              final pulled = 1 - (_drag / (_reach * 1.4)).clamp(0.0, 1.0);
-              return Transform.translate(
-                offset: Offset(0, (1 - p) * 30 + _drag),
-                child: Transform.scale(
-                  scale: 0.92 + 0.08 * p,
-                  alignment: Alignment.bottomCenter,
-                  child: MonoGlass(
-                    radius: 30,
-                    shadow: false,
-                    opacity: fade * pulled,
-                    child: Opacity(opacity: fade * pulled, child: child),
+    final size = media.size;
+    _openNow = Rect.fromLTRB(
+      12,
+      media.padding.top + 52,
+      size.width - 12,
+      size.height - MonoDockSize.openBarTop(context) - 10,
+    );
+    final open = _pullFrom ?? _openNow;
+    final content = ValueListenableBuilder<String>(
+      valueListenable: widget.query,
+      builder: (context, q, _) => _Content(
+        c: c,
+        tokens: t,
+        query: q,
+        items: q.trim().isEmpty ? _pinnable(c) : _index(c),
+        onDrag: _dragBy,
+        onDragEnd: _dragEnd,
+      ),
+    );
+    return AnimatedBuilder(
+      animation: widget.openness,
+      child: content,
+      builder: (context, child) {
+        final home = widget.home();
+        _reach = math.max(200, home.top - open.top);
+        // One shape: open it is the panel, closed it is the search bar of
+        // the dock, which is drawn over it and takes over as they meet.
+        final o = widget.openness.value.clamp(0.0, 1.0);
+        final rect = Rect.lerp(home, open, o)!;
+        final radius = lerpDouble(home.height / 2, 30, o)!;
+        // The content goes first, the glass only at the end, so nothing
+        // lies under the bar once it is home.
+        final shown = Curves.easeOut.transform(
+          ((o - 0.55) / 0.45).clamp(0.0, 1.0),
+        );
+        final glass = (o / 0.18).clamp(0.0, 1.0);
+        return Stack(
+          children: [
+            Positioned.fromRect(
+              rect: rect,
+              child: MonoGlass(
+                radius: radius,
+                shadow: false,
+                opacity: glass,
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.topCenter,
+                    minWidth: open.width,
+                    maxWidth: open.width,
+                    minHeight: open.height,
+                    maxHeight: open.height,
+                    child: Opacity(
+                      opacity: shown,
+                      child: IgnorePointer(
+                        ignoring: _closing || o < 0.5,
+                        child: child,
+                      ),
+                    ),
                   ),
                 ),
-              );
-            },
-            child: ValueListenableBuilder<String>(
-              valueListenable: widget.query,
-              builder: (context, q, _) => _Content(
-                c: c,
-                tokens: t,
-                query: q,
-                items: q.trim().isEmpty ? _pinnable(c) : _index(c),
-                onDrag: _dragBy,
-                onDragEnd: _dragEnd,
               ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -621,7 +655,7 @@ Widget? _pageOf(MonoCtx c, SearchItem item) {
       return SupplementDetailPage(supplementKey: item.id);
     case SearchKind.day:
       final day = DateTime.tryParse(item.id);
-      return day == null ? null : MonoDayPage(date: day);
+      return day == null ? null : MonoDayPage(date: day, backLabel: back);
     case SearchKind.setting:
       final setting = SearchSetting.values.byName(item.id);
       return switch (setting) {

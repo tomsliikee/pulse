@@ -48,7 +48,13 @@ DayAlarm? dayAlarmFor({
   ).total;
   return (
     title: l10n.dayNoticeTitle,
-    body: score == null ? l10n.dayNoticePlain : l10n.dayNoticeScore(score),
+    // One sentence, as on the cards of the app.
+    body: switch (score) {
+      null => l10n.dayNoticePlain,
+      >= 80 => l10n.dayNoticeStrong(score),
+      >= 50 => l10n.dayNoticeSolid(score),
+      _ => l10n.dayNoticeCalm(score),
+    },
     plain: l10n.dayNoticePlain,
     day: dayKey(today),
     short: score?.toString(),

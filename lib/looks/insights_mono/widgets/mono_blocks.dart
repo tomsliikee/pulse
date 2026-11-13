@@ -293,3 +293,50 @@ class MonoSentences extends StatelessWidget {
     );
   }
 }
+
+/// A score in a filled circle with its label below: the recovery on its
+/// colour, other scores on the solid ink.
+class MonoScoreDot extends StatelessWidget {
+  const MonoScoreDot({
+    super.key,
+    required this.value,
+    this.label,
+    this.accent = false,
+    this.size = 76,
+  });
+
+  final int? value;
+  final String? label;
+  final bool accent;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = MonoTokens.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: accent ? t.recovery : t.solid,
+          ),
+          child: Text(
+            value == null ? '–' : '$value',
+            style: MonoType.number(
+              t,
+              size: size * 0.37,
+            ).copyWith(color: accent ? t.bg : t.onSolid),
+          ),
+        ),
+        if (label != null) ...[
+          const SizedBox(height: 8),
+          Text(label!, style: MonoType.label(t)),
+        ],
+      ],
+    );
+  }
+}

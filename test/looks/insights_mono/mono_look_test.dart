@@ -22,6 +22,7 @@ import 'package:pulse/looks/insights_mono/pages/week_page.dart';
 import 'package:pulse/looks/insights_mono/pages/longevity_page.dart';
 import 'package:pulse/looks/insights_mono/shell/mono_dock.dart';
 import 'package:pulse/looks/insights_mono/shell/mono_shell.dart';
+import 'package:pulse/looks/insights_mono/widgets/mono_charts.dart';
 import 'package:pulse/looks/insights_mono/widgets/mono_controls.dart';
 import 'package:pulse/looks/insights_mono/widgets/mono_page.dart';
 import 'package:pulse/looks/insights_mono/theme/mono_tokens.dart';
@@ -263,6 +264,43 @@ void main() {
           .offstage,
       isFalse,
     );
+  });
+
+  testWidgets('the day page shows the week and the month like sleep', (
+    tester,
+  ) async {
+    await pumpApp(
+      tester,
+      size: _tall,
+      locale: const Locale('en'),
+      store: _store(),
+    );
+    final navigator = tester.state<NavigatorState>(
+      find.byType(Navigator).first,
+    );
+    final today = DateTime(2026, 10, 6);
+    navigator.push(
+      PageRouteBuilder<void>(
+        pageBuilder: (_, _, _) => MonoDayPage(date: today, backLabel: 'Week'),
+      ),
+    );
+    await advance(tester);
+    expect(find.text('Steps per hour'), findsOneWidget);
+    for (final (label, days) in [('W', 7), ('M', 30)]) {
+      await tester.tap(
+        find.descendant(
+          of: find.byType(MonoSegmented).first,
+          matching: find.text(label),
+        ),
+      );
+      await advance(tester);
+      expect(find.text('Average day score'), findsOneWidget);
+      expect(
+        tester.widget<MonoBars>(find.byType(MonoBars).first).values,
+        hasLength(days),
+      );
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('the thumb of a slider can be dragged to the other side', (

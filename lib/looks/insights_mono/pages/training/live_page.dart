@@ -12,7 +12,9 @@ import '../../data/mono_data.dart';
 import '../../shell/mono_dock_controller.dart';
 import '../../theme/mono_tokens.dart';
 import '../../theme/mono_type.dart';
+import '../../widgets/mono_blocks.dart';
 import '../../widgets/mono_card.dart';
+import '../../widgets/mono_charts.dart';
 import '../../widgets/mono_floating_bar.dart';
 import '../../widgets/mono_motion.dart';
 import '../../widgets/mono_page.dart';
@@ -37,6 +39,21 @@ class MonoLivePage extends StatefulWidget {
 }
 
 class _MonoLivePageState extends State<MonoLivePage> {
+  /// The exercise opened by a tap, or none: then the current one is open.
+  int? _chosen;
+
+  /// Whether the chosen one still had sets to do when it was opened; once
+  /// they are done, the next exercise opens by itself.
+  bool _chosenOpen = false;
+
+  void _choose(int i, TrainingSession session) {
+    Haptics.selection();
+    setState(() {
+      _chosen = i;
+      _chosenOpen = _hasOpenSet(session.exercises[i]);
+    });
+  }
+
   Future<void> _finish(MonoCtx c) async {
     final training = c.scope.training;
     final session = training.active;
@@ -114,8 +131,15 @@ class _MonoLivePageState extends State<MonoLivePage> {
             ),
           );
         }
-        final done = session.countingSets.length;
         final language = l10n.localeName;
+        final current = currentExerciseOf(session);
+        if (_chosen case final chosen?) {
+          if (chosen >= session.exercises.length ||
+              _chosenOpen && !_hasOpenSet(session.exercises[chosen])) {
+            _chosen = null;
+          }
+        }
+        final open = _chosen ?? current;
         return Scaffold(
           backgroundColor: t.bg,
           resizeToAvoidBottomInset: true,
@@ -135,36 +159,47 @@ class _MonoLivePageState extends State<MonoLivePage> {
                     session.name.isEmpty ? l10n.trainingSession : session.name,
                     spec: const (32, 38, -0.02, 1.1),
                   ),
-                  const SizedBox(height: 6),
-                  // Only the clock ticks each second, not the page.
+                  const SizedBox(height: 18),
+                  // Only the dashboard ticks each second, not the page.
                   _Tick(
-                    builder: (context) => Text(
-                      [
-                        clockText(training.now.difference(session.start)),
-                        l10n.trainingSetsCount(done),
-                        if (session.volume > 0)
-                          '${c.formats.integer(session.volume.round())} kg',
-                      ].join(' · '),
-                      style: MonoType.sub(t).copyWith(
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 26),
-                  for (final (i, e) in session.exercises.indexed) ...[
-                    MonoExerciseEditor(
-                      key: ValueKey('${session.id}/$i/${e.exerciseId}'),
+                    builder: (context) => _Dashboard(
                       c: c,
-                      index: i,
-                      entry: e,
-                      count: session.exercises.length,
-                      exercise: exerciseById(
-                        e.exerciseId,
-                        training.data.customExercises,
-                      ),
+                      session: session,
+                      training: training,
+                      current: current,
                       language: language,
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 22),
+                  for (final (i, e) in session.exercises.indexed) ...[
+                    if (i == open)
+                      MonoExerciseEditor(
+                        key: ValueKey('${session.id}/$i/${e.exerciseId}'),
+                        c: c,
+                        index: i,
+                        entry: e,
+                        count: session.exercises.length,
+                        exercise: exerciseById(
+                          e.exerciseId,
+                          training.data.customExercises,
+                        ),
+                        language: language,
+                      )
+                    else
+                      _FoldedExercise(
+                        key: ValueKey('${session.id}/$i/${e.exerciseId}/f'),
+                        c: c,
+                        entry: e,
+                        current: i == current,
+                        name:
+                            exerciseById(
+                              e.exerciseId,
+                              training.data.customExercises,
+                            )?.name(language) ??
+                            e.exerciseId,
+                        onTap: () => _choose(i, session),
+                      ),
+                    SizedBox(height: i == open ? 16 : 10),
                   ],
                   MonoPrimaryButton(
                     label: l10n.trainingAddExercise,
@@ -251,6 +286,292 @@ class _MonoLivePageState extends State<MonoLivePage> {
           ),
         );
       },
+    );
+  }
+}
+
+bool _hasOpenSet(SessionExercise e) =>
+    e.sets.any((s) => !s.done && s.kind.counts);
+
+/// The exercise to do now: the first with a set still open, or none once
+/// everything is done.
+int? currentExerciseOf(TrainingSession session) {
+  for (final (i, e) in session.exercises.indexed) {
+    if (_hasOpenSet(e)) return i;
+  }
+  return null;
+}
+
+/// The last finished session of the same template, to measure against.
+TrainingSession? lastOfTemplate(
+  TrainingSession session,
+  Iterable<TrainingSession> sessions,
+) {
+  final id = session.templateId;
+  if (id == null) return null;
+  TrainingSession? last;
+  for (final s in sessions) {
+    if (s.id == session.id || !s.finished || s.templateId != id) continue;
+    if (last == null || s.start.isAfter(last.start)) last = s;
+  }
+  return last;
+}
+
+/// How many exercises of [session] beat their best so far, by estimated
+/// maximum or heaviest weight.
+int liveRecordsOf(TrainingSession session, List<TrainingSession> sessions) {
+  final before = [
+    for (final s in sessions)
+      if (s.id != session.id && s.finished) s,
+  ];
+  var n = 0;
+  for (final id in {for (final e in session.exercises) e.exerciseId}) {
+    final now = bestOf(id, [session]);
+    final best = bestOf(id, before);
+    final orm =
+        now.oneRepMax != null &&
+        best.oneRepMax != null &&
+        now.oneRepMax! > best.oneRepMax! + 0.01;
+    final heavy =
+        now.heaviest != null &&
+        best.heaviest != null &&
+        now.heaviest! > best.heaviest! + 0.01;
+    if (orm || heavy) n++;
+  }
+  return n;
+}
+
+/// The top of the live screen: the time, the sets done of all, the volume,
+/// what comes now, and how it stands against last time.
+class _Dashboard extends StatelessWidget {
+  const _Dashboard({
+    required this.c,
+    required this.session,
+    required this.training,
+    required this.current,
+    required this.language,
+  });
+
+  final MonoCtx c;
+  final TrainingSession session;
+  final TrainingController training;
+  final int? current;
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = c.t;
+    final l10n = c.l10n;
+    final f = c.formats;
+    final all = [
+      for (final e in session.exercises)
+        for (final s in e.sets)
+          if (s.kind.counts) s,
+    ];
+    final done = all.where((s) => s.done).length;
+    final volume = session.volume;
+    final elapsed = training.now.difference(session.start);
+    final rest = training.restLeft;
+    final sessions = training.data.sessions;
+    final last = lastOfTemplate(session, sessions);
+    final records = liveRecordsOf(session, sessions);
+    final tabular = const [FontFeature.tabularFigures()];
+
+    String? next;
+    String? nowName;
+    if (current case final i?) {
+      final e = session.exercises[i];
+      nowName =
+          exerciseById(
+            e.exerciseId,
+            training.data.customExercises,
+          )?.name(language) ??
+          e.exerciseId;
+      final set = e.sets.firstWhere((s) => !s.done && s.kind.counts);
+      if (set.kg != null || set.reps != null) next = setText(f, set);
+    }
+
+    return MonoSurface(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: MonoStat(
+                  label: l10n.trainingDuration,
+                  value: clockText(elapsed),
+                ),
+              ),
+              if (rest != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(l10n.trainingRest, style: MonoType.label(t)),
+                    const SizedBox(height: 2),
+                    Text(
+                      clockText(rest),
+                      style: MonoType.inter(
+                        22,
+                        28,
+                        FontWeight.w600,
+                        t.recovery,
+                      ).copyWith(fontFeatures: tabular),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          MonoTrack(
+            value: all.isEmpty ? 0 : done / all.length,
+            color: t.recovery,
+            semantics: l10n.trainingSetsOf(done, all.length),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: MonoStat(
+                  small: true,
+                  label: l10n.trainingSetsLabel,
+                  value: l10n.trainingSetsOf(done, all.length),
+                ),
+              ),
+              Expanded(
+                child: MonoStat(
+                  small: true,
+                  label: l10n.trainingVolume,
+                  value: f.integer(volume.round()),
+                  unit: 'kg',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(l10n.trainingNow, style: MonoType.label(t)),
+          const SizedBox(height: 4),
+          Text(
+            nowName ?? l10n.trainingAllSetsDone,
+            style: MonoType.inter(17, 22, FontWeight.w600, t.ink),
+          ),
+          if (next != null)
+            Text(l10n.trainingNextSet(next), style: MonoType.sub(t)),
+          if (last != null && last.volume > 0) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.trainingLastSession(
+                      f.integer(last.volume.round()),
+                      f.duration(last.duration.inMinutes),
+                    ),
+                    style: MonoType.label(t),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                volume > last.volume
+                    ? MonoDelta(
+                        l10n.trainingAboveLast(
+                          f.integer((volume - last.volume).round()),
+                        ),
+                        good: true,
+                      )
+                    : MonoDelta(
+                        l10n.trainingShareOfLast(
+                          (volume / last.volume * 100).round(),
+                        ),
+                      ),
+              ],
+            ),
+          ],
+          if (records > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.emoji_events_rounded, size: 18, color: t.recovery),
+                const SizedBox(width: 6),
+                Text(
+                  l10n.trainingRecordsCount(records),
+                  style: MonoType.inter(14, 18, FontWeight.w600, t.recovery),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// An exercise not open right now: its name and its sets done of all; a
+/// tap opens it.
+class _FoldedExercise extends StatelessWidget {
+  const _FoldedExercise({
+    super.key,
+    required this.c,
+    required this.entry,
+    required this.name,
+    required this.current,
+    required this.onTap,
+  });
+
+  final MonoCtx c;
+  final SessionExercise entry;
+  final String name;
+  final bool current;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = c.t;
+    final l10n = c.l10n;
+    final counting = entry.sets.where((s) => s.kind.counts);
+    final total = counting.length;
+    final done = counting.where((s) => s.done).length;
+    final finished = total > 0 && done == total;
+    return Semantics(
+      button: true,
+      label: l10n.trainingOpenExercise(name),
+      child: ExcludeSemantics(
+        child: MonoSurface(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          onTap: onTap,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: MonoType.inter(
+                    16,
+                    22,
+                    FontWeight.w600,
+                    finished ? t.ink2 : t.ink,
+                  ),
+                ),
+              ),
+              Text(
+                l10n.trainingSetsOf(done, total),
+                style: MonoType.label(
+                  t,
+                ).copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                finished
+                    ? Icons.check_circle_rounded
+                    : Icons.expand_more_rounded,
+                size: 20,
+                color: finished ? t.recovery : t.ink3,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

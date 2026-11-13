@@ -11,6 +11,14 @@ const SpringDescription monoSpring = SpringDescription(
   damping: 17,
 );
 
+/// The spring things land with that must not pass their place, such as a
+/// shape going into another: critically damped, so it never overshoots.
+final SpringDescription monoSettle = SpringDescription.withDampingRatio(
+  mass: 1,
+  stiffness: 420,
+  ratio: 1,
+);
+
 /// Plays once when first built: [builder] gets 0 to 1 over [duration] on
 /// `easeOutCubic`, or 1 at once when effects are off.
 class MonoDrawIn extends StatelessWidget {

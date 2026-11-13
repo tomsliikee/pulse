@@ -35,8 +35,7 @@ object TrainingNotice {
             context.packageManager.getLaunchIntentForPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val builder = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+        val builder = Notices.base(context, CHANNEL)
             .setContentTitle(title)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)

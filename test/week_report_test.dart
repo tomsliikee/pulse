@@ -254,7 +254,7 @@ void main() {
         now: now,
         language: 'en',
       )!;
-      expect(alarm.title, 'Dein Wochenbericht');
+      expect(alarm.title, 'Woche');
       expect(alarm.body, 'Wochenwert 80, 20 mehr als in der Woche davor.');
       expect(alarm.plain, 'Der Rückblick auf deine Woche ist da.');
       expect(alarm.day, dayKey(now));
@@ -303,7 +303,7 @@ void main() {
       );
       expect(await leave(null), isTrue);
       expect(await store.read(StoreKeys.weekAlarm), {
-        'title': 'Dein Wochenbericht',
+        'title': 'Woche',
         'body': 'Wochenwert 80, 20 mehr als in der Woche davor.',
         'plain': 'Der Rückblick auf deine Woche ist da.',
         'day': dayKey(now),

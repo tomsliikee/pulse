@@ -14,6 +14,7 @@ import '../widgets/mono_blocks.dart';
 import '../widgets/mono_card.dart';
 import '../widgets/mono_category.dart';
 import '../widgets/mono_charts.dart';
+import '../widgets/mono_controls.dart';
 import '../widgets/mono_page.dart';
 import 'list_pages.dart';
 import 'night_page.dart';
@@ -23,9 +24,12 @@ import 'night_page.dart';
 /// against the day and the week before, its night and workouts, and what to
 /// do next. The arrows lead to the days around it.
 class MonoDayPage extends StatefulWidget {
-  const MonoDayPage({super.key, required this.date});
+  const MonoDayPage({super.key, required this.date, this.backLabel});
 
   final DateTime date;
+
+  /// The page it was opened from; Insights when not given.
+  final String? backLabel;
 
   @override
   State<MonoDayPage> createState() => _MonoDayPageState();
@@ -33,6 +37,9 @@ class MonoDayPage extends StatefulWidget {
 
 class _MonoDayPageState extends State<MonoDayPage> {
   late DateTime _date = widget.date;
+
+  /// Day, week or month at the top, as on the sleep page.
+  int _range = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +55,7 @@ class _MonoDayPageState extends State<MonoDayPage> {
     final formats = c.formats;
     final t = c.t;
     final health = c.health;
+    final back = widget.backLabel ?? l10n.monoInsights;
     final insights = dayInsightsOf(health, c.settings, _date);
     final today = _date == health.today;
     final all = health.days;
@@ -80,12 +88,16 @@ class _MonoDayPageState extends State<MonoDayPage> {
       return MonoSubPage(
         category: MonoCategory.recovery,
         categoryLabel: l10n.dayInDetail,
-        backLabel: l10n.monoInsights,
+        backLabel: back,
         statement: l10n.noDayData,
         children: [MonoSurface(child: switcher)],
       );
     }
     final soFar = today ? stepsSoFar(health.snapshot, health.now) : null;
+    final index = health.snapshot.indexOf(_date);
+    final hours = index == null
+        ? null
+        : health.snapshot.hoursOf(Metric.steps, index);
     final steps = insights.measure(DayMeasure.steps);
     final withScore = showsDayScore(insights.day, health.now);
     final recovery = insights.recovery;
@@ -116,55 +128,71 @@ class _MonoDayPageState extends State<MonoDayPage> {
       );
     }
 
-    Widget mark(String label, int? value, {bool solid = false}) => Column(
-      children: [
-        Container(
-          width: 76,
-          height: 76,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: solid ? t.recovery : t.solid,
-          ),
-          child: Text(
-            value == null ? '–' : '$value',
-            style: MonoType.number(t, size: 28).copyWith(color: t.bg),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: MonoType.label(t)),
-      ],
-    );
-
     return MonoSubPage(
       category: MonoCategory.recovery,
       categoryLabel: l10n.dayInDetail,
       kicker: formats.longDate(_date),
-      backLabel: l10n.monoInsights,
+      backLabel: back,
       statement: dayHeadline(formats, insights, soFar: soFar),
       children: [
         MonoSurface(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              switcher,
-              const SizedBox(height: 18),
-              if (!c.simple)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    mark(l10n.recovery, recovery.total, solid: true),
-                    if (withScore) mark(l10n.dayScoreParts, score.total),
-                  ],
-                ),
-              const SizedBox(height: 18),
-              MonoStat(
-                label: Metric.steps.title(l10n),
-                value: Metric.steps.format(formats, steps?.value),
-                unit: Metric.steps.unitFor(l10n, steps?.value),
+              MonoSegmented(
+                labels: [
+                  l10n.monoRangeDay,
+                  l10n.monoRangeWeek,
+                  l10n.monoRangeMonth,
+                ],
+                selected: _range,
+                onChanged: (i) => setState(() => _range = i),
               ),
-              if (insights.streak > 1)
-                Text(l10n.streakDays(insights.streak), style: MonoType.sub(t)),
+              const SizedBox(height: 18),
+              if (_range == 0) ...[
+                switcher,
+                const SizedBox(height: 18),
+                if (!c.simple)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      MonoScoreDot(
+                        value: recovery.total,
+                        label: l10n.recovery,
+                        accent: true,
+                      ),
+                      if (withScore)
+                        MonoScoreDot(value: score.total, label: l10n.dayScore),
+                    ],
+                  ),
+                const SizedBox(height: 18),
+                MonoStat(
+                  label: Metric.steps.title(l10n),
+                  value: Metric.steps.format(formats, steps?.value),
+                  unit: Metric.steps.unitFor(l10n, steps?.value),
+                ),
+                if (insights.streak > 1)
+                  Text(
+                    l10n.streakDays(insights.streak),
+                    style: MonoType.sub(t),
+                  ),
+                if (hours != null) ...[
+                  const SizedBox(height: 20),
+                  Text(l10n.dayStepsByHour, style: MonoType.label(t)),
+                  const SizedBox(height: 10),
+                  MonoBars(
+                    values: hours,
+                    semantics: l10n.dayStepsByHour,
+                    highlight: today ? health.now.hour : null,
+                    height: 96,
+                    radius: 3,
+                    gap: 3,
+                  ),
+                  const SizedBox(height: 6),
+                  const MonoAxis(['0', '6', '12', '18', '24']),
+                ],
+              ] else
+                ..._rangeTop(c),
             ],
           ),
         ),
@@ -197,7 +225,7 @@ class _MonoDayPageState extends State<MonoDayPage> {
                     ],
                   ],
                 ),
-              Text(l10n.recoveryNote, style: MonoType.time(t)),
+              MonoNote(l10n.recoveryNote),
             ],
           ),
         ),
@@ -227,7 +255,7 @@ class _MonoDayPageState extends State<MonoDayPage> {
                       ],
                     ],
                   ),
-                Text(l10n.dayScoreNote, style: MonoType.time(t)),
+                MonoNote(l10n.dayScoreNote),
               ],
             ),
           ),
@@ -386,5 +414,59 @@ class _MonoDayPageState extends State<MonoDayPage> {
           ),
       ],
     );
+  }
+
+  /// The week or month up to today: the day score of each day, or the
+  /// steps in the calm mode, with the chosen day standing out.
+  List<Widget> _rangeTop(MonoCtx c) {
+    final l10n = c.l10n;
+    final health = c.health;
+    final n = _range == 1 ? 7 : 30;
+    final today = c.today;
+    final days = [
+      for (var back = n - 1; back >= 0; back--)
+        DateTime(today.year, today.month, today.day - back),
+    ];
+    final goals = dayGoalsOf(c.settings);
+    final values = <double?>[
+      for (final day in days)
+        c.simple
+            ? health.valueOn(Metric.steps, day)
+            : dayScore(
+                day: day,
+                valueOf: health.valueOn,
+                nights: health.nights,
+                goals: goals,
+              ).total?.toDouble(),
+    ];
+    final known = values.whereType<double>().toList();
+    final average = known.isEmpty
+        ? null
+        : known.reduce((a, b) => a + b) / known.length;
+    final chosen = days.indexWhere((d) => dayKey(d) == dayKey(_date));
+    return [
+      MonoStat(
+        label: c.simple ? l10n.averagePerDay : l10n.dayScoreAverage,
+        value: c.simple
+            ? Metric.steps.format(c.formats, average)
+            : average == null
+            ? '–'
+            : '${average.round()}',
+        unit: c.simple ? Metric.steps.unitFor(l10n, average) : null,
+      ),
+      const SizedBox(height: 22),
+      MonoBars(
+        key: ValueKey(_range),
+        values: values,
+        semantics: c.simple ? l10n.averagePerDay : l10n.dayScoreAverage,
+        highlight: chosen == -1 ? null : chosen,
+        max: c.simple ? null : 100,
+        height: 120,
+        radius: 6,
+        gap: _range == 2 ? 2 : 6,
+      ),
+      const SizedBox(height: 12),
+      MonoNote(l10n.dayRangeNote),
+    ];
   }
 }

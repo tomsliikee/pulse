@@ -272,7 +272,7 @@ void main() {
     test('greets with the night, by name where one is set', () {
       expect(notice(), (
         title: 'Guten Morgen',
-        body: '7 h 30 min geschlafen · Schlaf-Score 94',
+        body: 'Du hast 7 h 30 min geschlafen. Schlaf-Score 94.',
         short: '94',
       ));
       expect(
@@ -354,7 +354,7 @@ void main() {
       await leaveMorningNotice(store, [_night()], _at(7), 'de');
       expect(await store.read(StoreKeys.morningNotice), {
         'title': 'Guten Morgen',
-        'body': '7 h 30 min geschlafen · Schlaf-Score 94',
+        'body': 'Du hast 7 h 30 min geschlafen. Schlaf-Score 94.',
         'short': '94',
       });
       expect(await store.read(StoreKeys.morning), {'notified': dayKey(_day)});
