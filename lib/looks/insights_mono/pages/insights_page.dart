@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../data/day_insights.dart';
 import '../../../data/metric_catalog.dart';
 import '../../../data/morning.dart';
+import '../../../data/supplements.dart' show SupplementTime;
 import '../../../features/detail/metric_spec.dart';
 import '../../../features/profile/profile_page.dart';
 import '../../../features/supplements/supplement_format.dart';
@@ -22,6 +23,7 @@ import '../widgets/mono_edit_list.dart';
 import '../widgets/mono_gauge.dart';
 import '../widgets/mono_motion.dart';
 import '../widgets/mono_page.dart';
+import '../widgets/mono_supplement_chips.dart';
 import 'calories_page.dart';
 import 'category_page.dart';
 import 'day_page.dart';
@@ -55,9 +57,7 @@ enum MonoInsightCard {
 /// one small chart each. The pencil lets the cards be put in another order
 /// or hidden.
 class MonoInsightsPage extends StatefulWidget {
-  const MonoInsightsPage({super.key, required this.onOpenBrowse});
-
-  final VoidCallback onOpenBrowse;
+  const MonoInsightsPage({super.key});
 
   /// Air between two cards, and before a section.
   static const double cardGap = 28;
@@ -146,7 +146,6 @@ class _MonoInsightsPageState extends State<MonoInsightsPage> {
             if (available(card) && !hidden.contains(card.name)) card,
         ];
         return MonoPage(
-          bottomInset: 140,
           floatTitle: c.l10n.monoInsights,
           floatActions: _actions(c),
           children: [
@@ -820,125 +819,39 @@ class _SupplementsCard extends StatelessWidget {
           '${l10n.supplements}, $statement, '
           '${l10n.supplementsTakenOf(c.formats.integer(count), c.formats.integer(mine.length))}',
       onTap: () => openMonoCategory(context, MonoCategory.supplements),
-      child: Wrap(
-        spacing: 14,
-        runSpacing: 14,
-        children: [
-          for (var i = 0; i < mine.length; i++)
-            MonoSupplementButton(
-              label: mine[i].title(l10n),
-              taken: taken[i],
-              onTap: () => monoToggleSupplement(context, mine[i]),
-            ),
-        ],
-      ),
+      child: monoSupplementBoard(context, c),
     );
   }
 }
 
-/// One supplement as a round button: solid with a check that draws itself
-/// when taken.
-class MonoSupplementButton extends StatelessWidget {
-  const MonoSupplementButton({
-    super.key,
-    required this.label,
-    required this.taken,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool taken;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = MonoTokens.of(context);
-    final initials = label.characters.take(2).toString();
-    return Semantics(
-      button: true,
-      toggled: taken,
-      label: label,
-      child: ExcludeSemantics(
-        child: MonoPress(
-          onTap: onTap,
-          squash: 0.08,
-          child: SizedBox(
-            width: 62,
-            child: Column(
-              children: [
-                AnimatedContainer(
-                  duration: monoStill(context)
-                      ? Duration.zero
-                      : const Duration(milliseconds: 320),
-                  curve: Curves.easeOutBack,
-                  width: 62,
-                  height: 62,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: taken ? t.solid : t.fill,
-                  ),
-                  child: taken
-                      ? MonoDrawIn(
-                          key: const ValueKey('check'),
-                          duration: const Duration(milliseconds: 360),
-                          builder: (context, p) => CustomPaint(
-                            size: const Size(24, 24),
-                            painter: _CheckPainter(t.onSolid, p),
-                          ),
-                        )
-                      : Text(
-                          initials,
-                          style: MonoType.inter(17, 22, FontWeight.w600, t.ink),
-                        ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: MonoType.inter(
-                    12,
-                    16,
-                    FontWeight.w500,
-                    taken ? t.ink : t.ink2,
-                  ),
-                ),
-              ],
-            ),
-          ),
+/// The supplements of today as a ring and chips, each chip ticking its
+/// supplement off or back on.
+Widget monoSupplementBoard(BuildContext context, MonoCtx c) {
+  final l10n = c.l10n;
+  final data = c.scope.supplements.data;
+  final now = c.health.now;
+  final mine = [...data.mine]
+    ..sort((a, b) => a.time.index.compareTo(b.time.index));
+  final count = mine.where((s) => data.takenOn(s.key, now) != null).length;
+  return MonoSupplementBoard(
+    countLabel: l10n.supplementsTakenOf(
+      c.formats.integer(count),
+      c.formats.integer(mine.length),
+    ),
+    entries: [
+      for (final s in mine)
+        MonoSupplementEntry(
+          key: s.key,
+          name: s.title(l10n),
+          detail: [
+            ?doseText(c.formats, s.amount, s.unit),
+            if (s.time != SupplementTime.any) s.time.label(l10n),
+          ].join(' · '),
+          taken: data.takenOn(s.key, now) != null,
+          onToggle: () => monoToggleSupplement(context, s),
         ),
-      ),
-    );
-  }
-}
-
-class _CheckPainter extends CustomPainter {
-  _CheckPainter(this.color, this.t);
-
-  final Color color;
-  final double t;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.54)
-      ..lineTo(size.width * 0.42, size.height * 0.76)
-      ..lineTo(size.width * 0.84, size.height * 0.28);
-    final metric = path.computeMetrics().first;
-    canvas.drawPath(
-      metric.extractPath(0, metric.length * t),
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_CheckPainter old) => old.t != t || old.color != color;
+    ],
+  );
 }
 
 // ─── For You, Days ──────────────────────────────────────────────────────

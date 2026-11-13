@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -128,7 +130,7 @@ class SupplementSheet extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: M3EFilledButton.tonal(
+                  child: LookButton.tonal(
                     size: M3EButtonSize.md,
                     onPressed: () {
                       Haptics.tap();
@@ -139,7 +141,7 @@ class SupplementSheet extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: M3EFilledButton(
+                  child: LookButton(
                     size: M3EButtonSize.md,
                     onPressed: () {
                       Haptics.tap();
@@ -298,7 +300,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
             Row(
               children: [
                 Expanded(
-                  child: M3EFilledButton.tonal(
+                  child: LookButton.tonal(
                     size: M3EButtonSize.md,
                     onPressed: _pickDay,
                     child: Text(formats.relativeDay(_at, _supplements.now)),
@@ -306,7 +308,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: M3EFilledButton.tonal(
+                  child: LookButton.tonal(
                     size: M3EButtonSize.md,
                     onPressed: _pickTime,
                     child: Text(clockOf(_at)),
@@ -340,7 +342,7 @@ class _IntakeSheetState extends State<IntakeSheet> {
               ),
             ],
             const SizedBox(height: 20),
-            M3EFilledButton(
+            LookButton(
               size: M3EButtonSize.md,
               onPressed: _save,
               child: Text(l10n.save),

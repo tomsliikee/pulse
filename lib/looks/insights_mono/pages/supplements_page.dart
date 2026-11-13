@@ -96,6 +96,9 @@ class _MonoSupplementsPageState extends State<MonoSupplementsPage> {
                       style: MonoType.body(t),
                       decoration: InputDecoration(
                         border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        filled: false,
                         isCollapsed: true,
                         hintText: l10n.supplementSearch,
                         hintStyle: MonoType.inter(

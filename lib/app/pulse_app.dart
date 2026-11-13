@@ -13,6 +13,9 @@ import '../data/health_repository.dart';
 import '../data/json_store.dart';
 import '../data/settings_controller.dart';
 import '../data/supplement_controller.dart';
+import '../data/training/training_controller.dart';
+import '../looks/insights_mono/shell/mono_dock.dart';
+import '../looks/insights_mono/shell/mono_dock_controller.dart';
 import '../data/weather.dart';
 import '../data/weather_controller.dart';
 import '../features/week/week_page.dart';
@@ -75,9 +78,15 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     widget.store,
     clock: widget.clock,
   );
+  late final TrainingController _training = TrainingController(
+    widget.store,
+    clock: widget.clock,
+  )..onRestOver = Haptics.confirm;
   final ValueNotifier<SystemPalette?> _palette = ValueNotifier(null);
   final FrameLog _frames = FrameLog();
   final GlobalKey<NavigatorState> _navigator = GlobalKey();
+  final MonoDockController _dock = MonoDockController();
+  late final MonoDockObserver _dockObserver = MonoDockObserver(_dock);
 
   @override
   void initState() {
@@ -107,6 +116,11 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _supplements.addListener(_keepMorningAlarm);
     _settings.load();
     _supplements.load();
+    // A session is linked to the workout a watch recorded, once it is read.
+    _training.load().then((_) => _training.link(_health.workouts));
+    _health.addListener(() {
+      if (!_health.refreshing) _training.link(_health.workouts);
+    });
     _language.refresh();
     _health.start();
     _loadPalette();
@@ -129,6 +143,12 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Back in the foreground: other apps may have written new data, and the
     // wallpaper or the app's language may have changed in the system.
+    // A number typed in a training waits a moment to be saved; not when the
+    // app may be closed.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _training.flush();
+    }
     if (state == AppLifecycleState.resumed) {
       _frames.mark('resumed');
       _language.refresh();
@@ -257,6 +277,8 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
     _language.dispose();
     _weather.dispose();
     _supplements.dispose();
+    _training.dispose();
+    _dock.dispose();
     _settings.dispose();
     _palette.dispose();
     super.dispose();
@@ -296,6 +318,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
       language: _language,
       weather: _weather,
       supplements: _supplements,
+      training: _training,
       systemPalette: _palette,
       files: widget.files,
       child: ListenableBuilder(
@@ -306,7 +329,7 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
           final language = _language.forced;
           return MaterialApp(
             navigatorKey: _navigator,
-            navigatorObservers: [appRouteObserver],
+            navigatorObservers: [appRouteObserver, _dockObserver],
             onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
             locale: language == null ? null : Locale(language),
             // The first entry is used when the system's language is not offered.
@@ -357,7 +380,11 @@ class _PulseAppState extends State<PulseApp> with WidgetsBindingObserver {
                               glass: _settings.glassBlur,
                               glassLevel: _settings.glassLevel,
                             ),
-                            child: child!,
+                            child: MonoDockHost(
+                              controller: _dock,
+                              navigator: _navigator,
+                              child: child!,
+                            ),
                           )
                         : child!,
                   ),

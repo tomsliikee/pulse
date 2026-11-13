@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../data/health_controller.dart';
 import '../../widgets/morphing_shape.dart';
@@ -94,7 +96,7 @@ class AccessPage extends StatelessWidget {
             ),
             if (action != null && onAction != null) ...[
               const SizedBox(height: 32),
-              M3EFilledButton(
+              LookButton(
                 size: M3EButtonSize.md,
                 onPressed: onAction,
                 child: Text(action),

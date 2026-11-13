@@ -1,5 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../widgets/look_controls.dart';
+
 import 'package:motor/motor.dart';
 
 import '../../app/app_scope.dart';
@@ -643,7 +646,7 @@ class GoalSetting extends StatelessWidget {
             ),
             Semantics(
               label: goal.label(l10n),
-              child: Switch(
+              child: LookSwitch(
                 value: on,
                 onChanged: (value) {
                   Haptics.selection();
@@ -671,18 +674,11 @@ class GoalSetting extends StatelessWidget {
                 ),
           child: Padding(
             padding: const EdgeInsets.only(right: 8, bottom: 8),
-            child: M3ESlider(
+            child: LookSlider(
               value: target.clamp(goal.min, goal.max).toDouble(),
               min: goal.min,
               max: goal.max,
               divisions: ((goal.max - goal.min) / goal.step).round(),
-              // The slider ticks itself, a step at a time and firmer the
-              // further up it is; the value it reports changes with every
-              // tremor of a resting finger.
-              decoration: M3ESliderDecoration(
-                haptic: Haptics.widget,
-                hapticConfig: Haptics.slider,
-              ),
               onChanged: (next) => settings.setGoalTarget(goal, next),
             ),
           ),

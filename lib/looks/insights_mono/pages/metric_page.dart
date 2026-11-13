@@ -77,7 +77,7 @@ class _MonoMetricPageState extends State<MonoMetricPage> {
               category: category,
               icon: metric.spec.icon,
               categoryLabel: metric.title(c.l10n),
-              backLabel: c.l10n.monoBrowse,
+              backLabel: c.l10n.monoSearch,
               children: const [],
             );
           }
@@ -371,7 +371,7 @@ class _MonoMetricPageState extends State<MonoMetricPage> {
       category: category,
       icon: metric.spec.icon,
       categoryLabel: metric.title(l10n),
-      backLabel: l10n.monoBrowse,
+      backLabel: l10n.monoSearch,
       statement: statement,
       children: children,
     );

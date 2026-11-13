@@ -1,5 +1,6 @@
-import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../widgets/look_button.dart';
 
 import '../../app/formatters.dart';
 import '../../app/morning_notices.dart';
@@ -87,7 +88,7 @@ class _LiveSettingsState extends State<LiveSettings>
                   const SizedBox(height: 8),
                   Text(l10n.liveSystemOff, style: muted),
                   const SizedBox(height: 8),
-                  M3EFilledButton.tonal(
+                  LookButton.tonal(
                     onPressed: MorningNotices.openPromotionSettings,
                     child: Text(l10n.liveSystemOpen),
                   ),

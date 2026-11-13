@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -212,7 +214,7 @@ class _IntroPageState extends State<IntroPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: SizedBox(
             width: double.infinity,
-            child: M3EFilledButton(
+            child: LookButton(
               size: M3EButtonSize.md,
               onPressed: last ? _finish : () => _turn(1),
               child: Text(last ? l10n.introFinish : l10n.morningNext),

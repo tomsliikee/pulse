@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 
-import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
+
+import '../../widgets/look_button.dart';
 
 import '../../app/formatters.dart';
 import '../../data/models.dart';
@@ -188,10 +189,7 @@ class RouteConsentSection extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            M3EFilledButton.tonal(
-              onPressed: onAllow,
-              child: Text(l10n.routeAllow),
-            ),
+            LookButton.tonal(onPressed: onAllow, child: Text(l10n.routeAllow)),
           ],
         ),
       ),

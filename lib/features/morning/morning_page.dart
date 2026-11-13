@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/container_route.dart';
 import '../../app/formatters.dart';
@@ -236,7 +238,7 @@ class _MorningPageState extends State<MorningPage> {
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                             child: SizedBox(
                               width: double.infinity,
-                              child: M3EFilledButton(
+                              child: LookButton(
                                 size: M3EButtonSize.md,
                                 onPressed: last
                                     ? () => Navigator.of(context).maybePop()

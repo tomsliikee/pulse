@@ -21,6 +21,7 @@ bool _kept(String name) =>
     name.startsWith(RouteArchive.prefix) ||
     name == StoreKeys.workouts ||
     name == StoreKeys.supplements ||
+    name == StoreKeys.training ||
     name == StoreKeys.settings;
 
 /// The name a backup made at [now] is offered under.
@@ -112,6 +113,14 @@ Future<BackupResult> importBackup(
     if (supplements.intakes.length != ownSupplements.intakes.length ||
         supplements.supplements.length != ownSupplements.supplements.length) {
       await store.write(StoreKeys.supplements, supplements.toJson());
+    }
+
+    // The trainings exist nowhere else either; they come back whole where
+    // the app has none.
+    final training = documents[StoreKeys.training];
+    if (training is Map<String, Object?> &&
+        await store.read(StoreKeys.training) == null) {
+      await store.write(StoreKeys.training, training);
     }
 
     final settings = documents[StoreKeys.settings];

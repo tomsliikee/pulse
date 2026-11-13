@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -288,14 +290,14 @@ class _AccessCardState extends State<AccessCard> {
               spacing: 12,
               children: [
                 Text(l10n.introAccessMissing, style: theme.textTheme.bodyLarge),
-                M3EFilledButton(
+                LookButton(
                   size: M3EButtonSize.md,
                   onPressed: health.installStore,
                   child: Text(l10n.missingAction),
                 ),
               ],
             ),
-            HealthStatus.needsAccess => M3EFilledButton(
+            HealthStatus.needsAccess => LookButton(
               size: M3EButtonSize.md,
               onPressed: _asking ? null : () => _ask(health),
               child: Text(l10n.accessAction),

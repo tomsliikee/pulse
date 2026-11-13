@@ -48,6 +48,8 @@ object LiveNotice {
     fun cancel(context: Context) {
         val manager = context.getSystemService(NotificationManager::class.java)
         for (shown in manager.activeNotifications) {
+            // The rest of a training goes on while the app is open.
+            if (shown.tag == TrainingNotice.TAG) continue
             if (shown.notification.flags and Notification.FLAG_ONGOING_EVENT != 0) {
                 manager.cancel(shown.tag, shown.id)
             }

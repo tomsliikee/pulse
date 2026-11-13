@@ -1,6 +1,10 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
+import '../../looks/insights_mono/pages/search_pins_page.dart';
+
 import '../../app/app_scope.dart';
 import '../../data/backup.dart';
 import '../../app/formatters.dart';
@@ -31,8 +35,23 @@ import 'step_counting_sheet.dart';
 
 /// The settings, in parts that fold open: you, goals and supplements, the
 /// notifications, the values, the look, the numbers, the data and the app.
+/// The sections of the profile, for opening it at one of them.
+enum ProfileSection {
+  aboutYou,
+  goals,
+  notifications,
+  measures,
+  appearance,
+  simple,
+  backup,
+  about,
+}
+
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  const ProfilePage({super.key, this.open});
+
+  /// The section that is open when the page comes in.
+  final ProfileSection? open;
 
   static const _modes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
   static const _sexes = [Sex.female, Sex.male];
@@ -167,6 +186,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.person_rounded,
                 title: l10n.aboutYou,
+                initiallyOpen: open == ProfileSection.aboutYou,
                 summary: [
                   ?settings.name,
                   if (settings.birthDate case final date?)
@@ -223,6 +243,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.flag_rounded,
                 title: l10n.settingsGoalsSupps,
+                initiallyOpen: open == ProfileSection.goals,
                 summary: [for (final goal in settings.goals) goal.label(l10n)]
                     .join(' · '),
                 children: [
@@ -256,6 +277,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.notifications_rounded,
                 title: l10n.settingsNotifications,
+                initiallyOpen: open == ProfileSection.notifications,
                 summary: notices.join(' · '),
                 children: [
                   SettingSwitch(
@@ -307,6 +329,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.tune_rounded,
                 title: l10n.settingsValues,
+                initiallyOpen: open == ProfileSection.measures,
                 summary: [
                   settings.fineValues ? l10n.valuesFine : l10n.valuesCoarse,
                   settings.stepCounting.label(l10n),
@@ -371,7 +394,7 @@ class ProfilePage extends StatelessWidget {
                         children: [
                           Text(l10n.routeConsentNote, style: muted),
                           const SizedBox(height: 12),
-                          M3EFilledButton.tonal(
+                          LookButton.tonal(
                             onPressed: health.requestRoutes,
                             child: Text(l10n.routeAllow),
                           ),
@@ -398,6 +421,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.palette_rounded,
                 title: l10n.appearance,
+                initiallyOpen: open == ProfileSection.appearance,
                 summary: [
                   lookLabels[settings.look.index],
                   themeLabels[_modes.indexOf(settings.themeMode)],
@@ -444,6 +468,23 @@ class ProfilePage extends StatelessWidget {
                             onChanged: settings.setGlassLevel,
                           ),
                         ],
+                      ),
+                    ),
+                  if (settings.look.isInsights)
+                    SettingSwitch(
+                      title: l10n.dockShrink,
+                      note: l10n.dockShrinkNote,
+                      value: settings.dockShrink,
+                      onChanged: settings.setDockShrink,
+                    ),
+                  if (settings.look.isInsights)
+                    SettingLink(
+                      title: l10n.searchPinsTitle,
+                      value: l10n.searchPinnedCount(settings.searchPins.length),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const MonoSearchPinsPage(),
+                        ),
                       ),
                     ),
                   if (settings.look == AppLook.insightsFlex)
@@ -529,6 +570,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.tag_rounded,
                 title: l10n.simpleTitle,
+                initiallyOpen: open == ProfileSection.simple,
                 summary: settings.simple ? l10n.simpleOn : l10n.simpleOff,
                 children: [
                   SettingBlock(
@@ -563,6 +605,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.storage_rounded,
                 title: l10n.settingsDataBackup,
+                initiallyOpen: open == ProfileSection.backup,
                 summary: loadedAt == null
                     ? null
                     : l10n.dateAtTime(
@@ -626,7 +669,7 @@ class ProfilePage extends StatelessWidget {
                           ),
                           if (!health.backgroundAccess) ...[
                             const SizedBox(height: 12),
-                            M3EFilledButton.tonal(
+                            LookButton.tonal(
                               onPressed: health.requestBackgroundAccess,
                               child: Text(l10n.refreshInBackground),
                             ),
@@ -635,7 +678,7 @@ class ProfilePage extends StatelessWidget {
                             const SizedBox(height: 14),
                             Text(l10n.historyOff, style: muted),
                             const SizedBox(height: 12),
-                            M3EFilledButton.tonal(
+                            LookButton.tonal(
                               onPressed: health.requestHistoryAccess,
                               child: Text(l10n.historyLoad),
                             ),
@@ -655,11 +698,11 @@ class ProfilePage extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            M3EFilledButton.tonal(
+                            LookButton.tonal(
                               onPressed: () => _saveBackup(context),
                               child: Text(l10n.backupSave),
                             ),
-                            M3EFilledButton.tonal(
+                            LookButton.tonal(
                               onPressed: () => _openBackup(context),
                               child: Text(l10n.backupOpen),
                             ),
@@ -673,6 +716,7 @@ class ProfilePage extends StatelessWidget {
               FoldSection(
                 icon: Icons.info_outline_rounded,
                 title: l10n.settingsAbout,
+                initiallyOpen: open == ProfileSection.about,
                 children: [
                   SettingLink(
                     title: l10n.introAgain,

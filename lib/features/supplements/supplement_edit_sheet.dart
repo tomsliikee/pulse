@@ -1,6 +1,10 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_controls.dart';
+
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -250,7 +254,7 @@ class _SupplementEditSheetState extends State<SupplementEditSheet> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Switch(
+                LookSwitch(
                   value: _remind && _time != SupplementTime.any,
                   onChanged: _time == SupplementTime.any
                       ? null
@@ -275,7 +279,7 @@ class _SupplementEditSheetState extends State<SupplementEditSheet> {
               children: [
                 if (existing != null && !existing.removed) ...[
                   Expanded(
-                    child: M3EFilledButton.tonal(
+                    child: LookButton.tonal(
                       size: M3EButtonSize.md,
                       onPressed: () => _remove(existing),
                       child: Text(l10n.remove),
@@ -284,7 +288,7 @@ class _SupplementEditSheetState extends State<SupplementEditSheet> {
                   const SizedBox(width: 8),
                 ],
                 Expanded(
-                  child: M3EFilledButton(
+                  child: LookButton(
                     size: M3EButtonSize.md,
                     onPressed: _save,
                     child: Text(l10n.save),

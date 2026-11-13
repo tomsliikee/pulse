@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../widgets/entrance.dart';
 import '../../app/app_scope.dart';
 import '../../app/back_gesture.dart';
@@ -346,7 +348,7 @@ class _EntrySheetState extends State<EntrySheet> {
                     Expanded(
                       child: Entrance(
                         order: index + 1,
-                        child: M3EFilledButton.tonal(
+                        child: LookButton.tonal(
                           onPressed: () {
                             Haptics.selection();
                             setState(() => _amount.text = ml.toString());
@@ -395,7 +397,7 @@ class _EntrySheetState extends State<EntrySheet> {
               ),
             ],
             const SizedBox(height: 20),
-            M3EFilledButton(
+            LookButton(
               size: M3EButtonSize.md,
               enabled: !_saving,
               onPressed: _save,

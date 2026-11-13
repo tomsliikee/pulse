@@ -17,6 +17,13 @@ import '../widgets/mono_charts.dart';
 import '../widgets/mono_controls.dart';
 import '../widgets/mono_page.dart';
 import 'list_pages.dart';
+import 'training/session_page.dart';
+import 'training/training_start.dart';
+import 'training/training_text.dart';
+import '../../../data/training/exercise_library.dart';
+import '../../../data/training/training_insights.dart';
+import '../../../data/training/training_models.dart';
+import '../widgets/mono_sheet.dart';
 
 /// One workout in the look: its figure and what it says, every number, the
 /// route, each number against the one before and the usual one, the last
@@ -67,7 +74,11 @@ class MonoWorkoutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final scope = MonoCtx.of(context).scope;
     return ListenableBuilder(
-      listenable: Listenable.merge([scope.health, scope.settings]),
+      listenable: Listenable.merge([
+        scope.health,
+        scope.settings,
+        scope.training,
+      ]),
       builder: (context, _) {
         final c = MonoCtx.of(context);
         final l10n = c.l10n;
@@ -143,6 +154,9 @@ class MonoWorkoutPage extends StatelessWidget {
                 ],
               ),
             ),
+            if (current.type.family == WorkoutFamily.strength ||
+                _sessionOf(c, current) != null)
+              _TrainingBlock(c: c, workout: current),
             if (shown.isNotEmpty)
               MonoBlock(
                 title: l10n.workoutNumbers,
@@ -290,6 +304,114 @@ class MonoWorkoutPage extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+TrainingSession? _sessionOf(MonoCtx c, Workout workout) => c
+    .scope
+    .training
+    .data
+    .sessions
+    .where((s) => s.linkedWorkout == workout.key)
+    .firstOrNull;
+
+/// What was lifted in this workout: the training of the app it is linked
+/// to, each exercise with its sets, or the way to put the sets in.
+class _TrainingBlock extends StatelessWidget {
+  const _TrainingBlock({required this.c, required this.workout});
+
+  final MonoCtx c;
+  final Workout workout;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = c.l10n;
+    final t = c.t;
+    final training = c.scope.training;
+    final session = _sessionOf(c, workout);
+    if (session == null) {
+      final usual = usualTemplate(training.data, workout.start);
+      return MonoBlock(
+        title: l10n.trainingExercises,
+        child: MonoSurface(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(l10n.trainingNotLinked, style: MonoType.sub(t)),
+              const SizedBox(height: 14),
+              MonoPrimaryButton(
+                label: usual == null
+                    ? l10n.trainingLogAfter
+                    : l10n.trainingLogAs(usual.name),
+                tonal: true,
+                onTap: () => logTrainingAfter(
+                  Navigator.of(context),
+                  training: training,
+                  workout: workout,
+                  template: usual,
+                  name: l10n.trainingSession,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final language = l10n.localeName;
+    final custom = training.data.customExercises;
+    return MonoBlock(
+      title: session.name.isEmpty ? l10n.trainingSession : session.name,
+      child: MonoSurface(
+        onTap: () => c.push(MonoSessionPage(sessionId: session.id)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            MonoGrid(
+              cells: [
+                MonoStat(
+                  label: l10n.trainingSetsLabel,
+                  value: c.formats.integer(session.countingSets.length),
+                  small: true,
+                ),
+                MonoStat(
+                  label: l10n.trainingVolume,
+                  value: c.formats.integer(session.volume.round()),
+                  unit: 'kg',
+                  small: true,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            for (final e in session.exercises)
+              if (e.sets.any((s) => s.done))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        exerciseById(e.exerciseId, custom)?.name(language) ??
+                            e.exerciseId,
+                        style: MonoType.inter(16, 21, FontWeight.w600, t.ink),
+                      ),
+                      Text(
+                        [
+                          for (final s in e.sets)
+                            if (s.done) setText(c.formats, s),
+                        ].join(' · '),
+                        style: MonoType.label(t),
+                      ),
+                    ],
+                  ),
+                ),
+            MonoRow(
+              title: l10n.trainingOpenSession,
+              onTap: () => c.push(MonoSessionPage(sessionId: session.id)),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

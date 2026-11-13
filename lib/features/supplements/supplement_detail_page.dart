@@ -6,7 +6,9 @@ import '../../app/formatters.dart';
 import '../../app/haptics.dart';
 import '../../data/supplements.dart';
 import '../../theme/app_shapes.dart';
+import '../../looks/insights_mono/pages/supplement_detail_page.dart';
 import '../../theme/app_theme.dart';
+import '../../theme/pulse_look.dart';
 import '../../widgets/page_header.dart';
 import '../../widgets/segment_group.dart';
 import '../../widgets/stat_tile.dart';
@@ -54,6 +56,9 @@ class SupplementDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (PulseLook.monoOf(context)) {
+      return MonoSupplementDetailPage(supplementKey: supplementKey);
+    }
     final scope = AppScope.of(context);
     return ListenableBuilder(
       listenable: Listenable.merge([scope.supplements, scope.settings]),
@@ -129,7 +134,7 @@ class SupplementDetailPage extends StatelessWidget {
                 radius: AppRadii.extraLarge,
                 child: Padding(
                   padding: const EdgeInsets.all(20),
-                  child: _Calendar(
+                  child: SupplementCalendar(
                     days: data.daysOf(supplementKey),
                     today: today,
                     weekdays: formats.weekdayShort,
@@ -173,10 +178,11 @@ class SupplementDetailPage extends StatelessWidget {
   }
 }
 
-/// The last [_weeks] weeks, Monday to Sunday, a filled dot for each day
+/// The last six weeks, Monday to Sunday, a filled dot for each day
 /// the supplement was taken on.
-class _Calendar extends StatelessWidget {
-  const _Calendar({
+class SupplementCalendar extends StatelessWidget {
+  const SupplementCalendar({
+    super.key,
     required this.days,
     required this.today,
     required this.weekdays,

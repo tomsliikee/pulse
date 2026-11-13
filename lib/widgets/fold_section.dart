@@ -2,6 +2,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../app/haptics.dart';
 import '../theme/app_type.dart';
+import '../looks/insights_mono/theme/mono_tokens.dart';
+import '../looks/insights_mono/theme/mono_type.dart';
+import '../looks/insights_mono/widgets/mono_controls.dart';
+import '../looks/insights_mono/widgets/mono_motion.dart';
 import '../theme/pulse_look.dart';
 
 /// A part of the settings in a card that folds open: its icon, its title
@@ -90,10 +94,12 @@ class FoldSectionState extends State<FoldSection>
     final scheme = theme.colorScheme;
     final mono = PulseLook.monoOf(context);
     final icon = widget.icon;
+    final t = mono ? MonoTokens.of(context) : null;
     final head = Semantics(
       button: true,
       expanded: isOpen,
-      child: InkWell(
+      child: _Tap(
+        mono: mono,
         onTap: _toggle,
         child: Padding(
           padding: icon == null
@@ -107,12 +113,12 @@ class FoldSectionState extends State<FoldSection>
                   height: 44,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: mono ? scheme.primary : scheme.primaryContainer,
+                    color: t?.fill ?? scheme.primaryContainer,
                   ),
                   child: Icon(
                     icon,
                     size: 22,
-                    color: mono ? scheme.onPrimary : scheme.onPrimaryContainer,
+                    color: t?.ink ?? scheme.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -123,7 +129,14 @@ class FoldSectionState extends State<FoldSection>
                   children: [
                     Text(
                       widget.title,
-                      style: icon == null
+                      style: t != null
+                          ? MonoType.inter(
+                              icon == null ? 16 : 17,
+                              22,
+                              icon == null ? FontWeight.w500 : FontWeight.w600,
+                              t.ink,
+                            )
+                          : icon == null
                           ? theme.textTheme.titleMedium
                           : AppType.of(context).heading(
                               theme.textTheme.titleMedium?.copyWith(
@@ -142,9 +155,11 @@ class FoldSectionState extends State<FoldSection>
                             summary,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
+                            style: t != null
+                                ? MonoType.label(t)
+                                : theme.textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
                           ),
                         ),
                       ),
@@ -184,7 +199,7 @@ class FoldSectionState extends State<FoldSection>
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Material(
-        color: scheme.surfaceBright,
+        color: t?.card ?? scheme.surfaceBright,
         borderRadius: BorderRadius.circular(mono ? 22 : 28),
         clipBehavior: Clip.antiAlias,
         child: column,
@@ -216,8 +231,11 @@ class SettingSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mono = PulseLook.monoOf(context);
+    final t = mono ? MonoTokens.of(context) : null;
     final row = MergeSemantics(
-      child: InkWell(
+      child: _Tap(
+        mono: mono,
         onTap: onChanged == null ? null : () => _set(!value),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 10, 12, 10),
@@ -227,22 +245,38 @@ class SettingSwitch extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: theme.textTheme.titleMedium),
+                    Text(
+                      title,
+                      style: t != null
+                          ? MonoType.inter(16, 22, FontWeight.w500, t.ink)
+                          : theme.textTheme.titleMedium,
+                    ),
                     if (note != null)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
                         child: Text(
                           note!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                          style: t != null
+                              ? MonoType.label(t)
+                              : theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
                         ),
                       ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
-              Switch(value: value, onChanged: onChanged == null ? null : _set),
+              if (mono)
+                MonoSwitch(
+                  value: value,
+                  onChanged: onChanged == null ? null : (on) => onChanged!(on),
+                )
+              else
+                Switch(
+                  value: value,
+                  onChanged: onChanged == null ? null : _set,
+                ),
             ],
           ),
         ),
@@ -300,7 +334,10 @@ class SettingLink extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return InkWell(
+    final mono = PulseLook.monoOf(context);
+    final t = mono ? MonoTokens.of(context) : null;
+    return _Tap(
+      mono: mono,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
@@ -310,15 +347,22 @@ class SettingLink extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: theme.textTheme.titleMedium),
+                  Text(
+                    title,
+                    style: t != null
+                        ? MonoType.inter(16, 22, FontWeight.w500, t.ink)
+                        : theme.textTheme.titleMedium,
+                  ),
                   if (subtitle != null)
                     Text(
                       subtitle!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      style: t != null
+                          ? MonoType.label(t)
+                          : theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
                     ),
                 ],
               ),
@@ -331,21 +375,39 @@ class SettingLink extends StatelessWidget {
                   value!,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: PulseLook.monoOf(context)
-                        ? scheme.onSurfaceVariant
-                        : scheme.primary,
-                  ),
+                  style: t != null
+                      ? MonoType.inter(15, 20, FontWeight.w500, t.ink2)
+                      : theme.textTheme.titleMedium?.copyWith(
+                          color: scheme.primary,
+                        ),
                 ),
               ),
             ],
             const SizedBox(width: 4),
-            Icon(Icons.chevron_right_rounded, color: scheme.onSurfaceVariant),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: t?.ink3 ?? scheme.onSurfaceVariant,
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+/// A tap on a row of the settings: the ripple of the standard look, or in
+/// the Insights looks the squash of the look without a ripple.
+class _Tap extends StatelessWidget {
+  const _Tap({required this.mono, required this.onTap, required this.child});
+
+  final bool mono;
+  final VoidCallback? onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => mono
+      ? MonoPress(onTap: onTap, squash: 0.012, child: child)
+      : InkWell(onTap: onTap, child: child);
 }
 
 /// A note or a choice inside a [FoldSection], with the section's gutter.

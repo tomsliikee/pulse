@@ -210,7 +210,6 @@ class _MonoLongevityPageState extends State<MonoLongevityPage> {
             if (!hidden.contains(b.name)) b,
         ];
         return MonoPage(
-          bottomInset: 140,
           floatTitle: l10n.monoLongevity,
           floatActions: [_pencil(c, 36)],
           children: [

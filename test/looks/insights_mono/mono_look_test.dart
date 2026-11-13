@@ -9,7 +9,6 @@ import 'package:pulse/app/app_scope.dart';
 import 'package:pulse/data/metric_catalog.dart';
 import 'package:pulse/looks/insights_mono/data/mono_data.dart';
 import 'package:pulse/looks/insights_mono/pages/body_age_page.dart';
-import 'package:pulse/looks/insights_mono/pages/browse_page.dart';
 import 'package:pulse/looks/insights_mono/pages/calories_page.dart';
 import 'package:pulse/looks/insights_mono/pages/day_page.dart';
 import 'package:pulse/looks/insights_mono/pages/goals_page.dart';
@@ -20,10 +19,10 @@ import 'package:pulse/looks/insights_mono/pages/metric_page.dart';
 import 'package:pulse/looks/insights_mono/pages/night_page.dart';
 import 'package:pulse/looks/insights_mono/pages/supplements_page.dart';
 import 'package:pulse/looks/insights_mono/pages/week_page.dart';
-import 'package:pulse/looks/insights_mono/pages/category_page.dart';
+import 'package:pulse/looks/insights_mono/pages/longevity_page.dart';
+import 'package:pulse/looks/insights_mono/shell/mono_dock.dart';
 import 'package:pulse/looks/insights_mono/shell/mono_shell.dart';
 import 'package:pulse/looks/insights_mono/widgets/mono_controls.dart';
-import 'package:pulse/looks/insights_mono/widgets/mono_floating_bar.dart';
 import 'package:pulse/looks/insights_mono/widgets/mono_page.dart';
 import 'package:pulse/looks/insights_mono/theme/mono_tokens.dart';
 
@@ -91,7 +90,7 @@ void main() {
         );
       });
 
-      testWidgets('$name Longevity and Browse in $mode', (tester) async {
+      testWidgets('$name Longevity and Training in $mode', (tester) async {
         final handle = tester.ensureSemantics();
         await pumpApp(
           tester,
@@ -106,12 +105,12 @@ void main() {
           find.byType(MonoShell),
           matchesGoldenFile('goldens/longevity_${name}_$mode.png'),
         );
-        await tester.tap(find.bySemanticsLabel('Browse'));
+        await tester.tap(find.bySemanticsLabel('Training'));
         await advance(tester);
         expect(tester.takeException(), isNull);
         await expectLater(
           find.byType(MonoShell),
-          matchesGoldenFile('goldens/browse_${name}_$mode.png'),
+          matchesGoldenFile('goldens/training_${name}_$mode.png'),
         );
         handle.dispose();
       });
@@ -158,24 +157,18 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, locale: const Locale('en'), store: _store());
-    await tester.tap(find.bySemanticsLabel('Browse'));
-    await advance(tester);
     await tester.tap(find.byType(TextField));
-    await tester.pump();
-    expect(tester.testTextInput.isVisible, isTrue);
-    await tester.scrollUntilVisible(
-      find.text('Activity').last,
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -240));
-    await tester.pump();
-    await tester.tap(find.text('Activity').last, warnIfMissed: false);
     await advance(tester);
-    expect(find.byType(MonoCategoryPage), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isTrue);
+    await tester.enterText(find.byType(TextField), 'steps');
+    await advance(tester);
+    expect(find.text('1 result'), findsNothing);
+    await tester.tap(find.text('Steps').last, warnIfMissed: false);
+    await advance(tester);
+    expect(find.byType(MonoMetricPage), findsOneWidget);
     await tester.tap(find.byType(MonoBackPill));
     await advance(tester);
-    expect(find.byType(MonoCategoryPage), findsNothing);
+    expect(find.byType(MonoMetricPage), findsNothing);
     expect(tester.testTextInput.isVisible, isFalse);
     expect(
       FocusManager.instance.primaryFocus?.context?.widget,
@@ -245,24 +238,24 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester, locale: const Locale('en'), store: _store());
-    final bar = tester.getRect(find.byType(MonoFloatingBar));
+    final bar = tester.getRect(find.byType(MonoTabs));
     final gesture = await tester.startGesture(
       bar.centerLeft + const Offset(40, 0),
     );
     await tester.pump(const Duration(milliseconds: 50));
-    for (var x = 40.0; x <= 225; x += 20) {
+    for (var x = 40.0; x <= bar.width - 20; x += 20) {
       await gesture.moveTo(bar.centerLeft + Offset(x, 0));
       await tester.pump(const Duration(milliseconds: 16));
     }
     await gesture.up();
     await advance(tester);
-    expect(find.byType(MonoBrowsePage), findsOneWidget);
+    expect(find.byType(MonoLongevityPage), findsOneWidget);
     expect(
       tester
           .widget<Offstage>(
             find
                 .ancestor(
-                  of: find.byType(MonoBrowsePage),
+                  of: find.byType(MonoLongevityPage),
                   matching: find.byType(Offstage),
                 )
                 .first,

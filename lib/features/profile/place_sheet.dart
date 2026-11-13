@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/haptics.dart';
 import '../../data/weather.dart';
@@ -136,7 +138,7 @@ class _PlaceSheetState extends State<_PlaceSheet> {
           ),
           if (current != null) ...[
             const SizedBox(height: 16),
-            M3EFilledButton.tonal(
+            LookButton.tonal(
               size: M3EButtonSize.md,
               onPressed: () => _pick(null),
               child: Text(l10n.placeRemove),

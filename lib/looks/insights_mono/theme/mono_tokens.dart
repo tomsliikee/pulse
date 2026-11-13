@@ -237,11 +237,170 @@ ThemeData monoTheme(
     bodyColor: tokens.ink,
     displayColor: tokens.ink,
   );
+  TextStyle inter(double size, FontWeight weight, Color color) => TextStyle(
+    fontFamily: face == MonoFace.flex ? AppTheme.fontFamily : 'Inter',
+    fontFamilyFallback: face == MonoFace.flex ? null : const ['Inter Ext'],
+    fontSize: size,
+    fontWeight: weight,
+    color: color,
+  );
+  final pill = WidgetStatePropertyAll<OutlinedBorder>(
+    RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+  );
+  // The parts of Material that pages, sheets and dialogs still use, in the
+  // look: no ripples, no outlines, round fields on a fill, ink for what is
+  // on, the type of the look.
   return base.copyWith(
     colorScheme: scheme,
     scaffoldBackgroundColor: tokens.bg,
     canvasColor: tokens.bg,
     textTheme: text,
+    splashFactory: NoSplash.splashFactory,
+    highlightColor: Colors.transparent,
+    dividerTheme: DividerThemeData(color: Colors.transparent, space: 12),
+    bottomSheetTheme: base.bottomSheetTheme.copyWith(
+      backgroundColor: glass ? tokens.bar : tokens.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      modalBarrierColor: Colors.black.withValues(alpha: 0.2),
+      dragHandleColor: tokens.ink3.withValues(alpha: 0.5),
+      dragHandleSize: const Size(38, 5),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+    ),
+    dialogTheme: base.dialogTheme.copyWith(
+      backgroundColor: tokens.card,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      titleTextStyle: inter(20, FontWeight.w600, tokens.ink),
+      contentTextStyle: inter(15, FontWeight.w400, tokens.ink2),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: tokens.fill,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(18),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      labelStyle: inter(15, FontWeight.w400, tokens.ink2),
+      floatingLabelStyle: inter(13, FontWeight.w500, tokens.ink2),
+      hintStyle: inter(16, FontWeight.w400, tokens.ink3),
+      suffixStyle: inter(15, FontWeight.w500, tokens.ink2),
+    ),
+    textSelectionTheme: TextSelectionThemeData(
+      cursorColor: tokens.ink,
+      selectionColor: tokens.ink.withValues(alpha: 0.18),
+      selectionHandleColor: tokens.ink,
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? tokens.onSolid : tokens.card,
+      ),
+      trackColor: WidgetStateProperty.resolveWith(
+        (s) => s.contains(WidgetState.selected) ? tokens.solid : tokens.fill,
+      ),
+      trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
+      thumbIcon: const WidgetStatePropertyAll(null),
+    ),
+    chipTheme: base.chipTheme.copyWith(
+      backgroundColor: tokens.fill,
+      selectedColor: tokens.solid,
+      checkmarkColor: tokens.onSolid,
+      side: BorderSide.none,
+      shape: const StadiumBorder(),
+      labelStyle: inter(14, FontWeight.w600, tokens.ink),
+      secondaryLabelStyle: inter(14, FontWeight.w600, tokens.onSolid),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        foregroundColor: WidgetStatePropertyAll(tokens.ink),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        textStyle: WidgetStatePropertyAll(
+          inter(15, FontWeight.w600, tokens.ink),
+        ),
+        shape: pill,
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStatePropertyAll(tokens.solid),
+        foregroundColor: WidgetStatePropertyAll(tokens.onSolid),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+        textStyle: WidgetStatePropertyAll(
+          inter(15, FontWeight.w600, tokens.onSolid),
+        ),
+        shape: pill,
+      ),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? tokens.solid : tokens.fill,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? tokens.onSolid : tokens.ink,
+        ),
+        side: const WidgetStatePropertyAll(BorderSide.none),
+        overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+      ),
+    ),
+    sliderTheme: base.sliderTheme.copyWith(
+      activeTrackColor: tokens.solid,
+      inactiveTrackColor: tokens.fill,
+      thumbColor: tokens.solid,
+      overlayColor: Colors.transparent,
+      valueIndicatorColor: tokens.solid,
+    ),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: tokens.ink,
+      linearTrackColor: tokens.fill,
+      circularTrackColor: tokens.fill,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: tokens.ink2,
+      textColor: tokens.ink,
+      titleTextStyle: inter(16, FontWeight.w500, tokens.ink),
+      subtitleTextStyle: inter(13, FontWeight.w400, tokens.ink2),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    ),
+    cardTheme: base.cardTheme.copyWith(
+      color: tokens.card,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: tokens.solid,
+      contentTextStyle: inter(15, FontWeight.w500, tokens.onSolid),
+      actionTextColor: tokens.onSolid,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 170),
+    ),
+    datePickerTheme: base.datePickerTheme.copyWith(
+      backgroundColor: tokens.card,
+      surfaceTintColor: Colors.transparent,
+      headerBackgroundColor: tokens.card,
+      headerForegroundColor: tokens.ink,
+    ),
+    timePickerTheme: base.timePickerTheme.copyWith(
+      backgroundColor: tokens.card,
+    ),
     extensions: [...base.extensions.values, tokens],
   );
 }

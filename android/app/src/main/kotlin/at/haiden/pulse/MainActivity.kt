@@ -195,6 +195,26 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(false)
                 }
             }
+        // The rest between two sets, shown with a countdown.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/training")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "rest" -> {
+                        val end = call.argument<Number>("end")?.toLong()
+                        if (end == null) {
+                            result.error("args", "No end", null)
+                            return@setMethodCallHandler
+                        }
+                        TrainingNotice.rest(this, end, call.argument<String>("title") ?: "")
+                        result.success(null)
+                    }
+                    "clear" -> {
+                        TrainingNotice.clear(this)
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
         // The language Android keeps for this app, so the profile and the
         // system's settings show and change the same value.
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "at.haiden.pulse/language")

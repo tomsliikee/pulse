@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import '../../../data/metric_catalog.dart';
 import '../../../features/detail/metric_spec.dart';
 import '../../../features/entry/foods_page.dart';
-import '../../../features/supplements/supplement_format.dart';
 import '../data/mono_actions.dart';
 import '../data/mono_data.dart';
 import '../data/mono_statements.dart';
@@ -13,7 +12,7 @@ import '../widgets/mono_category.dart';
 import '../widgets/mono_charts.dart';
 import '../widgets/mono_controls.dart';
 import '../widgets/mono_page.dart';
-import 'insights_page.dart' show MonoSupplementButton;
+import 'insights_page.dart' show monoSupplementBoard;
 import 'calories_page.dart';
 import 'metric_page.dart';
 import 'sleep_page.dart';
@@ -278,8 +277,10 @@ class MonoCategoryPage extends StatelessWidget {
         final data = c.scope.supplements.data;
         final mine = data.mine;
         final now = c.health.now;
-        final taken = [for (final s in mine) data.takenOn(s.key, now) != null];
-        final count = taken.where((v) => v).length;
+        final count = [
+          for (final s in mine)
+            if (data.takenOn(s.key, now) != null) s,
+        ].length;
         return _Spec(
           statement: mine.isEmpty
               ? l10n.supplementsNone
@@ -292,29 +293,7 @@ class MonoCategoryPage extends StatelessWidget {
             MonoSurface(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (mine.isNotEmpty)
-                    MonoStat(
-                      label: l10n.supplementTaken,
-                      value: l10n.supplementsTakenOf(
-                        c.formats.integer(count),
-                        c.formats.integer(mine.length),
-                      ),
-                    ),
-                  if (mine.isNotEmpty) const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
-                    children: [
-                      for (var i = 0; i < mine.length; i++)
-                        MonoSupplementButton(
-                          label: mine[i].title(l10n),
-                          taken: taken[i],
-                          onTap: () => monoToggleSupplement(context, mine[i]),
-                        ),
-                    ],
-                  ),
-                ],
+                children: [monoSupplementBoard(context, c)],
               ),
             ),
             MonoSurface(

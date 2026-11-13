@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -110,7 +112,7 @@ class _TargetWeightSheetState extends State<_TargetWeightSheet> {
             ),
           ],
           const SizedBox(height: 20),
-          M3EFilledButton(
+          LookButton(
             size: M3EButtonSize.md,
             onPressed: _save,
             child: Text(l10n.save),

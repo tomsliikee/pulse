@@ -1,6 +1,10 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_controls.dart';
+
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../app/haptics.dart';
@@ -135,7 +139,7 @@ class _SupplementsPageState extends State<SupplementsPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  M3EFilledButton.tonal(
+                  LookButton.tonal(
                     size: M3EButtonSize.md,
                     onPressed: () {
                       Haptics.tap();
@@ -179,9 +183,8 @@ class _SupplementsPageState extends State<SupplementsPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SectionTitle(l10n.supplementReminders),
-                    M3ESegmentedColumn(
+                    LookSegmentedColumn(
                       color: scheme.surfaceBright,
-                      haptic: Haptics.widget,
                       onTap: (i) => _pickMinute(SupplementTime.reminded[i]),
                       children: [
                         for (final time in SupplementTime.reminded)

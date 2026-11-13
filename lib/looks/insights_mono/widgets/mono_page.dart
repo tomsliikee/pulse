@@ -6,6 +6,7 @@ import '../theme/mono_type.dart';
 import 'mono_category.dart';
 import 'mono_floating_bar.dart';
 import 'mono_motion.dart';
+import '../shell/mono_dock.dart' show MonoDockSize;
 
 /// The page frame of the look: the ground, a gutter of 16 px and room at the
 /// bottom for the floating bar where there is one. The content runs under
@@ -16,7 +17,7 @@ class MonoPage extends StatefulWidget {
     required this.children,
     this.top,
     this.topInset = 16,
-    this.bottomInset = 40,
+    this.bottomInset,
     this.controller,
     this.floatTitle,
     this.floatActions = const [],
@@ -29,7 +30,10 @@ class MonoPage extends StatefulWidget {
 
   /// Air between the status bar and the first child.
   final double topInset;
-  final double bottomInset;
+
+  /// Room below the last child; by default enough to scroll it above the
+  /// dock.
+  final double? bottomInset;
   final ScrollController? controller;
 
   /// The title of a page whose header scrolls away. While the page is
@@ -107,7 +111,9 @@ class _MonoPageState extends State<MonoPage> {
               16,
               padding.top + widget.topInset,
               16,
-              widget.bottomInset + padding.bottom,
+              widget.bottomInset == null
+                  ? MonoDockSize.room(context)
+                  : widget.bottomInset! + padding.bottom,
             ),
             children: [?widget.top, ...widget.children],
           ),
@@ -282,6 +288,9 @@ class MonoSubPage extends StatelessWidget {
     final color = category.color(t);
     return Scaffold(
       backgroundColor: t.bg,
+      // The search of the dock rides the keyboard by itself; the page under
+      // it is not laid out again on every frame of the keyboard.
+      resizeToAvoidBottomInset: false,
       body: MonoFloatingBack(
         title: categoryLabel,
         backLabel: backLabel,

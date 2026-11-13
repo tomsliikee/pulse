@@ -1,6 +1,8 @@
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../widgets/look_button.dart';
+
 import '../../app/app_scope.dart';
 import '../../app/formatters.dart';
 import '../../data/body_age.dart';
@@ -96,7 +98,7 @@ class BodyAgePage extends StatelessWidget {
           children: [
             Text(l10n.birthDateWhy, style: muted),
             const SizedBox(height: 16),
-            M3EFilledButton.tonal(
+            LookButton.tonal(
               onPressed: () => showBirthDateSheet(context),
               child: Text(l10n.enterBirthDate),
             ),

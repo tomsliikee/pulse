@@ -1,16 +1,14 @@
 import 'package:material_ui/material_ui.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
-import '../pages/browse_page.dart';
 import '../pages/insights_page.dart';
 import '../pages/longevity_page.dart';
+import '../pages/training/training_page.dart';
 import '../theme/mono_tokens.dart';
-import '../widgets/mono_add_menu.dart';
-import '../widgets/mono_floating_bar.dart';
-import '../widgets/mono_icons.dart';
+import 'mono_dock_controller.dart';
 
-/// The home of the look: three pages — Insights, Longevity and Browse — the
-/// floating bar with its +, and on Browse the search above it.
+/// The home of the look: three pages — Insights, Training and Longevity.
+/// The dock with the search, the tabs and the + floats above it and every
+/// page pushed on it; it lives above the navigator, see `MonoDockHost`.
 class MonoShell extends StatefulWidget {
   const MonoShell({super.key});
 
@@ -19,25 +17,49 @@ class MonoShell extends StatefulWidget {
 }
 
 class _MonoShellState extends State<MonoShell> {
-  int _index = 0;
   final Set<int> _opened = {0};
-  final ValueNotifier<String> _query = ValueNotifier('');
+  MonoDockController? _dock;
 
-  static const int _browse = 2;
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final dock = MonoDockScope.read(context);
+    if (dock != _dock) {
+      _dock?.removeListener(_changed);
+      _dock?.detachHome();
+      _dock = dock;
+      dock?.addListener(_changed);
+      // A shell made anew, as after a change of look, opens the tab the dock
+      // shows.
+      if (dock != null && dock.tab != _index) {
+        _index = dock.tab;
+        _opened.add(_index);
+      }
+      // Not during the build: attaching notifies the dock.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _dock == dock) dock?.attachHome();
+      });
+    }
+  }
+
+  int _index = 0;
+
+  void _changed() {
+    final tab = _dock?.tab ?? 0;
+    if (tab == _index) return;
+    // The keyboard of the search does not follow to another page.
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _index = tab;
+      _opened.add(tab);
+    });
+  }
 
   @override
   void dispose() {
-    _query.dispose();
+    _dock?.removeListener(_changed);
+    _dock?.detachHome();
     super.dispose();
-  }
-
-  void _open(int index) {
-    // The keyboard of the search does not follow to another page.
-    if (index != _browse) FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _index = index;
-      _opened.add(index);
-    });
   }
 
   /// The pages are built once: the same widget again lets the framework skip
@@ -47,22 +69,18 @@ class _MonoShellState extends State<MonoShell> {
   Widget _page(int index) => _pages.putIfAbsent(
     index,
     () => switch (index) {
-      0 => MonoInsightsPage(onOpenBrowse: () => _open(_browse)),
-      1 => const MonoLongevityPage(),
-      _ => MonoBrowsePage(query: _query),
+      0 => const MonoInsightsPage(),
+      1 => const MonoTrainingPage(),
+      _ => const MonoLongevityPage(),
     },
   );
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final t = MonoTokens.of(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final barBottom = 28 + MediaQuery.paddingOf(context).bottom;
-    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
       backgroundColor: t.bg,
-      // The bar stays where it is; only the search rides up on the keyboard.
+      // The dock rides the keyboard by itself; the pages stay where they are.
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -75,40 +93,6 @@ class _MonoShellState extends State<MonoShell> {
                   enabled: index == _index,
                   child: _page(index),
                 ),
-              ),
-            ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: barBottom,
-            child: Center(
-              child: MonoFloatingBar(
-                tabs: [
-                  MonoTab(
-                    const Icon(Icons.insights_rounded),
-                    l10n.monoInsights,
-                  ),
-                  MonoTab(const MonoLongevityIcon(), l10n.monoLongevity),
-                  MonoTab(const Icon(Icons.grid_view_rounded), l10n.monoBrowse),
-                ],
-                selected: _index,
-                onSelected: _open,
-                addLabel: l10n.monoAdd,
-                onAdd: () => showMonoAddMenu(context, bottom: barBottom),
-              ),
-            ),
-          ),
-          if (_index == _browse)
-            Positioned(
-              left: (width - MonoFloatingBar.width) / 2,
-              right: (width - MonoFloatingBar.width) / 2,
-              bottom: keyboard > 0
-                  ? keyboard + 12
-                  : barBottom + MonoFloatingBar.height + 14,
-              child: MonoSearchPill(
-                query: _query,
-                hint: l10n.monoSearch,
-                clearLabel: l10n.close,
               ),
             ),
         ],

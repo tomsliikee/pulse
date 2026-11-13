@@ -295,3 +295,145 @@ class MonoCircleButton extends StatelessWidget {
     );
   }
 }
+
+/// An on/off switch in the look: a capsule that fills with ink when on and
+/// a round knob that springs across. Draggable and tappable.
+class MonoSwitch extends StatefulWidget {
+  const MonoSwitch({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.label,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  /// For the screen reader, where the switch stands without a text beside
+  /// it.
+  final String? label;
+
+  @override
+  State<MonoSwitch> createState() => _MonoSwitchState();
+}
+
+class _MonoSwitchState extends State<MonoSwitch>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController.unbounded(
+    vsync: this,
+    value: widget.value ? 1 : 0,
+  );
+  double? _drag;
+
+  static const double _w = 52;
+  static const double _h = 32;
+  static const double _knob = 24;
+
+  @override
+  void didUpdateWidget(MonoSwitch old) {
+    super.didUpdateWidget(old);
+    if (old.value != widget.value && _drag == null) _go(widget.value);
+  }
+
+  void _go(bool on) {
+    final target = on ? 1.0 : 0.0;
+    if (monoStill(context)) {
+      _c.value = target;
+      return;
+    }
+    _c.animateWith(SpringSimulation(monoSpring, _c.value, target, _c.velocity));
+  }
+
+  void _set(bool on) {
+    final change = widget.onChanged;
+    if (change == null) return;
+    _go(on);
+    if (on != widget.value) change(on);
+    // After the change, so switching the haptics on is felt.
+    Haptics.selection();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = MonoTokens.of(context);
+    final enabled = widget.onChanged != null;
+    return Semantics(
+      toggled: widget.value,
+      enabled: enabled,
+      label: widget.label,
+      onTap: enabled ? () => _set(!widget.value) : null,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: enabled ? () => _set(!widget.value) : null,
+          onHorizontalDragStart: enabled
+              ? (_) => _drag = _c.value.clamp(0.0, 1.0)
+              : null,
+          onHorizontalDragUpdate: enabled
+              ? (d) {
+                  _drag = ((_drag ?? 0) + d.delta.dx / (_w - _h)).clamp(0, 1);
+                  _c.value = _drag!;
+                }
+              : null,
+          onHorizontalDragEnd: enabled
+              ? (_) {
+                  final on = (_drag ?? 0) > 0.5;
+                  _drag = null;
+                  _set(on);
+                }
+              : null,
+          child: SizedBox(
+            width: _w + 4,
+            height: 48,
+            child: Center(
+              child: AnimatedBuilder(
+                animation: _c,
+                builder: (context, _) {
+                  final p = _c.value;
+                  final f = p.clamp(0.0, 1.0);
+                  final squash = _drag != null ? 1.18 : 1.0;
+                  return Opacity(
+                    opacity: enabled ? 1 : 0.4,
+                    child: Container(
+                      width: _w,
+                      height: _h,
+                      padding: const EdgeInsets.all((_h - _knob) / 2),
+                      decoration: BoxDecoration(
+                        color: Color.lerp(t.fill, t.solid, f),
+                        borderRadius: BorderRadius.circular(_h / 2),
+                      ),
+                      child: Align(
+                        alignment: Alignment(-1 + 2 * p, 0),
+                        child: Container(
+                          width: _knob * squash,
+                          height: _knob,
+                          decoration: BoxDecoration(
+                            color: Color.lerp(t.card, t.onSolid, f),
+                            borderRadius: BorderRadius.circular(_knob / 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.16),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

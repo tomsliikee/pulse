@@ -31,6 +31,7 @@ abstract final class StoreKeys {
   static const String sync = 'sync';
   static const String weather = 'weather';
   static const String morning = 'morning';
+  static const String training = 'training';
 
   /// Read and removed by the platform, which shows what it says.
   static const String morningNotice = 'morningNotice';

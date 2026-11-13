@@ -51,6 +51,20 @@ const List<String> _dayTilesOnTop = [
 /// means; see [SettingsController.load].
 const int _todayTilesVersion = 5;
 
+/// How many values the search can hold pinned.
+const int maxSearchPins = 8;
+
+/// The values pinned in the search until the user changes them: recovery and
+/// five metrics, by their ids in the search index.
+const List<String> defaultSearchPins = [
+  'recovery',
+  'steps',
+  'sleep',
+  'restingHeartRate',
+  'weight',
+  'heartRateVariability',
+];
+
 /// A tile of the Today page is named by its metric, or is one of the tiles
 /// that show no single measurement.
 bool isTodayTileId(String id) =>
@@ -231,6 +245,8 @@ class SettingsController extends ChangeNotifier {
   bool _flexTint = false;
   bool _glassBlur = true;
   int _glassLevel = 0;
+  bool _dockShrink = true;
+  List<String> _searchPins = defaultSearchPins;
   bool _expressive = false;
   bool _haptics = true;
   bool _introDone = true;
@@ -347,6 +363,14 @@ class SettingsController extends ChangeNotifier {
   /// How much the page shows through the glass: 0 frosted, 1 clearer,
   /// 2 clear.
   int get glassLevel => _glassLevel;
+
+  /// Whether the dock of the Insights looks gets smaller while a page is
+  /// scrolled down, and back to full size when it is scrolled up.
+  bool get dockShrink => _dockShrink;
+
+  /// The values the search of the Insights looks shows before anything is
+  /// typed, in order; at most [maxSearchPins].
+  List<String> get searchPins => _searchPins;
 
   /// Whether the app wears the expressive rework: wide type, more shapes,
   /// large headers.
@@ -481,6 +505,14 @@ class SettingsController extends ChangeNotifier {
     }
     if (json['glassBlur'] case final bool v) _glassBlur = v;
     if (json['glassLevel'] case final int v) _glassLevel = v.clamp(0, 2);
+    if (json['dockShrink'] case final bool v) _dockShrink = v;
+    if (json['searchPins'] case final List<Object?> ids) {
+      _searchPins = ids
+          .whereType<String>()
+          .toSet()
+          .take(maxSearchPins)
+          .toList();
+    }
     if (json['expressive'] case final bool v) _expressive = v;
     if (json['haptics'] case final bool v) _haptics = v;
     if (json['introDone'] case final bool v) _introDone = v;
@@ -690,6 +722,21 @@ class SettingsController extends ChangeNotifier {
   void setGlassLevel(int value) =>
       _update(() => _glassLevel = value.clamp(0, 2));
   void setExpressive(bool value) => _update(() => _expressive = value);
+  void setDockShrink(bool value) => _update(() => _dockShrink = value);
+
+  /// Replaces the pinned values of the search; duplicates and anything past
+  /// [maxSearchPins] are dropped.
+  void setSearchPins(List<String> ids) =>
+      _update(() => _searchPins = ids.toSet().take(maxSearchPins).toList());
+
+  /// Pins [id] at the end, or unpins it. A full list takes no more.
+  void toggleSearchPin(String id) {
+    if (_searchPins.contains(id)) {
+      setSearchPins([..._searchPins]..remove(id));
+    } else if (_searchPins.length < maxSearchPins) {
+      setSearchPins([..._searchPins, id]);
+    }
+  }
 
   void setHaptics(bool value) => _update(() => _haptics = value);
 
@@ -784,6 +831,8 @@ class SettingsController extends ChangeNotifier {
             'flexTint': _flexTint,
             'glassBlur': _glassBlur,
             'glassLevel': _glassLevel,
+            'dockShrink': _dockShrink,
+            'searchPins': _searchPins,
             'expressive': _expressive,
             'haptics': _haptics,
             'introDone': _introDone,

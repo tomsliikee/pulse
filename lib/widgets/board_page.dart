@@ -1,6 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:m3e_core/m3e_core.dart';
 import 'package:material_ui/material_ui.dart';
+
+import 'look_controls.dart';
+
 import 'package:motor/motor.dart';
 
 import '../app/app_scope.dart';
@@ -460,9 +463,8 @@ class _RemovedTiles extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionTitle(AppLocalizations.of(context).add),
-        M3ESegmentedColumn(
+        LookSegmentedColumn(
           color: scheme.surfaceBright,
-          haptic: Haptics.widget,
           onTap: (i) => onAdd(tiles[i].id),
           children: [
             for (final tile in tiles)
